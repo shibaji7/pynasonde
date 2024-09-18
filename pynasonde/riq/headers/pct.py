@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 
+import numpy as np
 from loguru import logger
 
+from pynasonde.riq.headers.default_factory import PCT_default_factory
+from pynasonde.riq.headers.sct import SctType
 from pynasonde.riq.utils import trim_null
 
 
@@ -32,8 +35,71 @@ class PctType:
         self.user = trim_null("\x00")
         return
 
-    def read_pct(self) -> None:
-        logger.info("Reading PCT strings...")
+    def load_sct(self, sct: SctType) -> None:
+        logger.info(f"Reading SCT {sct.user}")
+        self.start_year, self.start_day_number, self.start_month = (
+            sct.start_year,
+            sct.start_daynumber,
+            sct.start_month,
+        )
+        self.start_day, self.start_minute, self.start_second = (
+            sct.start_day,
+            sct.start_minute,
+            sct.start_second,
+        )
+        self.pct_offset = sct.sounding_table_size  # bytes
+        self.pct_count = sct.pulse_table_size  # bytes
+        self.num_receivers = sct.receiver.rx_chan
+        self.num_gates = sct.timing.gate_count
+        self.echo_count = self.num_receivers * self.num_gates  # per pulse, bytes
+        self.total_pulse_count = sct.timing.pri_count
+        self.frequency_count = sct.frequency.base_steps
+        self.max_range = sct.timing.gate_end * 0.15
+        # to km
+        self.min_range = sct.timing.gate_start * 0.15
+        # to km
+        self.tune_type = (
+            sct.frequency.tune_type
+        )  # 1= log 2 = linear 3 = table 4 = shuffle mode
+        self.data_offset = self.pct_count + (
+            4 * self.echo_count
+        )  # total size of pulse table and data block in bytes
+        return
+
+    def read_pct(self, fname: str, pulse_num: int = 1) -> None:
+        logger.info(f"Reading PCT Pulse: {pulse_num}")
+        byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
+        # Load all PCT Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(PCT_default_factory),
+            mode="r",
+            offset=byte_offset,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(PCT_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        self.read_pct_IQRxRG(fname, pulse_num)
+        return
+
+    def read_pct_IQRxRG(self, fname: str, pulse_num: int = 1) -> None:
+        logger.info(f"Reading IQRxRG Pulse: {pulse_num}")
+        byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
+        factory = [("IQRxRG", "int16", (2, self.num_receivers, self.num_gates))]
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(factory),
+            mode="r",
+            offset=byte_offset + self.pct_count,
+            shape=(1,),
+        )
+        # Read the data into memory for faster access
+        setattr(self, "IQRxRG", o[0][0])
+        # Data in the RIQ file is Big Endian
+        self.IQRxRG = self.IQRxRG.byteswap()
+        logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 
     def dump_pct(self, t32: float = 0.0000186264514923096) -> None:
@@ -58,5 +124,5 @@ class PctType:
         txt += f"# {'pct.procq_range_count':<30}{self.proc_range_count:>12}\n"
         txt += f"# {'pct.proc_noise_level':<30}{self.proc_noise_level:>12.2f}\n"
         txt += f"# {'pct.user:':<30}{self.user.strip()}\n"
-        logger.info(f"# PCT: \n {txt}")
+        logger.info(f"# PCT: \n{txt}")
         return

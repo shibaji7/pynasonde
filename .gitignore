@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# RIQ/nig files
+*nig*
+*RIQ*
+
 # Distribution / packaging
 .Python
 build/

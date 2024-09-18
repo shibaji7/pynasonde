@@ -2,8 +2,18 @@ from cmath import rect  # For complex numbers
 from dataclasses import dataclass, field
 from typing import List
 
+import numpy as np
 from loguru import logger
 
+from pynasonde.riq.headers.default_factory import (
+    Exciter_default_factory,
+    Frequency_default_factory,
+    Monitor_default_factory,
+    Reciever_default_factory,
+    SCT_default_factory,
+    Station_default_factory,
+    Timing_default_factory,
+)
 from pynasonde.riq.utils import trim_null
 
 
@@ -16,7 +26,7 @@ class StationType:
     rx_longitude: float = 0.0
     rx_altitude: float = 0.0
     rx_count: int = 0
-    rx_antenna_type: List[str] = field(default_factory=lambda: [""] * 32)
+    rx_antenna_type: str = ""
     rx_position: List[List[float]] = field(
         default_factory=lambda: [[0.0] * 32 for _ in range(3)]
     )
@@ -43,6 +53,21 @@ class StationType:
     ref_type: str = ""
     clock_type: str = ""
     user: str = ""
+
+    def read_station(self, fname: str) -> None:
+        # Load all Station Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Station_default_factory),
+            mode="r",
+            offset=316,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Station_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
 
 
 @dataclass
@@ -71,6 +96,21 @@ class TimingType:
     cal_pairs: int = 0
     user: str = ""
 
+    def read_timing(self, fname: str) -> None:
+        # Load all Timing Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Timing_default_factory),
+            mode="r",
+            offset=3552,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Timing_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
+
 
 @dataclass
 class FrequencyType:
@@ -92,6 +132,21 @@ class FrequencyType:
     drive_table: List[float] = field(default_factory=lambda: [0.0] * 8192)
     user: str = ""
 
+    def read_frequency(self, fname: str) -> None:
+        # Load all Frequency Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Frequency_default_factory),
+            mode="r",
+            offset=20324,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Frequency_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
+
 
 @dataclass
 class RecieverType:
@@ -111,6 +166,21 @@ class RecieverType:
     analog_delay: float = 0.0
     user: str = ""
 
+    def read_reciever(self, fname: str) -> None:
+        # Load all Reciever Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Reciever_default_factory),
+            mode="r",
+            offset=87184,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Reciever_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
+
 
 @dataclass
 class ExciterType:
@@ -126,6 +196,21 @@ class ExciterType:
     analog_delay: float = 0.0
     user: str = ""
 
+    def read_exciter(self, fname: str) -> None:
+        # Load all Exciter Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Exciter_default_factory),
+            mode="r",
+            offset=88152,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Exciter_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
+
 
 @dataclass
 class MonitorType:
@@ -135,6 +220,21 @@ class MonitorType:
     receiver_status: List[int] = field(default_factory=lambda: [0] * 8)
     exciter_status: List[int] = field(default_factory=lambda: [0] * 2)
     user: str = ""
+
+    def read_monitor(self, fname: str) -> None:
+        # Load all Frequency Type parameters
+        o = np.memmap(
+            fname,
+            dtype=np.dtype(Monitor_default_factory),
+            mode="r",
+            offset=89428,
+            shape=(1,),
+        )
+        for i, dtype in enumerate(Monitor_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        return
 
 
 @dataclass
@@ -163,6 +263,26 @@ class SctType:
     exciter: ExciterType = field(default_factory=ExciterType)
     monitor: MonitorType = field(default_factory=MonitorType)
 
+    def read_sct(self, fname: str) -> None:
+        logger.info(f"Reading SCT: {fname}")
+        # Load all SCT Type parameters
+        o = np.memmap(
+            fname, dtype=np.dtype(SCT_default_factory), mode="r", offset=0, shape=(1,)
+        )
+        for i, dtype in enumerate(SCT_default_factory):
+            setattr(self, dtype[0], o[0][i])
+            if (len(dtype) == 3) and (dtype[1] == "S4"):
+                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+        self.station.read_station(fname)
+        self.timing.read_timing(fname)
+        self.frequency.read_frequency(fname)
+        self.receiver.read_reciever(fname)
+        self.exciter.read_exciter(fname)
+        self.monitor.read_monitor(fname)
+
+        self.fix_SCT_strings()
+        return
+
     def fix_SCT_strings(self) -> None:
         logger.info("Fixing SCT strings...")
         self.user = trim_null(self.user)
@@ -171,10 +291,7 @@ class SctType:
         self.station.file_id = trim_null(self.station.file_id)
         self.station.ursi_id = trim_null(self.station.ursi_id)
         self.station.rx_name = trim_null(self.station.rx_name)
-        self.station.rx_antenna_type = [
-            trim_null(rx_antenna_type)
-            for rx_antenna_type in self.station.rx_antenna_type
-        ]
+        self.station.rx_antenna_type = trim_null(self.station.rx_antenna_type)
         self.station.tx_name = trim_null(self.station.tx_name)
         self.station.tx_antenna_type = trim_null(self.station.tx_antenna_type)
         self.station.ref_type = trim_null(self.station.ref_type)
@@ -196,10 +313,6 @@ class SctType:
 
         self.exciter.rcf_type = trim_null(self.exciter.rcf_type)
         self.exciter.user = trim_null(self.exciter.user)
-        return
-
-    def read_pct(self) -> None:
-        logger.info("Reading SCT strings...")
         return
 
     def dump_sct(self) -> None:
@@ -230,22 +343,21 @@ class SctType:
         txt += f"sct.station.rx_altitude: {self.station.rx_altitude:.2f}\n"
         txt += f"sct.station.rx_count: {self.station.rx_count}\n"
         txt += (
-            "rx_antenna_type",
-            "rx_position X Y Z",
-            "rx_direction X Y Z",
-            "rx_height",
-            "rx_cable_length\n",
+            "rx_antenna_type"
+            + "rx_position X Y Z"
+            + "rx_direction X Y Z"
+            + "rx_height"
+            + "rx_cable_length\n"
         )
         k = max(1, min(self.station.rx_count, 32))
-        if self.verbose:
-            k = 32
+        print(self.station.rx_antenna_type)
         for j in range(1, k + 1):
             txt += (
-                self.station.rx_antenna_type[j - 1]
-                + self.station.rx_position[:, j - 1]
-                + self.station.rx_direction[:, j - 1]
-                + self.station.rx_height[j - 1]
-                + self.station.rx_cable_length[j - 1]
+                self.station.rx_antenna_type
+                + str(self.station.rx_position[j - 1])
+                + str(self.station.rx_direction[j - 1])
+                + str(self.station.rx_height[j - 1])
+                + str(self.station.rx_cable_length[j - 1])
             )
         txt += f"sct.station.frontend_atten: {self.station.frontend_atten}\n"
         txt += f"sct.station.tx_name: {self.station.tx_name.strip()}\n"
@@ -256,15 +368,6 @@ class SctType:
         txt += f"sct.station.tx_height: {self.station.tx_height}\n"
         txt += f"sct.station.tx_cable_length: {self.station.tx_cable_length}\n"
         txt += f"sct.station.drive_band_count: {self.station.drive_band_count}\n"
-        txt += "drive_band_bounds", "drive_band_bounds", "drive_band_atten\n"
-        k = max(1, min(self.station.drive_band_count, 64))
-        if self.verbose:
-            k = 64
-        for j in range(1, k + 1):
-            txt += (
-                self.station.drive_band_bounds[:, j - 1]
-                + self.station.drive_band_atten[j - 1]
-            )
         txt += f"sct.station.rf_control: {self.station.rf_control}\n"
         txt += f"sct.station.ref_type: {self.station.ref_type.strip()}\n"
         txt += f"sct.station.clock_type: {self.station.clock_type.strip()}\n"
@@ -285,23 +388,15 @@ class SctType:
         txt += f"sct.timing.data_width: {self.timing.data_width}\n"
         txt += f"sct.timing.data_baud_count: {self.timing.data_baud_count}\n"
         txt += f"sct.timing.data_wave_file: {self.timing.data_wave_file.strip()}\n"
-        txt += "sct.timing.data_baud\n"
-        k = max(1, min(self.timing.data_baud_count, 1024))
-        if self.verbose:
-            k = 1024
-        for i in range(1, k + 1):
-            txt += f"{i}, {self.timing.data_baud[i - 1]}\n"
+        txt += f"sct.timing.data_baud: {','.join([str(c) for c in self.timing.data_baud])}\n"
         txt += f"sct.timing.data_pairs: {self.timing.data_pairs}\n"
         txt += f"sct.timing.cal_start: {self.timing.cal_start}\n"
         txt += f"sct.timing.cal_width: {self.timing.cal_width}\n"
         txt += f"sct.timing.cal_baud_count: {self.timing.cal_baud_count}\n"
         txt += f"sct.timing.cal_wave_file: {self.timing.cal_wave_file.strip()}\n"
-        txt += "sct.timing.cal_baud\n"
-        k = max(1, min(self.timing.cal_baud_count, 1024))
-        if self.verbose:
-            k = 1024
-        for i in range(1, k + 1):
-            txt += f"{i}, {self.timing.cal_baud[i - 1]}\n"
+        txt += (
+            f"sct.timing.cal_baud: {','.join([str(c) for c in self.timing.cal_baud])}\n"
+        )
         txt += f"sct.timing.cal_pairs: {self.timing.cal_pairs}\n"
         txt += f"sct.timing.user: {self.timing.user.strip()}\n"
 
@@ -312,54 +407,54 @@ class SctType:
         txt += f"sct.frequency.base_steps: {self.frequency.base_steps}\n"
         txt += f"sct.frequency.tune_type: {self.frequency.tune_type}\n"
         txt += "sct.frequency.base_table\n"
-        k = max(1, min(self.frequency.base_steps, 8192))
-        if self.verbose:
-            k = 8192
-        for i in range(1, k + 1):
-            txt += f"{i}, {self.frequency.base_table[i - 1]}\n"
+        txt += f"sct.frequency.base_table: {','.join([str(c) for c in self.frequency.base_table])}\n"
         txt += f"sct.frequency.linear_step: {self.frequency.linear_step}\n"
         txt += f"sct.frequency.log_step: {self.frequency.log_step}\n"
         txt += f"sct.frequency.freq_table_id: {self.frequency.freq_table_id.strip()}\n"
         txt += f"sct.frequency.tune_steps: {self.frequency.tune_steps}\n"
         txt += f"sct.frequency.pulse_count: {self.frequency.pulse_count}\n"
-        txt += "sct.frequency.pulse_pattern\n"
-        k = max(1, min(self.frequency.pulse_count, 256))
-        if self.verbose:
-            k = 256
-        for i in range(1, k + 1):
-            txt += f"{i}, {self.frequency.pulse_pattern[i - 1]}\n"
+        txt += f"sct.frequency.pulse_pattern: {','.join([str(c) for c in self.frequency.pulse_pattern])}\n"
         txt += f"sct.frequency.pulse_offset: {self.frequency.pulse_offset}\n"
         txt += f"sct.frequency.ramp_steps: {self.frequency.ramp_steps}\n"
-        txt += (
-            f"sct.frequency.freq_hop_table: {self.frequency.freq_hop_table.strip()}\n"
-        )
+        txt += f"sct.frequency.drive_table: {','.join([str(c) for c in self.frequency.drive_table])}\n"
         txt += f"sct.frequency.user: {self.frequency.user.strip()}\n"
 
         txt += "Reciever:\n"
         txt += f"sct.receiver.file_id: {self.receiver.file_id.strip()}\n"
-        txt += f"sct.receiver.sample_rate: {self.receiver.sample_rate}\n"
-        txt += f"sct.receiver.sample_width: {self.receiver.sample_width}\n"
-        txt += f"sct.receiver.decimation: {self.receiver.decimation}\n"
-        txt += f"sct.receiver.frontend_id: {self.receiver.frontend_id.strip()}\n"
-        txt += f"sct.receiver.rx_attenuator: {self.receiver.rx_attenuator}\n"
-        txt += f"sct.receiver.calibration: {self.receiver.calibration}\n"
-        txt += f"sct.receiver.coherent_channel: {self.receiver.coherent_channel}\n"
+        txt += f"sct.receiver.rx_chan: {self.receiver.rx_chan}\n"
+        txt += f"sct.receiver.word_format: {self.receiver.word_format}\n"
+        txt += f"sct.receiver.cic2_dec: {self.receiver.cic2_dec}\n"
+        txt += f"sct.receiver.cic2_interp: {self.receiver.cic2_interp}\n"
+        txt += f"sct.receiver.cic2_scale: {self.receiver.cic2_scale}\n"
+        txt += f"sct.receiver.cic5_dec: {self.receiver.cic5_dec}\n"
+        txt += f"sct.receiver.cic5_scale: {self.receiver.cic5_scale}\n"
+        txt += f"sct.receiver.rcf_type: {self.receiver.rcf_type}\n"
+        txt += f"sct.receiver.rcf_dec: {self.receiver.rcf_dec}\n"
+        txt += f"sct.receiver.rcf_taps: {self.receiver.rcf_taps}\n"
+        txt += f"sct.receiver.analog_delay: {self.receiver.analog_delay}\n"
+        txt += f"sct.receiver.coefficients: {','.join([str(c) for c in self.receiver.coefficients])}\n"
+        txt += f"sct.receiver.coefficients: {','.join([str(c) for c in self.receiver.rx_map])}\n"
         txt += f"sct.receiver.user: {self.receiver.user.strip()}\n"
 
         txt += "Exciter:\n"
         txt += f"sct.exciter.file_id: {self.exciter.file_id.strip()}\n"
-        txt += f"sct.exciter.exciter_id: {self.exciter.exciter_id.strip()}\n"
-        txt += f"sct.exciter.nominal_freq: {self.exciter.nominal_freq}\n"
-        txt += f"sct.exciter.rf_attenuation: {self.exciter.rf_attenuation}\n"
+        txt += f"sct.exciter.cic_scale: {self.exciter.cic_scale}\n"
+        txt += f"sct.exciter.cic2_dec: {self.exciter.cic2_dec}\n"
+        txt += f"sct.exciter.cic2_interp: {self.exciter.cic2_interp}\n"
+        txt += f"sct.exciter.cic5_interp: {self.exciter.cic5_interp}\n"
+        txt += f"sct.exciter.rcf_type: {self.exciter.rcf_type}\n"
+        txt += f"sct.exciter.rcf_taps: {self.exciter.rcf_taps}\n"
+        txt += f"sct.exciter.rcf_taps_phase: {self.exciter.rcf_taps_phase}\n"
+        txt += f"sct.exciter.analog_delay: {self.exciter.analog_delay}\n"
+        txt += f"sct.exciter.coefficients: {','.join([str(c) for c in self.exciter.coefficients])}\n"
         txt += f"sct.exciter.user: {self.exciter.user.strip()}\n"
 
         txt += "Monitor:\n"
-        txt += f"sct.monitor.file_id: {self.monitor.file_id.strip()}\n"
-        txt += f"sct.monitor.start_mode: {self.monitor.start_mode}\n"
-        txt += f"sct.monitor.end_mode: {self.monitor.end_mode}\n"
-        txt += f"sct.monitor.tx_power: {self.monitor.tx_power}"
-        txt += f"sct.monitor.calibration: {self.monitor.calibration}"
-        txt += f"sct.monitor.drive_value: {self.monitor.drive_value}"
+        txt += f"sct.monitor.balun_status: {self.monitor.balun_status}\n"
+        txt += f"sct.monitor.balun_currents: {self.monitor.balun_currents}\n"
+        txt += f"sct.monitor.front_end_status: {self.monitor.front_end_status}\n"
+        txt += f"sct.monitor.receiver_status: {self.monitor.receiver_status}\n"
+        txt += f"sct.monitor.exciter_status: {self.monitor.exciter_status}\n"
         txt += f"sct.monitor.user: {self.monitor.user.strip()}"
 
         logger.info(f"# SCT: \n {txt}")
