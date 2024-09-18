@@ -38,23 +38,25 @@ class PctType:
 
     def dump_pct(self, t32: float = 0.0000186264514923096) -> None:
         self.fix_PCT_strings()
-        txt = f"# {'pct.record_id':<30}{self.record_id:>12}"
-        txt += f"# {'pct.pri_ut':<30}{self.pri_ut:>12.2f}"
-        txt += f"# {'pct.pri_time_offset':<30}{self.pri_time_offset:>12.2f}"
-        txt += f"# {'pct.base_id':<30}{self.base_id:>12}"
-        txt += f"# {'pct.pulse_id':<30}{self.pulse_id:>12}"
-        txt += f"# {'pct.ramp_id':<30}{self.ramp_id:>12}"
-        txt += f"# {'pct.repeat_id':<30}{self.repeat_id:>12}"
-        txt += f"# {'pct.frequency':<30}{self.frequency:>12.2f} {self.frequency:>12.6e}"
-        txt += f"# {'pct.nco_tune_word':<30}0x{self.nco_tune_word:08X} {self.nco_tune_word:>12} {t32 * float(self.nco_tune_word):12.3f}"
-        txt += f"# {'pct.drive_attenuation':<30}{self.drive_attenuation:>12.2f}"
-        txt += f"# {'pct.pa_flags':<30}0x{self.pa_flags:08X}"
-        txt += f"# {'pct.pa_forward_power':<30}{self.pa_forward_power:>12.2f}"
-        txt += f"# {'pct.pa_reflected_power':<30}{self.pa_reflected_power:>12.2f}"
-        txt += f"# {'pct.pa_vswr':<30}{self.pa_vswr:>12.2f}"
-        txt += f"# {'pct.pa_temperature':<30}{self.pa_temperature:>12.2f}"
-        txt += f"# {'pct.procq_range_count':<30}{self.proc_range_count:>12}"
-        txt += f"# {'pct.proc_noise_level':<30}{self.proc_noise_level:>12.2f}"
-        txt += f"# {'pct.user:':<30}{self.user.strip()}"
+        txt = f"# {'pct.record_id':<30}{self.record_id:>12}\n"
+        txt += f"# {'pct.pri_ut':<30}{self.pri_ut:>12.2f}\n"
+        txt += f"# {'pct.pri_time_offset':<30}{self.pri_time_offset:>12.2f}\n"
+        txt += f"# {'pct.base_id':<30}{self.base_id:>12}\n"
+        txt += f"# {'pct.pulse_id':<30}{self.pulse_id:>12}\n"
+        txt += f"# {'pct.ramp_id':<30}{self.ramp_id:>12}\n"
+        txt += f"# {'pct.repeat_id':<30}{self.repeat_id:>12}\n"
+        txt += (
+            f"# {'pct.frequency':<30}{self.frequency:>12.2f} {self.frequency:>12.6e}\n"
+        )
+        txt += f"# {'pct.nco_tune_word':<30}0x{self.nco_tune_word:08X} {self.nco_tune_word:>12} {t32 * float(self.nco_tune_word):12.3f}\n"
+        txt += f"# {'pct.drive_attenuation':<30}{self.drive_attenuation:>12.2f}\n"
+        txt += f"# {'pct.pa_flags':<30}0x{self.pa_flags:08X}\n"
+        txt += f"# {'pct.pa_forward_power':<30}{self.pa_forward_power:>12.2f}\n"
+        txt += f"# {'pct.pa_reflected_power':<30}{self.pa_reflected_power:>12.2f}\n"
+        txt += f"# {'pct.pa_vswr':<30}{self.pa_vswr:>12.2f}\n"
+        txt += f"# {'pct.pa_temperature':<30}{self.pa_temperature:>12.2f}\n"
+        txt += f"# {'pct.procq_range_count':<30}{self.proc_range_count:>12}\n"
+        txt += f"# {'pct.proc_noise_level':<30}{self.proc_noise_level:>12.2f}\n"
+        txt += f"# {'pct.user:':<30}{self.user.strip()}\n"
         logger.info(f"# PCT: \n {txt}")
         return

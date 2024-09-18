@@ -9,7 +9,12 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name="pynasonde",
     version="0.1",
-    packages=["pynasonde"],
+    packages=[
+        "pynasonde",
+        "pynasonde/riq/",
+        "pynasonde/ngi/",
+        "pynasonde/riq/headers/",
+    ],
     package_dir={"pynasonde": "pynasonde"},
     package_data={"pynasonde": []},
     author="Shibaji Chakraborty",
