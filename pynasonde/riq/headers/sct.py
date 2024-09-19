@@ -12,7 +12,7 @@ from pynasonde.riq.headers.default_factory import (
     Reciever_default_factory,
     SCT_default_factory,
     Station_default_factory,
-    Timing_default_factory,
+    Timing_default_factory
 )
 from pynasonde.riq.utils import trim_null
 
