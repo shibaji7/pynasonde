@@ -6,6 +6,7 @@ from typing import List
 import requests
 from bs4 import BeautifulSoup
 from loguru import logger
+from tqdm import tqdm
 
 
 @dataclass
@@ -19,14 +20,18 @@ class Webhook:
     )
     ngi_file_name: str = "{URSI}_{year}{doy}{hour}{min}{sec}.ngi"
 
-    def download(self, source: str = "./tmp/", itr: int = 1):
+    def download(
+        self, source: str = "./tmp/", itr: int = 1, ngi: bool = True, riq: bool = False
+    ):
         for d in self.dates:
             self.source = os.path.join(source, d.strftime("%Y%m%d"))
             os.makedirs(self.source, exist_ok=True)
-            ngi_url = self.ngi_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(ngi_url, self.source, ".ngi", itr)
-            riq_url = self.riq_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(riq_url, self.source, ".RIQ", itr)
+            if ngi:
+                ngi_url = self.ngi_url.format(year=d.year, doy=d.timetuple().tm_yday)
+                self.__dump_files__(ngi_url, self.source, ".ngi", itr)
+            if riq:
+                riq_url = self.riq_url.format(year=d.year, doy=d.timetuple().tm_yday)
+                self.__dump_files__(riq_url, self.source, ".RIQ", itr)
         return self.source
 
     def __dump_files__(self, url: str, source: str, ext: str, itr: int = 1):
@@ -36,19 +41,22 @@ class Webhook:
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "lxml")
             table = soup.find_all("a", href=True)
-            for row in table:
+            for row in tqdm(table, total=len(table)):
                 href = row.attrs["href"]
                 if (self.URSI in href) and (
                     (ext.lower() in href) or (ext.upper() in href)
                 ):
-                    url = url + href
-                    rx = requests.get(url)
-                    if r.status_code == 200:
-                        file = os.path.join(source, href)
-                        with open(file, "wb") as f:
-                            f.write(rx.content)
-                    else:
-                        logger.info(f"Error in downloading: {href} / {rx.status_code}")
+                    file = os.path.join(source, href)
+                    if not os.path.exists(file):
+                        url = url + href
+                        rx = requests.get(url)
+                        if r.status_code == 200:
+                            with open(file, "wb") as f:
+                                f.write(rx.content)
+                        else:
+                            logger.info(
+                                f"Error in downloading: {href} / {rx.status_code}"
+                            )
                     if itr == I:
                         break
                     I += 1

@@ -1,5 +1,3 @@
-# from pynasonde.ngi.ionograms import DataSource
-
 # fname = "tmp/WI937_2024264001803.RIQ"
 # from pynasonde.riq.headers.pct import PctType
 # from pynasonde.riq.headers.sct import SctType
@@ -11,7 +9,7 @@
 # y.read_pct(fname)
 # y.dump_pct(to_file="tmp/WI937_2024264001803_pct.txt")
 
-
+# from pynasonde.ngi.ionograms import DataSource
 # ds = DataSource()
 # # print(ds.file_paths)
 # ds.load_data_sets()
@@ -22,4 +20,4 @@
 
 from pynasonde.webhook import Webhook
 
-print(Webhook().download())
+print(Webhook().download(itr=-1))
