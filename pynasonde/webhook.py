@@ -21,13 +21,13 @@ class Webhook:
 
     def download(self, source: str = "./tmp/"):
         for d in self.dates:
-            source = os.path.join(source, d.strftime("%Y%m%d"))
-            os.makedirs(source, exist_ok=True)
+            self.source = os.path.join(source, d.strftime("%Y%m%d"))
+            os.makedirs(self.source, exist_ok=True)
             ngi_url = self.ngi_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(ngi_url, source, ".ngi")
+            self.__dump_files__(ngi_url, self.source, ".ngi")
             riq_url = self.riq_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(riq_url, source, ".RIQ")
-        return
+            self.__dump_files__(riq_url, self.source, ".RIQ")
+        return self.source
 
     def __dump_files__(self, url: str, source: str, ext: str):
         logger.info(f"Checking: {url}")
