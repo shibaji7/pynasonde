@@ -9,7 +9,7 @@ x.read_sct(fname)
 x.dump_sct("tmp/WI937_2024264001803_sct.txt")
 y.load_sct(x)
 y.read_pct(fname)
-y.dump_pct()
+y.dump_pct("tmp/WI937_2024264001803_pct.txt")
 
 
 ds = DataSource()

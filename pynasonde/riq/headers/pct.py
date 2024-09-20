@@ -104,7 +104,7 @@ class PctType:
         logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 
-    def dump_pct(self, t32: float = 0.0000186264514923096) -> None:
+    def dump_pct(self, t32: float = 0.0000186264514923096, to_file: str = None) -> None:
         self.fix_PCT_strings()
         txt = f"{'pct.record_id':<30}{self.record_id:>12}\n"
         txt += f"{'pct.pri_ut':<30}{self.pri_ut:>12.2f}\n"
@@ -124,5 +124,10 @@ class PctType:
         txt += f"{'pct.procq_range_count':<30}{self.proc_range_count:>12}\n"
         txt += f"{'pct.proc_noise_level':<30}{self.proc_noise_level:>12.2f}\n"
         txt += f"{'pct.user:':<30}{self.user.strip()}\n"
-        logger.info(f"# PCT: \n{txt}")
+
+        if to_file:
+            with open(to_file, "w") as f:
+                f.write(txt)
+        else:
+            logger.info(f"# PCT: \n {txt}")
         return
