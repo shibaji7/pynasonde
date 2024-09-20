@@ -19,19 +19,20 @@ class Webhook:
     )
     ngi_file_name: str = "{URSI}_{year}{doy}{hour}{min}{sec}.ngi"
 
-    def download(self, source: str = "./tmp/"):
+    def download(self, source: str = "./tmp/", itr: int = 1):
         for d in self.dates:
             self.source = os.path.join(source, d.strftime("%Y%m%d"))
             os.makedirs(self.source, exist_ok=True)
             ngi_url = self.ngi_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(ngi_url, self.source, ".ngi")
+            self.__dump_files__(ngi_url, self.source, ".ngi", itr)
             riq_url = self.riq_url.format(year=d.year, doy=d.timetuple().tm_yday)
-            self.__dump_files__(riq_url, self.source, ".RIQ")
+            self.__dump_files__(riq_url, self.source, ".RIQ", itr)
         return self.source
 
-    def __dump_files__(self, url: str, source: str, ext: str):
+    def __dump_files__(self, url: str, source: str, ext: str, itr: int = 1):
         logger.info(f"Checking: {url}")
         r = requests.get(url)
+        I = 0
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "lxml")
             table = soup.find_all("a", href=True)
@@ -48,7 +49,9 @@ class Webhook:
                             f.write(rx.content)
                     else:
                         logger.info(f"Error in downloading: {href} / {rx.status_code}")
-                    break
+                    if itr == I:
+                        break
+                    I += 1
         else:
             logger.info(f"Error in logging: {url} / {r.status_code}")
         return

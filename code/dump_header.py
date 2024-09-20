@@ -22,4 +22,4 @@
 
 from pynasonde.webhook import Webhook
 
-Webhook().download()
+print(Webhook().download())
