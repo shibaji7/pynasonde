@@ -7,10 +7,10 @@ __pycache__/
 *.so
 
 # RIQ/NGI files
-*NGI*
-*ngi*
-*RIQ*
-*riq*
+*.NGI*
+*.ngi*
+*.RIQ*
+*.riq*
 
 # Output files
 *tmp*
