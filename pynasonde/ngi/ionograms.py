@@ -102,7 +102,7 @@ class Ionogram(object):
         dates: dt.datetime = None,
         fig_title: str = "",
         num_subplots: int = 1,
-        font_size: float = 12,
+        font_size: float = 10,
     ):
         self.dates = dates
         self.num_subplots = num_subplots
@@ -131,7 +131,7 @@ class Ionogram(object):
     ) -> None:
         ax = self._add_axis()
         ax.set_xlim(np.log10(xlim))
-        ax.set_xlabel(xlabel)
+        ax.set_xlabel(xlabel, fontdict={"size": 12})
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel)
         time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)

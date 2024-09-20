@@ -54,7 +54,7 @@ class StationType:
     clock_type: str = ""
     user: str = ""
 
-    def read_station(self, fname: str) -> None:
+    def read_station(self, fname: str, unicode: str = "latin-1") -> None:
         # Load all Station Type parameters
         o = np.memmap(
             fname,
@@ -66,7 +66,7 @@ class StationType:
         for i, dtype in enumerate(Station_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
         return
 
 
@@ -96,7 +96,7 @@ class TimingType:
     cal_pairs: int = 0
     user: str = ""
 
-    def read_timing(self, fname: str) -> None:
+    def read_timing(self, fname: str, unicode: str = "latin-1") -> None:
         # Load all Timing Type parameters
         o = np.memmap(
             fname,
@@ -108,7 +108,7 @@ class TimingType:
         for i, dtype in enumerate(Timing_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
         return
 
 
@@ -132,7 +132,7 @@ class FrequencyType:
     drive_table: List[float] = field(default_factory=lambda: [0.0] * 8192)
     user: str = ""
 
-    def read_frequency(self, fname: str) -> None:
+    def read_frequency(self, fname: str, unicode: str = "latin-1") -> None:
         # Load all Frequency Type parameters
         o = np.memmap(
             fname,
@@ -144,7 +144,11 @@ class FrequencyType:
         for i, dtype in enumerate(Frequency_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(
+                    self,
+                    dtype[0],
+                    "".join([x.decode(unicode) for x in o[0][i]]),
+                )
         return
 
 
@@ -166,7 +170,7 @@ class RecieverType:
     analog_delay: float = 0.0
     user: str = ""
 
-    def read_reciever(self, fname: str) -> None:
+    def read_reciever(self, fname: str, unicode="latin-1") -> None:
         # Load all Reciever Type parameters
         o = np.memmap(
             fname,
@@ -178,7 +182,7 @@ class RecieverType:
         for i, dtype in enumerate(Reciever_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
         return
 
 
@@ -196,7 +200,7 @@ class ExciterType:
     analog_delay: float = 0.0
     user: str = ""
 
-    def read_exciter(self, fname: str) -> None:
+    def read_exciter(self, fname: str, unicode="latin-1") -> None:
         # Load all Exciter Type parameters
         o = np.memmap(
             fname,
@@ -208,7 +212,7 @@ class ExciterType:
         for i, dtype in enumerate(Exciter_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
         return
 
 
@@ -221,7 +225,7 @@ class MonitorType:
     exciter_status: List[int] = field(default_factory=lambda: [0] * 2)
     user: str = ""
 
-    def read_monitor(self, fname: str) -> None:
+    def read_monitor(self, fname: str, unicode="latin-1") -> None:
         # Load all Frequency Type parameters
         o = np.memmap(
             fname,
@@ -233,7 +237,7 @@ class MonitorType:
         for i, dtype in enumerate(Monitor_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
         return
 
 
@@ -263,7 +267,7 @@ class SctType:
     exciter: ExciterType = field(default_factory=ExciterType)
     monitor: MonitorType = field(default_factory=MonitorType)
 
-    def read_sct(self, fname: str) -> None:
+    def read_sct(self, fname: str, unicode="latin-1") -> None:
         logger.info(f"Reading SCT: {fname}")
         # Load all SCT Type parameters
         o = np.memmap(
@@ -272,13 +276,13 @@ class SctType:
         for i, dtype in enumerate(SCT_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode("utf-8") for x in o[0][i]]))
-        self.station.read_station(fname)
-        self.timing.read_timing(fname)
-        self.frequency.read_frequency(fname)
-        self.receiver.read_reciever(fname)
-        self.exciter.read_exciter(fname)
-        self.monitor.read_monitor(fname)
+                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+        self.station.read_station(fname, unicode)
+        self.timing.read_timing(fname, unicode)
+        self.frequency.read_frequency(fname, unicode)
+        self.receiver.read_reciever(fname, unicode)
+        self.exciter.read_exciter(fname, unicode)
+        self.monitor.read_monitor(fname, unicode)
 
         self.fix_SCT_strings()
         return
@@ -315,7 +319,7 @@ class SctType:
         self.exciter.user = trim_null(self.exciter.user)
         return
 
-    def dump_sct(self) -> None:
+    def dump_sct(self, to_file: str = None) -> None:
         self.fix_SCT_strings()
         txt = "General:\n"
         txt += f"sct.magic: 0x{self.magic:X}\n"
@@ -334,7 +338,7 @@ class SctType:
         txt += f"sct.readme: {self.readme}\n"
         txt += f"sct.user: {self.user}\n"
 
-        txt += "Station:\n"
+        txt += "\nStation:\n"
         txt += f"sct.station.file_id: {self.station.file_id}\n"
         txt += f"sct.station.ursi_id: {self.station.ursi_id}\n"
         txt += f"sct.station.rx_name: {self.station.rx_name}\n"
@@ -342,23 +346,20 @@ class SctType:
         txt += f"sct.station.rx_longitude: {self.station.rx_longitude:.2f}\n"
         txt += f"sct.station.rx_altitude: {self.station.rx_altitude:.2f}\n"
         txt += f"sct.station.rx_count: {self.station.rx_count}\n"
+        txt += f"sct.station.rx_antenna_type: {self.station.rx_antenna_type}\n"
         txt += (
-            "rx_antenna_type"
-            + "rx_position X Y Z"
-            + "rx_direction X Y Z"
-            + "rx_height"
-            + "rx_cable_length\n"
+            " rx_position [X Y Z]"
+            + " rx_direction [X Y Z]"
+            + " rx_height"
+            + " rx_cable_length\n"
         )
-        k = max(1, min(self.station.rx_count, 32))
-        print(self.station.rx_antenna_type)
-        for j in range(1, k + 1):
-            txt += (
-                self.station.rx_antenna_type
-                + str(self.station.rx_position[j - 1])
-                + str(self.station.rx_direction[j - 1])
-                + str(self.station.rx_height[j - 1])
-                + str(self.station.rx_cable_length[j - 1])
-            )
+        for pos, dir, ht, ln in zip(
+            self.station.rx_position,
+            self.station.rx_direction,
+            self.station.rx_height,
+            self.station.rx_cable_length,
+        ):
+            txt += f" {str(pos)} {str(pos)} {str(ht)} {str(ln)}\n"
         txt += f"sct.station.frontend_atten: {self.station.frontend_atten}\n"
         txt += f"sct.station.tx_name: {self.station.tx_name.strip()}\n"
         txt += f"sct.station.tx_latitude: {self.station.tx_latitude}\n"
@@ -373,7 +374,7 @@ class SctType:
         txt += f"sct.station.clock_type: {self.station.clock_type.strip()}\n"
         txt += f"sct.station.user: {self.station.user.strip()}\n"
 
-        txt += "Timing:\n"
+        txt += "\nTiming:\n"
         txt += f"sct.timing.file_id: {self.timing.file_id.strip()}\n"
         txt += f"sct.timing.pri: {self.timing.pri}\n"
         txt += f"sct.timing.pri_count: {self.timing.pri_count}\n"
@@ -400,13 +401,12 @@ class SctType:
         txt += f"sct.timing.cal_pairs: {self.timing.cal_pairs}\n"
         txt += f"sct.timing.user: {self.timing.user.strip()}\n"
 
-        txt += "Frequency:\n"
+        txt += "\nFrequency:\n"
         txt += f"sct.frequency.file_id: {self.frequency.file_id.strip()}\n"
         txt += f"sct.frequency.base_start: {self.frequency.base_start}\n"
         txt += f"sct.frequency.base_end: {self.frequency.base_end}\n"
         txt += f"sct.frequency.base_steps: {self.frequency.base_steps}\n"
         txt += f"sct.frequency.tune_type: {self.frequency.tune_type}\n"
-        txt += "sct.frequency.base_table\n"
         txt += f"sct.frequency.base_table: {','.join([str(c) for c in self.frequency.base_table])}\n"
         txt += f"sct.frequency.linear_step: {self.frequency.linear_step}\n"
         txt += f"sct.frequency.log_step: {self.frequency.log_step}\n"
@@ -419,7 +419,7 @@ class SctType:
         txt += f"sct.frequency.drive_table: {','.join([str(c) for c in self.frequency.drive_table])}\n"
         txt += f"sct.frequency.user: {self.frequency.user.strip()}\n"
 
-        txt += "Reciever:\n"
+        txt += "\nReciever:\n"
         txt += f"sct.receiver.file_id: {self.receiver.file_id.strip()}\n"
         txt += f"sct.receiver.rx_chan: {self.receiver.rx_chan}\n"
         txt += f"sct.receiver.word_format: {self.receiver.word_format}\n"
@@ -436,7 +436,7 @@ class SctType:
         txt += f"sct.receiver.coefficients: {','.join([str(c) for c in self.receiver.rx_map])}\n"
         txt += f"sct.receiver.user: {self.receiver.user.strip()}\n"
 
-        txt += "Exciter:\n"
+        txt += "\nExciter:\n"
         txt += f"sct.exciter.file_id: {self.exciter.file_id.strip()}\n"
         txt += f"sct.exciter.cic_scale: {self.exciter.cic_scale}\n"
         txt += f"sct.exciter.cic2_dec: {self.exciter.cic2_dec}\n"
@@ -449,7 +449,7 @@ class SctType:
         txt += f"sct.exciter.coefficients: {','.join([str(c) for c in self.exciter.coefficients])}\n"
         txt += f"sct.exciter.user: {self.exciter.user.strip()}\n"
 
-        txt += "Monitor:\n"
+        txt += "\nMonitor:\n"
         txt += f"sct.monitor.balun_status: {self.monitor.balun_status}\n"
         txt += f"sct.monitor.balun_currents: {self.monitor.balun_currents}\n"
         txt += f"sct.monitor.front_end_status: {self.monitor.front_end_status}\n"
@@ -457,5 +457,9 @@ class SctType:
         txt += f"sct.monitor.exciter_status: {self.monitor.exciter_status}\n"
         txt += f"sct.monitor.user: {self.monitor.user.strip()}"
 
-        logger.info(f"# SCT: \n {txt}")
+        if to_file:
+            with open(to_file, "w") as f:
+                f.write(txt)
+        else:
+            logger.info(f"# SCT: \n {txt}")
         return
