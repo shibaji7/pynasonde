@@ -277,7 +277,7 @@ class DataSource(object):
         self.datasets = []
         for f in self.file_paths:
             logger.info(f"Load file: {f}")
-            ds = xr.open_dataset(f)
+            ds = xr.open_dataset(f, engine="netcdf4")
             self.datasets.append(Dataset().__initialize__(ds))
         return
 

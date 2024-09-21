@@ -26,7 +26,7 @@ class StationType:
     rx_longitude: float = 0.0
     rx_altitude: float = 0.0
     rx_count: int = 0
-    rx_antenna_type: str = ""
+    rx_antenna_type: List[str] = field(default_factory=lambda: [""] * 16)
     rx_position: List[List[float]] = field(
         default_factory=lambda: [[0.0] * 32 for _ in range(3)]
     )
@@ -66,7 +66,18 @@ class StationType:
         for i, dtype in enumerate(Station_default_factory):
             setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+                setattr(
+                    self,
+                    dtype[0],
+                    (
+                        "".join([char.decode(unicode) for char in o[0][i]])
+                        if len(dtype[2]) == 1
+                        else [
+                            "".join([char.decode(unicode) for char in chars])
+                            for chars in o[0][i]
+                        ]
+                    ),
+                )
         return
 
 
@@ -284,7 +295,7 @@ class SctType:
         self.exciter.read_exciter(fname, unicode)
         self.monitor.read_monitor(fname, unicode)
 
-        self.fix_SCT_strings()
+        # self.fix_SCT_strings()
         return
 
     def fix_SCT_strings(self) -> None:
@@ -295,7 +306,6 @@ class SctType:
         self.station.file_id = trim_null(self.station.file_id)
         self.station.ursi_id = trim_null(self.station.ursi_id)
         self.station.rx_name = trim_null(self.station.rx_name)
-        self.station.rx_antenna_type = trim_null(self.station.rx_antenna_type)
         self.station.tx_name = trim_null(self.station.tx_name)
         self.station.tx_antenna_type = trim_null(self.station.tx_antenna_type)
         self.station.ref_type = trim_null(self.station.ref_type)
@@ -320,7 +330,7 @@ class SctType:
         return
 
     def dump_sct(self, to_file: str = None) -> None:
-        self.fix_SCT_strings()
+        # self.fix_SCT_strings()
         txt = "General:\n"
         txt += f"sct.magic: 0x{self.magic:X}\n"
         txt += f"sct.sounding_table_size: {self.sounding_table_size}\n"
@@ -346,20 +356,21 @@ class SctType:
         txt += f"sct.station.rx_longitude: {self.station.rx_longitude:.2f}\n"
         txt += f"sct.station.rx_altitude: {self.station.rx_altitude:.2f}\n"
         txt += f"sct.station.rx_count: {self.station.rx_count}\n"
-        txt += f"sct.station.rx_antenna_type: {self.station.rx_antenna_type}\n"
         txt += (
-            " rx_position [X Y Z]"
-            + " rx_direction [X Y Z]"
+            "sct.station:\n"
+            + " rx_antenna_type rx_position[X Y Z]"
+            + " rx_direction[X Y Z]"
             + " rx_height"
             + " rx_cable_length\n"
         )
-        for pos, dir, ht, ln in zip(
-            self.station.rx_position,
-            self.station.rx_direction,
-            self.station.rx_height,
-            self.station.rx_cable_length,
+        for atype, pos, dir, ht, ln in zip(
+            self.station.rx_antenna_type[: self.station.rx_count],
+            self.station.rx_position[: self.station.rx_count],
+            self.station.rx_direction[: self.station.rx_count],
+            self.station.rx_height[: self.station.rx_count],
+            self.station.rx_cable_length[: self.station.rx_count],
         ):
-            txt += f" {str(pos)} {str(pos)} {str(ht)} {str(ln)}\n"
+            txt += f" {atype}\t{str(pos)}\t{str(dir)}\t{str(ht)}\t{str(ln)}\n"
         txt += f"sct.station.frontend_atten: {self.station.frontend_atten}\n"
         txt += f"sct.station.tx_name: {self.station.tx_name.strip()}\n"
         txt += f"sct.station.tx_latitude: {self.station.tx_latitude}\n"
@@ -369,6 +380,14 @@ class SctType:
         txt += f"sct.station.tx_height: {self.station.tx_height}\n"
         txt += f"sct.station.tx_cable_length: {self.station.tx_cable_length}\n"
         txt += f"sct.station.drive_band_count: {self.station.drive_band_count}\n"
+        txt += (
+            "sct.station:\n" + " drive_band_bounds drive_band_bounds drive_band_atten\n"
+        )
+        for bounds, attn in zip(
+            self.station.drive_band_bounds[: self.station.drive_band_count],
+            self.station.drive_band_atten[: self.station.drive_band_count],
+        ):
+            txt += f" {bounds[0]}\t{bounds[1]}\t{attn}\n"
         txt += f"sct.station.rf_control: {self.station.rf_control}\n"
         txt += f"sct.station.ref_type: {self.station.ref_type.strip()}\n"
         txt += f"sct.station.clock_type: {self.station.clock_type.strip()}\n"
@@ -389,15 +408,33 @@ class SctType:
         txt += f"sct.timing.data_width: {self.timing.data_width}\n"
         txt += f"sct.timing.data_baud_count: {self.timing.data_baud_count}\n"
         txt += f"sct.timing.data_wave_file: {self.timing.data_wave_file.strip()}\n"
-        txt += f"sct.timing.data_baud: {','.join([str(c) for c in self.timing.data_baud])}\n"
+        t = "\n".join(
+            [
+                f"{ix+1}: {tm}"
+                for ix, tm in enumerate(
+                    self.timing.data_baud[
+                        : max(1, min(self.timing.data_baud_count, 1024))
+                    ]
+                )
+            ]
+        )
+        txt += f"sct.timing.data_baud:\n {t}\n"
         txt += f"sct.timing.data_pairs: {self.timing.data_pairs}\n"
         txt += f"sct.timing.cal_start: {self.timing.cal_start}\n"
         txt += f"sct.timing.cal_width: {self.timing.cal_width}\n"
         txt += f"sct.timing.cal_baud_count: {self.timing.cal_baud_count}\n"
         txt += f"sct.timing.cal_wave_file: {self.timing.cal_wave_file.strip()}\n"
-        txt += (
-            f"sct.timing.cal_baud: {','.join([str(c) for c in self.timing.cal_baud])}\n"
+        t = "\n".join(
+            [
+                f"{ix+1}: {tm}"
+                for ix, tm in enumerate(
+                    self.timing.cal_baud[
+                        : max(1, min(self.timing.cal_baud_count, 1024))
+                    ]
+                )
+            ]
         )
+        txt += f"sct.timing.cal_baud:\n {t}\n"
         txt += f"sct.timing.cal_pairs: {self.timing.cal_pairs}\n"
         txt += f"sct.timing.user: {self.timing.user.strip()}\n"
 
@@ -407,16 +444,46 @@ class SctType:
         txt += f"sct.frequency.base_end: {self.frequency.base_end}\n"
         txt += f"sct.frequency.base_steps: {self.frequency.base_steps}\n"
         txt += f"sct.frequency.tune_type: {self.frequency.tune_type}\n"
-        txt += f"sct.frequency.base_table: {','.join([str(c) for c in self.frequency.base_table])}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.frequency.base_table[
+                        : max(1, min(self.frequency.base_steps, 8182))
+                    ]
+                )
+            ]
+        )
+        txt += f"sct.frequency.base_table:\n {t}\n"
         txt += f"sct.frequency.linear_step: {self.frequency.linear_step}\n"
         txt += f"sct.frequency.log_step: {self.frequency.log_step}\n"
         txt += f"sct.frequency.freq_table_id: {self.frequency.freq_table_id.strip()}\n"
         txt += f"sct.frequency.tune_steps: {self.frequency.tune_steps}\n"
         txt += f"sct.frequency.pulse_count: {self.frequency.pulse_count}\n"
-        txt += f"sct.frequency.pulse_pattern: {','.join([str(c) for c in self.frequency.pulse_pattern])}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.frequency.pulse_pattern[
+                        : max(1, min(self.frequency.pulse_count, 256))
+                    ]
+                )
+            ]
+        )
+        txt += f"sct.frequency.pulse_pattern: \n{t}\n"
         txt += f"sct.frequency.pulse_offset: {self.frequency.pulse_offset}\n"
         txt += f"sct.frequency.ramp_steps: {self.frequency.ramp_steps}\n"
-        txt += f"sct.frequency.drive_table: {','.join([str(c) for c in self.frequency.drive_table])}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.frequency.drive_table[
+                        : max(1, min(self.frequency.base_steps, 8192))
+                    ]
+                )
+            ]
+        )
+        txt += f"sct.frequency.drive_table:\n {t}\n"
         txt += f"sct.frequency.user: {self.frequency.user.strip()}\n"
 
         txt += "\nReciever:\n"
@@ -432,8 +499,26 @@ class SctType:
         txt += f"sct.receiver.rcf_dec: {self.receiver.rcf_dec}\n"
         txt += f"sct.receiver.rcf_taps: {self.receiver.rcf_taps}\n"
         txt += f"sct.receiver.analog_delay: {self.receiver.analog_delay}\n"
-        txt += f"sct.receiver.coefficients: {','.join([str(c) for c in self.receiver.coefficients])}\n"
-        txt += f"sct.receiver.coefficients: {','.join([str(c) for c in self.receiver.rx_map])}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.receiver.coefficients[
+                        : max(1, min(self.receiver.rcf_taps, 160))
+                    ]
+                )
+            ]
+        )
+        txt += f"sct.receiver.coefficients:\n {t}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.receiver.rx_map[: max(1, min(self.receiver.rx_chan, 16))]
+                )
+            ]
+        )
+        txt += f"sct.receiver.rx_map: \n{t}\n"
         txt += f"sct.receiver.user: {self.receiver.user.strip()}\n"
 
         txt += "\nExciter:\n"
@@ -446,7 +531,15 @@ class SctType:
         txt += f"sct.exciter.rcf_taps: {self.exciter.rcf_taps}\n"
         txt += f"sct.exciter.rcf_taps_phase: {self.exciter.rcf_taps_phase}\n"
         txt += f"sct.exciter.analog_delay: {self.exciter.analog_delay}\n"
-        txt += f"sct.exciter.coefficients: {','.join([str(c) for c in self.exciter.coefficients])}\n"
+        t = "\n ".join(
+            [
+                f"{ix+1}: {fq}"
+                for ix, fq in enumerate(
+                    self.exciter.coefficients[: max(1, min(self.exciter.rcf_taps, 256))]
+                )
+            ]
+        )
+        txt += f"sct.exciter.coefficients:\n {t}\n"
         txt += f"sct.exciter.user: {self.exciter.user.strip()}\n"
 
         txt += "\nMonitor:\n"
