@@ -15,7 +15,7 @@ ds = DataSource(source_folder="./tmp/20240920/")
 # # print(ds.file_paths)
 ds.load_data_sets()
 # print(ds.datasets[0].X_mode_power)
-print(ds.extract_FTI_RTI())
+print(ds.extract_FTI_RTI(flim=[1.5, 3.0]))
 # ds.extract_ionograms()
 
 

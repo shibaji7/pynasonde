@@ -175,7 +175,7 @@ class Ionogram(object):
         cbar_label: str = "{}-mode Power, dB",
         cmap: str = "Spectral",
         prange: List[float] = [5, 70],
-        noise_scale: float = 1.5,
+        noise_scale: float = 1.2,
     ) -> None:
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
         ax = self._add_axis()
@@ -346,9 +346,11 @@ class DataSource(object):
         if (type(ds.URSI) == np.ndarray) and ("S" in str(ds.URSI.dtype)):
             URSI = "".join([u.decode("latin-1") for u in ds.URSI])
         fname = f"{URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
-        i = Ionogram(
-            fig_title=f"{URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"
+        fig_title = f"""{URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
+        fig_title += (
+            r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"
         )
+        i = Ionogram(fig_title=fig_title)
         i.add_interval_plots(rti, mode=mode)
         i.save(os.path.join(folder, fname))
         i.close()
