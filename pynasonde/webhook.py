@@ -48,8 +48,9 @@ class Webhook:
                 ):
                     file = os.path.join(source, href)
                     if not os.path.exists(file):
-                        url = url + href
-                        rx = requests.get(url)
+                        d_url = url + href
+                        logger.info(f"Downloading: {d_url}")
+                        rx = requests.get(d_url)
                         if r.status_code == 200:
                             with open(file, "wb") as f:
                                 f.write(rx.content)
@@ -57,9 +58,9 @@ class Webhook:
                             logger.info(
                                 f"Error in downloading: {href} / {rx.status_code}"
                             )
+                    I += 1
                     if itr == I:
                         break
-                    I += 1
         else:
             logger.info(f"Error in logging: {url} / {r.status_code}")
         return

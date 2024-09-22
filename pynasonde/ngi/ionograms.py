@@ -34,7 +34,6 @@ class Dataset:
     MagLon: float = 0.0  # degree_east
     MagDip: float = 0.0  # degree
     GyroFreq: float = 0.0  # Station GyroFrequency at 300 km altitude, MHz
-    PRI: float = 0.0  # microsecond
     range_gate_offset: float = 0.0  # microsecond
     gate_count: float = 0.0  # counts
     gate_start: float = 0.0  # microsecond
@@ -184,9 +183,15 @@ class Ionogram(object):
         ax.set_xlabel(xlabel)
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel)
-        hours = mdates.HourLocator(byhour=range(0, 24, 1))
-        ax.xaxis.set_minor_locator(hours)
-        ax.xaxis.set_minor_formatter(DateFormatter(r"%H^{%M}"))
+        hours = mdates.HourLocator(byhour=range(0, 24, 4))
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        Zval, lims = (
+            np.array(df[f"{mode}_mode_power"]),
+            np.array(df[f"{mode}_mode_noise"]),
+        )
+        Zval[Zval < lims * noise_scale] = np.nan
+        df[f"{mode}_mode_power"] = Zval
         X, Y, Z = utils.get_gridded_parameters(
             df,
             xparam="time",
@@ -204,6 +209,9 @@ class Ionogram(object):
             vmax=prange[1],
             vmin=prange[0],
             zorder=3,
+        )
+        ax.text(
+            0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
         )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
@@ -301,12 +309,14 @@ class DataSource(object):
         self,
         folder: str = "tmp/",
         rlim: List[float] = [50, 800],
-        flim: List[float] = [3.5, 4.5],
+        flim: List[float] = [3.95, 4.05],
         mode: str = "O",
     ) -> pd.DataFrame:
         logger.info(f"Extract FTI/RTI, based on {flim}MHz {rlim}km")
         rti = pd.DataFrame()
         for ds in self.datasets:
+            time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)
+            logger.info(f"Time: {time}")
             frequency, range = np.meshgrid(ds.Frequency, ds.Range, indexing="ij")
             noise, _ = np.meshgrid(
                 getattr(ds, f"{mode}_mode_noise"), ds.Range, indexing="ij"
@@ -323,19 +333,22 @@ class DataSource(object):
                 getattr(ds, f"{mode}_mode_power").ravel(),  # in dB
                 noise.ravel(),  # in dB
             )
-            o["time"] = dt.datetime(
-                ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second
-            )
+            o["time"] = time
+            if (len(rlim) == 2) and (len(flim) == 2):
+                o = o[
+                    (o.range >= rlim[0])
+                    & (o.range <= rlim[1])
+                    & (o.frequency >= flim[0])
+                    & (o.frequency <= flim[1])
+                ]
             rti = pd.concat([rti, o])
-        if (len(rlim) == 2) and (len(flim) == 2):
-            rti = rti[
-                (rti.range >= rlim[0])
-                & (rti.range <= rlim[1])
-                & (rti.frequency >= flim[0])
-                & (rti.frequency <= flim[1])
-            ]
-        fname = f"{ds.URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
-        i = Ionogram()
+        URSI = ds.URSI
+        if (type(ds.URSI) == np.ndarray) and ("S" in str(ds.URSI.dtype)):
+            URSI = "".join([u.decode("latin-1") for u in ds.URSI])
+        fname = f"{URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
+        i = Ionogram(
+            fig_title=f"{URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"
+        )
         i.add_interval_plots(rti, mode=mode)
         i.save(os.path.join(folder, fname))
         i.close()
