@@ -296,17 +296,21 @@ class DataSource(object):
         decompress = lambda fc, fd: shutil.copyfileobj(
             bz2.BZ2File(fc, "rb"), open(fd, "wb")
         )
+        check_bad_file = lambda f: (
+            True if os.path.getsize(f) / (1024 * 1024) >= 5.0 else False
+        )
         for f in self.file_paths:
-            logger.info(f"Load file: {f}")
-            if self.needs_decompression:
-                decompress(f, f.replace(".bz2", ""))
-                os.remove(f)
-                f = f.replace(".bz2", "")
-            ds = xr.load_dataset(f, engine="netcdf4")
-            self.datasets.append(Dataset().__initialize__(ds))
-            if self.needs_decompression:
-                compress(f + ".bz2", f)
-                os.remove(f)
+            if check_bad_file(f):
+                logger.info(f"Load file: {f}")
+                if self.needs_decompression:
+                    decompress(f, f.replace(".bz2", ""))
+                    os.remove(f)
+                    f = f.replace(".bz2", "")
+                ds = xr.load_dataset(f, engine="netcdf4")
+                self.datasets.append(Dataset().__initialize__(ds))
+                if self.needs_decompression:
+                    compress(f + ".bz2", f)
+                    os.remove(f)
         return
 
     def extract_ionograms(

@@ -11,7 +11,7 @@
 
 from pynasonde.ngi.ionograms import DataSource
 
-ds = DataSource(source_folder="./tmp/20240406/")
+ds = DataSource(source_folder="./tmp/20240408/")
 # # print(ds.file_paths)
 ds.load_data_sets()
 print(ds.datasets[0].X_mode_power)
