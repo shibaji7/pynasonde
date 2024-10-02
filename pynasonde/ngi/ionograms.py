@@ -1,6 +1,8 @@
+import bz2
 import datetime as dt
 import glob
 import os
+import shutil
 from dataclasses import dataclass
 from typing import List
 
@@ -263,12 +265,16 @@ class DataSource(object):
     def __init__(
         self,
         source_folder: str = "./tmp/",
-        file_ext: str = "*.ngi",
+        file_ext: str = "*.ngi.bz2",
         file_names: List[str] = [],
+        needs_decompression: bool = False,
     ):
         self.source_folder = source_folder
         self.file_ext = file_ext
         self.file_names = file_names
+        self.needs_decompression = (
+            True if (".bz2" in file_ext) or needs_decompression else False
+        )
         # Load full path of the files by file_names or from free space search
         self.file_paths = (
             [os.path.join(source_folder, f) for f in file_names]
@@ -278,15 +284,29 @@ class DataSource(object):
         )
         self.file_paths.sort()
         logger.info(f"Total number of files {len(self.file_paths)}")
+        logger.info(f"Needs decompression {self.needs_decompression}")
         return
 
     def load_data_sets(self):
         """ """
         self.datasets = []
+        compress = lambda fc, fd: shutil.copyfileobj(
+            open(fd, "rb"), bz2.BZ2File(fc, "wb")
+        )
+        decompress = lambda fc, fd: shutil.copyfileobj(
+            bz2.BZ2File(fc, "rb"), open(fd, "wb")
+        )
         for f in self.file_paths:
             logger.info(f"Load file: {f}")
-            ds = xr.open_dataset(f, engine="netcdf4")
+            if self.needs_decompression:
+                decompress(f, f.replace(".bz2", ""))
+                os.remove(f)
+                f = f.replace(".bz2", "")
+            ds = xr.load_dataset(f, engine="netcdf4")
             self.datasets.append(Dataset().__initialize__(ds))
+            if self.needs_decompression:
+                compress(f + ".bz2", f)
+                os.remove(f)
         return
 
     def extract_ionograms(
@@ -311,6 +331,7 @@ class DataSource(object):
         rlim: List[float] = [50, 800],
         flim: List[float] = [3.95, 4.05],
         mode: str = "O",
+        index: int = 0,
     ) -> pd.DataFrame:
         logger.info(f"Extract FTI/RTI, based on {flim}MHz {rlim}km")
         rti = pd.DataFrame()
@@ -345,7 +366,7 @@ class DataSource(object):
         URSI = ds.URSI
         if (type(ds.URSI) == np.ndarray) and ("S" in str(ds.URSI.dtype)):
             URSI = "".join([u.decode("latin-1") for u in ds.URSI])
-        fname = f"{URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
+        fname = f"{index}_{URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
         fig_title = f"""{URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
         fig_title += (
             r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"

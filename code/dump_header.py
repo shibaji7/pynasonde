@@ -11,11 +11,12 @@
 
 from pynasonde.ngi.ionograms import DataSource
 
-ds = DataSource(source_folder="./tmp/20240920/")
+ds = DataSource(source_folder="./tmp/20240406/")
 # # print(ds.file_paths)
 ds.load_data_sets()
-# print(ds.datasets[0].X_mode_power)
-print(ds.extract_FTI_RTI(flim=[1.5, 3.0]))
+print(ds.datasets[0].X_mode_power)
+for f in range(2, 9):
+    print(ds.extract_FTI_RTI(flim=[f - 0.1, f + 0.1], index=f))
 # ds.extract_ionograms()
 
 
