@@ -5,22 +5,18 @@ Disclaimer:
 
 -->
 
-If SCUBAS contributes to a project that leads to a scientific publication, please acknowledge this fact by citing the papers listed below and intermagnet (if used).  
+If Pynasonde analysis contributes to a project that leads to a scientific publication, please acknowledge this fact by citing the papers listed below and ionosonde (if used).  
 
-# How to cite SCUBAS
-- Chakraborty S, Boteler DH, Shi X, Murphy BS, Hartinger MD, Wang X, Lucas G and Baker JBH (2022) Modeling geomagnetic induction in submarine cables. *Front. Phys.* 10:1022475. [doi:10.3389/fphy.2022.1022475](https://doi.org/10.3389/fphy.2022.1022475)
-- Boteler DH, Pirjola RJ. Magnetic and electric fields produced in the sea during geomagnetic disturbances. *Pure Appl Geophys* (2003) 160:1695–716. [doi:10.1007/s00024-003-2372-6](https://doi.org/10.1007/s00024-003-2372-6)
-- Wang X, Boteler D, Pirjola R. Distributed-source transmission line theory for modeling the coast effect on geoelectric fields. *IEEE Trans Power Deliv* (2022).
+# How to cite Pynasonde
+- 
 
-# Publications using SCUBAS
-- Boteler, D. H., Chakraborty, S., Shi, X., Hartinger, M. D., & Wang, X. (2024). An examination of geomagnetic induction in submarine cables. Space Weather, 22, e2023SW003687. [doi:10.1029/2023SW003687](https://doi.org/10.1029/2023SW003687)
-
-- Boteler, D. , Chakraborty, S. , Shi, X. , Hartinger, M. and Wang, X. (2023) Transmission Line Modelling of Geomagnetic Induction in the Ocean/Earth Conductivity Structure. International Journal of Geosciences, 14, 767-791. [doi: 10.4236/ijg.2023.148041](https://www.scirp.org/journal/paperinformation?paperid=127339).
+# Publications using Pynasonde
+- 
 
 
-# How to cite INTERMAGNET
+# How to cite Ionosonde Dataset
 
-If you are using INTERMAGNET dataset to drive the model simulation and results are being used in publications, the please cite INTERMAGNET. A detailed description of the data conditions are listed in this [webpage](https://intermagnet.github.io/data_conditions.html).
+
 
 ## Python Library References 
 
