@@ -72,7 +72,7 @@ class Dataset:
     Has_Azimuth: int = 0  # flag
     Has_Coherence: int = 0  # flag
 
-    def __initialize__(self, ds):
+    def __initialize__(self, ds, unicode: str = "latin-1"):
         key_map = {
             "Has_O_mode_power": "Has_O-mode_power",
             "O_mode_power": "O-mode_power",
@@ -93,6 +93,8 @@ class Dataset:
                     setattr(self, attr, ds[attr].values.tolist())
                 else:
                     setattr(self, attr, np.array(ds[attr].values))
+        self.StationName = "".join([u.decode("latin-1") for u in self.StationName])
+        self.URSI = "".join([u.decode("latin-1") for u in self.URSI])
         return self
 
 
@@ -128,7 +130,7 @@ class Ionogram(object):
         cmap: str = "Greens",
         prange: List[float] = [5, 70],
         xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
-        noise_scale: float = 1.5,
+        noise_scale: float = 2.5,
     ) -> None:
         ax = self._add_axis()
         ax.set_xlim(np.log10(xlim))
@@ -144,10 +146,15 @@ class Ionogram(object):
             va="center",
             transform=ax.transAxes,
         )
-        Zval = getattr(ds, f"{mode}_mode_power")
+        Zval = np.copy(getattr(ds, f"{mode}_mode_power"))
         Zval[Zval < getattr(ds, f"{mode}_mode_noise")[:, np.newaxis] * noise_scale] = (
             np.nan
         )
+        # ax.plot(
+        #     np.log10(ds.trace["frequency"]), ds.trace["range"], "k-", lw=0.5, alpha=0.8
+        # )
+        # ax.axvline(np.log10(ds.foF2), ls="--", color="b", lw=0.4)
+        # ax.axhline(ds.hmF2, ls="--", color="r", lw=0.4)
         im = ax.pcolormesh(
             np.log10(ds.Frequency / 1e3),
             ds.Range,
@@ -287,7 +294,7 @@ class DataSource(object):
         logger.info(f"Needs decompression {self.needs_decompression}")
         return
 
-    def load_data_sets(self):
+    def load_data_sets(self, load_start=0, load_end=-1):
         """ """
         self.datasets = []
         compress = lambda fc, fd: shutil.copyfileobj(
@@ -299,15 +306,16 @@ class DataSource(object):
         check_bad_file = lambda f: (
             True if os.path.getsize(f) / (1024 * 1024) >= 5.0 else False
         )
-        for f in self.file_paths:
+        for f in self.file_paths[load_start:load_end]:
             if check_bad_file(f):
                 logger.info(f"Load file: {f}")
                 if self.needs_decompression:
                     decompress(f, f.replace(".bz2", ""))
                     os.remove(f)
                     f = f.replace(".bz2", "")
-                ds = xr.load_dataset(f, engine="netcdf4")
-                self.datasets.append(Dataset().__initialize__(ds))
+                self.datasets.append(
+                    Dataset().__initialize__(xr.load_dataset(f, engine="netcdf4"))
+                )
                 if self.needs_decompression:
                     compress(f + ".bz2", f)
                     os.remove(f)
@@ -367,11 +375,9 @@ class DataSource(object):
                     & (o.frequency <= flim[1])
                 ]
             rti = pd.concat([rti, o])
-        URSI = ds.URSI
-        if (type(ds.URSI) == np.ndarray) and ("S" in str(ds.URSI.dtype)):
-            URSI = "".join([u.decode("latin-1") for u in ds.URSI])
-        fname = f"{index}_{URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
-        fig_title = f"""{URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
+
+        fname = f"{index}_{ds.URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
+        fig_title = f"""{ds.URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
         fig_title += (
             r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"
         )
@@ -380,3 +386,15 @@ class DataSource(object):
         i.save(os.path.join(folder, fname))
         i.close()
         return rti
+
+    def save_scaled_dataset(self, params=["hmF2", "foF2"]):
+        records = []
+        for ds in self.datasets:
+            rec = dict()
+            for p in params:
+                rec[p] = getattr(ds, p)
+            records.append(rec)
+        records = pd.DataFrame.from_records(records)
+        fname = os.path.join(self.source_folder, "scaled.csv")
+        records.to_csv(fname, float_format="%g", header=True, index=False)
+        return

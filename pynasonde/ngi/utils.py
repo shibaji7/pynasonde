@@ -1,4 +1,6 @@
 def setsize(size=8):
+    pass
+
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
@@ -23,8 +25,8 @@ def get_gridded_parameters(q, xparam, yparam, zparam, r=1, rounding=True):
     plotParamDF = q[[xparam, yparam, zparam]]
     if rounding:
         if xparam != "time":
-            plotParamDF.loc[:, xparam] = np.round(plotParamDF[xparam].tolist(), r)
-        plotParamDF.loc[:, yparam] = np.round(plotParamDF[yparam].tolist(), r)
+            plotParamDF[xparam] = np.round(plotParamDF[xparam], r)
+        plotParamDF[yparam] = np.round(plotParamDF[yparam], r)
     plotParamDF = plotParamDF.groupby([xparam, yparam]).mean().reset_index()
     plotParamDF = plotParamDF[[xparam, yparam, zparam]].pivot(
         index=xparam, columns=yparam
