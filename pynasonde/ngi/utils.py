@@ -18,6 +18,19 @@ def setsize(size=8):
     return
 
 
+def get_color_by_index(index, total_indices, cmap_name="viridis"):
+    import matplotlib.pyplot as plt
+
+    # Normalize the index to be between 0 and 1
+    norm_index = index / total_indices
+
+    # Get the colormap
+    cmap = plt.get_cmap(cmap_name)
+
+    # Return the color for the given index
+    return cmap(norm_index)
+
+
 def get_gridded_parameters(q, xparam, yparam, zparam, r=1, rounding=True):
     """ """
     import numpy as np

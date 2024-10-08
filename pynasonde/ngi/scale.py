@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from loguru import logger
 
+import pynasonde.ngi.utils as utils
 from pynasonde.ngi.ionograms import Dataset
 from pynasonde.ngi.plotlib import Ionogram
 
@@ -107,39 +108,40 @@ class AutoScaler(object):
     def to_binary_traces(
         self,
         nbins: int = 1000,
-        th: float = 1.5,
-        fit: int = 3,
-        trace_x_param: str = "frequency",
-        num_trace: int = 1000,
+        thresh: float = 1.5,
+        eps: int = 3,
+        min_samples: int = 40,
     ):
         import pandas as pd
-        from scipy.interpolate import splev, splrep
         from skimage.filters import threshold_otsu
+        from sklearn.cluster import DBSCAN
 
-        trace_y_param = "frequency" if trace_x_param == "height" else "height"
-        thresh = threshold_otsu(np.copy(self.image2d), nbins=nbins)
-        self.binary_image = self.segmented_image > thresh * th
+        thresh = thresh * threshold_otsu(np.copy(self.image2d), nbins=nbins)
+        self.binary_image = self.segmented_image > thresh
 
         vertices = np.where(self.binary_image == True)
-        self.indices, self.trace = [], pd.DataFrame()
+        self.indices, self.traces, self.trace_params = [], dict(), dict()
         for i, j in zip(vertices[0], vertices[1]):
             self.indices.append(
                 dict(frequency=self.frequency[i], height=self.height[j])
             )
         self.indices = pd.DataFrame.from_records(self.indices)
         self.indices.dropna(inplace=True)
-        self.indices.drop_duplicates(subset=[trace_x_param], inplace=True)
-        self.indices.sort_values(by=trace_x_param, inplace=True)
 
-        t, c, k = splrep(
-            self.indices[trace_x_param], self.indices[trace_y_param], k=fit
+        # Run DBScan to identify individual regions
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(
+            self.indices[["frequency", "height"]]
         )
-        self.trace[trace_x_param] = np.linspace(
-            np.min(self.indices[trace_x_param]) + 1e-4,
-            np.max(self.indices[trace_x_param]) - 1e-4,
-            num_trace,
-        )
-        self.trace[trace_y_param] = splev(self.trace[trace_x_param], (t, c, k))
+        self.indices["labels"] = dbscan.labels_
+        self.indices = self.indices[self.indices.labels != -1]
+
+        for label in np.unique(self.indices["labels"]):
+            trace = self.indices[self.indices.labels == label]
+            self.traces[label] = trace.copy()
+            self.trace_params[label] = {
+                "hs": trace.height.min(),
+                "fs": trace.frequency.max(),
+            }
         return
 
     def draw_sanity_check_images(
@@ -236,15 +238,51 @@ class AutoScaler(object):
             xticks=xticks,
             prange=[0, 1],
         )
-        ax.plot(
-            np.log10(self.trace["frequency"]),
-            self.trace["height"],
-            ls="-",
-            color="r",
-            lw=0.9,
-            zorder=5,
-            alpha=0.6,
+        for key in list(self.traces.keys()):
+            trace = self.traces[key]
+            ax.plot(
+                np.log10(trace["frequency"]),
+                trace["height"],
+                marker="o",
+                ls="None",
+                color=utils.get_color_by_index(key, len(self.traces.keys())),
+                ms=0.3,
+                zorder=5,
+                alpha=0.6,
+            )
+
+        ax = ion.add_ionogram(
+            self.frequency,
+            self.height,
+            self.binary_image,
+            mode=self.mode,
+            text="(e) Scaled",
+            xlabel="",
+            ylabel="",
+            cmap=cmap,
+            ylim=ylim,
+            xlim=xlim,
+            xticks=xticks,
+            prange=[0, 1],
         )
+        for key in list(self.trace_params.keys()):
+            trace = self.trace_params[key]
+            color = utils.get_color_by_index(key, len(self.traces.keys()))
+            ax.axvline(
+                np.log10(trace["fs"]), color=color, ls="--", lw=0.6, alpha=0.8, zorder=5
+            )
+            ax.axhline(trace["hs"], color=color, ls="--", lw=0.6, alpha=0.8, zorder=5)
+            trace = self.traces[key]
+            ax.plot(
+                np.log10(trace["frequency"]),
+                trace["height"],
+                marker="o",
+                ls="None",
+                color=utils.get_color_by_index(key, len(self.traces.keys())),
+                ms=0.3,
+                zorder=5,
+                alpha=0.6,
+            )
 
         ion.save(fname)
         ion.close()
