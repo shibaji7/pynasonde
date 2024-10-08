@@ -163,7 +163,7 @@ def projection_method(source, k: float = 1.5, mode: str = "O", scale=1.5):
 
 
 ds = DataSource(source_folder="./tmp/20240407/")
-ds.load_data_sets(0, 1)
+ds.load_data_sets(800, 801)
 from pynasonde.ngi.scale import AutoScaler
 
 for i, dx in enumerate(ds.datasets):
