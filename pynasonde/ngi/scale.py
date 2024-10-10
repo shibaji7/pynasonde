@@ -7,7 +7,7 @@ from loguru import logger
 
 import pynasonde.ngi.utils as utils
 from pynasonde.ngi.plotlib import Ionogram
-from pynasonde.pynasonde.ngi.source import Dataset
+from pynasonde.ngi.source import Dataset
 
 
 class NoiseProfile(object):

@@ -6,11 +6,12 @@ import shutil
 from dataclasses import dataclass
 from typing import List
 
-from plotlib import Ionogram
 import numpy as np
 import pandas as pd
 import xarray as xr
 from loguru import logger
+
+from pynasonde.ngi.plotlib import Ionogram
 
 
 @dataclass
