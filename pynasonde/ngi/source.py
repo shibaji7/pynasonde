@@ -15,6 +15,12 @@ from pynasonde.ngi.plotlib import Ionogram
 
 
 @dataclass
+class Trace:
+    traces: pd.DataFrame = None
+    trace_params: pd.DataFrame = None
+
+
+@dataclass
 class Dataset:
     URSI: str = ""
     StationName: str = ""
@@ -92,7 +98,29 @@ class Dataset:
                     setattr(self, attr, np.array(ds[attr].values))
         self.StationName = "".join([u.decode("latin-1") for u in self.StationName])
         self.URSI = "".join([u.decode("latin-1") for u in self.URSI])
+        self.time = dt.datetime(
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+        )
         return self
+
+    def set_traces(self, traces: dict, trace_params: dict) -> None:
+        self.trace = Trace()
+        self.trace.traces = pd.concat([traces[k] for k in list(traces.keys())])
+        self.trace.trace_params = pd.DataFrame.from_records(
+            [trace_params[k] for k in list(trace_params.keys())]
+        )
+        return
+
+    def get_n_traces(self):
+        _n = 0
+        if hasattr(self, "trace"):
+            _n = len(self.trace.trace_params)
+        return _n
 
 
 class DataSource(object):
@@ -226,4 +254,37 @@ class DataSource(object):
         records = pd.DataFrame.from_records(records)
         fname = os.path.join(self.source_folder, "scaled.csv")
         records.to_csv(fname, float_format="%g", header=True, index=False)
+        return
+
+    def save_scaled_parameters(self, attr: dict = dict(), fname: str = None):
+        fname = (
+            fname if fname else os.path.join(self.source_folder, "scaled_parameters.nc")
+        )
+        logger.info(f"Saved to {fname}")
+        times = [ds.time for ds in self.datasets]
+        max_n_trace = np.max([ds.get_n_traces() for ds in self.datasets])
+        fs, hs = (
+            np.zeros((len(times), max_n_trace)) * np.nan,
+            np.zeros((len(times), max_n_trace)) * np.nan,
+        )
+        for i, ds in enumerate(self.datasets):
+            if ds.get_n_traces():
+                print(ds.trace.trace_params, max_n_trace, fs.shape)
+                fs[i, : ds.get_n_traces()], hs[i, : ds.get_n_traces()] = (
+                    ds.trace.trace_params.fs,
+                    ds.trace.trace_params.hs,
+                )
+        data = {
+            "fs": (("time", "max_n_trace"), fs),
+            "hs": (("time", "max_n_trace"), hs),
+        }
+        coords = dict(time=times, max_n_trace=np.arange(max_n_trace))
+        d = xr.Dataset(data, coords=coords, attrs=attr)
+        d.fs.attrs["units"], d.hs.attrs["units"] = "MHz", "km"
+        d.fs.attrs["description"], d.hs.attrs["description"] = (
+            "Plasma Frequencies",
+            "Virtual Height/Reflection Height",
+        )
+        print(d)
+        d.to_netcdf(fname)
         return

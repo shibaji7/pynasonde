@@ -1,4 +1,3 @@
-import datetime as dt
 from typing import List, Tuple
 
 import cv2
@@ -12,9 +11,9 @@ from pynasonde.ngi.source import Dataset
 
 class NoiseProfile(object):
 
-    def __init__(self, type="exp", constatnt=1.5):
+    def __init__(self, type="exp", constant=1.5):
         self.type = type
-        self.profile = constatnt
+        self.profile = constant
         return
 
     def get_exp_profile(self, x: np.array, a0: float, b0: float, x0: float):
@@ -108,8 +107,8 @@ class AutoScaler(object):
     def to_binary_traces(
         self,
         nbins: int = 1000,
-        thresh: float = 1.5,
-        eps: int = 3,
+        thresh: float = 2,
+        eps: int = 7,
         min_samples: int = 40,
     ):
         import pandas as pd
@@ -128,20 +127,23 @@ class AutoScaler(object):
         self.indices = pd.DataFrame.from_records(self.indices)
         self.indices.dropna(inplace=True)
 
-        # Run DBScan to identify individual regions
-        dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(
-            self.indices[["frequency", "height"]]
-        )
-        self.indices["labels"] = dbscan.labels_
-        self.indices = self.indices[self.indices.labels != -1]
+        if len(self.indices) > 0:
+            # Run DBScan to identify individual regions
+            dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(
+                self.indices[["frequency", "height"]]
+            )
+            self.indices["labels"] = dbscan.labels_
+            self.indices = self.indices[self.indices.labels != -1]
 
-        for label in np.unique(self.indices["labels"]):
-            trace = self.indices[self.indices.labels == label]
-            self.traces[label] = trace.copy()
-            self.trace_params[label] = {
-                "hs": trace.height.min(),
-                "fs": trace.frequency.max(),
-            }
+            for label in np.unique(self.indices["labels"]):
+                trace = self.indices[self.indices.labels == label]
+                self.traces[label] = trace.copy()
+                self.trace_params[label] = {
+                    "hs": trace.height.min(),
+                    "fs": trace.frequency.max(),
+                }
+            if len(self.traces) > 0:
+                self.ds.set_traces(self.traces, self.trace_params)
         return
 
     def draw_sanity_check_images(
@@ -155,16 +157,8 @@ class AutoScaler(object):
         ylim: List[float] = [50, 800],
         xlim: List[float] = [1, 22],
     ):
-        time = dt.datetime(
-            self.ds.year,
-            self.ds.month,
-            self.ds.day,
-            self.ds.hour,
-            self.ds.minute,
-            self.ds.second,
-        )
         ion = Ionogram(
-            fig_title=f"{self.ds.StationName.strip()} / {time.strftime('%H:%M:%S UT %d %b %Y')} / {self.mode}-Mode",
+            fig_title=f"{self.ds.StationName.strip()} / {self.ds.time.strftime('%H:%M:%S UT %d %b %Y')} / {self.mode}-Mode",
         )
         ion.add_ionogram(
             self.frequency,
