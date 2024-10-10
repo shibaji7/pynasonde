@@ -9,7 +9,7 @@
 # y.read_pct(fname)
 # y.dump_pct(to_file="tmp/WI937_2024264001803_pct.txt")
 
-from pynasonde.ngi.ionograms import DataSource
+from pynasonde.pynasonde.ngi.source import DataSource
 
 ds = DataSource(source_folder="./tmp/20240408/")
 # # print(ds.file_paths)
