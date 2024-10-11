@@ -110,6 +110,9 @@ class AutoScaler(object):
         thresh: float = 2,
         eps: int = 7,
         min_samples: int = 40,
+        trace_params: dict = dict(
+            region_thick_thresh=100,
+        ),
     ):
         import pandas as pd
         from skimage.filters import threshold_otsu
@@ -137,6 +140,16 @@ class AutoScaler(object):
 
             for label in np.unique(self.indices["labels"]):
                 trace = self.indices[self.indices.labels == label]
+                if (
+                    trace.height.max() - trace.height.min()
+                    > trace_params["region_thick_thresh"]
+                ):
+                    logger.info("Identified region is too thick")
+                    # TODO
+                    u_freq = np.unique(trace.frequency)
+                    for f_bin in zip(u_freq[:-1], u_freq[1:]):
+                        print(f_bin)
+
                 self.traces[label] = trace.copy()
                 self.trace_params[label] = {
                     "hs": trace.height.min(),
@@ -250,7 +263,7 @@ class AutoScaler(object):
             self.height,
             self.binary_image,
             mode=self.mode,
-            text="(e) Scaled",
+            text="(f) Scaled",
             xlabel="",
             ylabel="",
             cmap=cmap,
@@ -277,7 +290,6 @@ class AutoScaler(object):
                 zorder=5,
                 alpha=0.6,
             )
-
         ion.save(fname)
         ion.close()
         logger.info(f"Save file to: {fname}")

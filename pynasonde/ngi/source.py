@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from loguru import logger
+from pysolar.solar import get_altitude
 
 from pynasonde.ngi.plotlib import Ionogram
 
@@ -106,6 +107,14 @@ class Dataset:
             self.minute,
             self.second,
         )
+        self.sza = 90.0 - get_altitude(
+            self.latitude,
+            self.longitude,
+            self.time.replace(
+                tzinfo=dt.timezone.utc,
+            ),
+        )
+        logger.info(f"Local zenith angle: {self.sza}")
         return self
 
     def set_traces(self, traces: dict, trace_params: dict) -> None:
@@ -178,16 +187,14 @@ class DataSource(object):
                     os.remove(f)
         return
 
-    def extract_ionograms(
-        self,
-        folder: str = "tmp/",
-        kinds: List[str] = ["O", "X"],
-    ) -> None:
+    def extract_ionograms(self, folder: str = "tmp/", mode: str = "O") -> None:
         os.makedirs(folder, exist_ok=True)
         for ds in self.datasets:
             time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)
             i = Ionogram()
-            i.add_ionogram(ds)
+            i.add_ionogram(
+                ds.Frequency, ds.Range, getattr(ds, f"{mode}_mode_power"), mode=mode
+            )
             i.save(
                 os.path.join(folder, f"{ds.URSI}_{time.strftime('%Y%m%d%H%M%S')}.png")
             )
@@ -256,9 +263,13 @@ class DataSource(object):
         records.to_csv(fname, float_format="%g", header=True, index=False)
         return
 
-    def save_scaled_parameters(self, attr: dict = dict(), fname: str = None):
+    def save_scaled_parameters(
+        self, attr: dict = dict(), fname: str = None, mode: str = "O"
+    ):
         fname = (
-            fname if fname else os.path.join(self.source_folder, "scaled_parameters.nc")
+            fname
+            if fname
+            else os.path.join(self.source_folder, f"scaled_parameters_{mode}.nc")
         )
         logger.info(f"Saved to {fname}")
         times = [ds.time for ds in self.datasets]
