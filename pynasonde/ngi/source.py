@@ -20,6 +20,29 @@ class Trace:
     traces: pd.DataFrame = None
     trace_params: pd.DataFrame = None
 
+    @staticmethod
+    def load_saved_scaled_parameters(folder: str, extension="*.nc", mode: str = "O"):
+        import glob
+
+        files = glob.glob(os.path.join(folder, mode + extension))
+        files.sort()
+        traces = {
+            "sza": [],
+            "time": [],
+            "fs": [],
+            "hs": [],
+        }
+        for file in files:
+            d = xr.open_dataset(file)
+            L = len(d.hs.values)
+            traces["time"].extend(d.time.values.tolist() * L)
+            traces["sza"].extend(d.sza.values.tolist() * L)
+            traces["hs"].extend(d.hs.values.tolist())
+            traces["fs"].extend(d.fs.values.tolist())
+        traces = pd.DataFrame.from_dict(traces)
+        traces.time = pd.to_datetime(traces.time)
+        return traces
+
 
 @dataclass
 class Dataset:
@@ -263,39 +286,36 @@ class DataSource(object):
         records.to_csv(fname, float_format="%g", header=True, index=False)
         return
 
-    def save_scaled_parameters(
-        self, attr: dict = dict(), fname: str = None, mode: str = "O"
-    ):
-        fname = (
-            fname
-            if fname
-            else os.path.join(self.source_folder, f"scaled_parameters_{mode}.nc")
-        )
-        logger.info(f"Saved to {fname}")
-        times = [ds.time for ds in self.datasets]
-        max_n_trace = np.max([ds.get_n_traces() for ds in self.datasets])
-        fs, hs = (
-            np.zeros((len(times), max_n_trace)) * np.nan,
-            np.zeros((len(times), max_n_trace)) * np.nan,
-        )
-        for i, ds in enumerate(self.datasets):
+    def save_scaled_parameters(self, attr: dict = dict(), mode: str = "O"):
+        folder = os.path.join(self.source_folder, "scaled")
+        os.makedirs(folder, exist_ok=True)
+        for ds in self.datasets:
+            fname = os.path.join(
+                folder, f"{mode}_mode_sp_{ds.time.strftime('%Y%m%d%H%M%S')}.nc"
+            )
+            logger.info(f"Saved to {fname}")
+            max_n_trace = ds.get_n_traces()
+            fs, hs = (
+                np.zeros(max_n_trace) * np.nan,
+                np.zeros(max_n_trace) * np.nan,
+            )
             if ds.get_n_traces():
-                print(ds.trace.trace_params, max_n_trace, fs.shape)
-                fs[i, : ds.get_n_traces()], hs[i, : ds.get_n_traces()] = (
+                fs, hs = (
                     ds.trace.trace_params.fs,
                     ds.trace.trace_params.hs,
                 )
-        data = {
-            "fs": (("time", "max_n_trace"), fs),
-            "hs": (("time", "max_n_trace"), hs),
-        }
-        coords = dict(time=times, max_n_trace=np.arange(max_n_trace))
-        d = xr.Dataset(data, coords=coords, attrs=attr)
-        d.fs.attrs["units"], d.hs.attrs["units"] = "MHz", "km"
-        d.fs.attrs["description"], d.hs.attrs["description"] = (
-            "Plasma Frequencies",
-            "Virtual Height/Reflection Height",
-        )
-        print(d)
-        d.to_netcdf(fname)
+            data = {
+                "fs": (("max_n_trace"), fs),
+                "hs": (("max_n_trace"), hs),
+                "sza": (("time",), [ds.sza]),
+            }
+            coords = dict(time=[ds.time], max_n_trace=np.arange(max_n_trace))
+            d = xr.Dataset(data, coords=coords, attrs=attr)
+            d.fs.attrs["units"], d.hs.attrs["units"] = "MHz", "km"
+            d.fs.attrs["description"], d.hs.attrs["description"] = (
+                "Plasma Frequencies",
+                "Virtual Height/Reflection Height",
+            )
+            d.to_netcdf(fname)
+            del d
         return

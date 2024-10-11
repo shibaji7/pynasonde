@@ -19,12 +19,16 @@ class Ionogram(object):
         nrows: int = 2,
         ncols: int = 3,
         font_size: float = 10,
+        figsize: tuple = (6, 3),
     ):
         self.dates = dates
         self.ncols = ncols
         self.nrows = nrows
         self.fig, self.axes = plt.subplots(
-            figsize=(6 * nrows, 3 * ncols), dpi=300, nrows=nrows, ncols=ncols
+            figsize=(figsize[0] * nrows, figsize[1] * ncols),
+            dpi=300,
+            nrows=nrows,
+            ncols=ncols,
         )  # Size for website
         self.axes = self.axes.ravel()
         self.fig_title = fig_title
@@ -152,6 +156,31 @@ class Ionogram(object):
         )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
+        return ax
+
+    def add_TS(
+        self,
+        time: List,
+        ys: np.array,
+        ms=0.6,
+        alpha=0.7,
+        ylim: List = None,
+        xlim: List[dt.datetime] = None,
+        ylabel: str = r"$foF_2$, MHz",
+        xlabel: str = "Time, UT",
+        color: str = "r",
+        marker: str = ".",
+    ):
+        ylim = ylim if ylim else [np.min(ys), np.max(ys)]
+        ax = self._add_axis(del_ticks=False)
+        ax.set_xlim(xlim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylim(ylim)
+        ax.set_ylabel(ylabel)
+        hours = mdates.HourLocator(byhour=range(0, 24, 1))
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.plot(time, ys, marker=marker, color=color, ms=ms, alpha=alpha, ls="None")
         return ax
 
     def _add_colorbar(self, im, fig, ax, label=""):
