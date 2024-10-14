@@ -32,6 +32,7 @@ class Ionogram(object):
         )  # Size for website
         self.axes = self.axes.ravel()
         self.fig_title = fig_title
+        self.font_size = font_size
         utils.setsize(font_size)
         self._num_subplots_created = 0
         return
@@ -56,9 +57,12 @@ class Ionogram(object):
     ) -> None:
         ax = self._add_axis(del_ticks)
         ax.set_xlim(np.log10(xlim))
-        ax.set_xlabel(xlabel, fontdict={"size": 12})
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(
+            ylabel,
+            fontdict={"size": self.font_size},
+        )
         im = ax.pcolormesh(
             np.log10(frequency),
             height,
@@ -81,6 +85,7 @@ class Ionogram(object):
                 ha="left",
                 va="center",
                 transform=ax.transAxes,
+                fontdict={"size": self.font_size},
             )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
@@ -99,7 +104,7 @@ class Ionogram(object):
                 ha="left",
                 va="center",
                 transform=ax.transAxes,
-                fontdict={"size": 12},
+                fontdict={"size": self.font_size},
             )
         self._num_subplots_created += 1
         return ax
@@ -121,9 +126,9 @@ class Ionogram(object):
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
         ax = self._add_axis()
         ax.set_xlim(xlim)
-        ax.set_xlabel(xlabel)
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
         hours = mdates.HourLocator(byhour=range(0, 24, 4))
         ax.xaxis.set_major_locator(hours)
         ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))

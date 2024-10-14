@@ -38,7 +38,7 @@ ion.add_TS(
     major_locator=mdates.HourLocator(byhour=range(0, 24, 6)),
     minor_locator=mdates.HourLocator(byhour=range(0, 24, 3)),
     ylabel=r"$fo_s$, MHz",
-    ylim=[1, 15]
+    ylim=[1, 15],
 )
 ion.add_TS(
     O.time.tolist(),

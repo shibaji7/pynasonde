@@ -169,9 +169,13 @@ class AutoScaler(object):
         prange: List[float] = [5, 70],
         ylim: List[float] = [50, 800],
         xlim: List[float] = [1, 22],
+        font_size: float = 10,
+        figsize: tuple = (6, 3),
     ):
         ion = Ionogram(
             fig_title=f"{self.ds.StationName.strip()} / {self.ds.time.strftime('%H:%M:%S UT %d %b %Y')} / {self.mode}-Mode",
+            font_size=font_size,
+            figsize=figsize,
         )
         ion.add_ionogram(
             self.frequency,

@@ -5,9 +5,6 @@ def setsize(size=8):
     import matplotlib.pyplot as plt
 
     plt.style.use(["science", "ieee"])
-    mpl.rcParams.update(
-        {"xtick.labelsize": size, "ytick.labelsize": size, "font.size": size}
-    )
     plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["font.sans-serif"] = [
         "Tahoma",
@@ -15,6 +12,9 @@ def setsize(size=8):
         "Lucida Grande",
         "Verdana",
     ]
+    mpl.rcParams.update(
+        {"xtick.labelsize": size, "ytick.labelsize": size, "font.size": size}
+    )
     return
 
 
