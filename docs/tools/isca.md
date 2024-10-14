@@ -35,7 +35,7 @@ The workflow of AutoScale-ISCA begins with raw ionogram data, which undergoes a 
 
 * _DBSCAN Clustering_: By identifying dense regions of data points, DBSCAN is particularly effective in isolating meaningful traces from noise. Its ability to detect outliers enhances the overall accuracy of the tool.
 
-## Summarize the 
+## Summarize the process
 AutoScale-ISCA is a highly efficient tool that automates ionogram scaling using state-of-the-art image segmentation and clustering techniques. By combining fuzzy K-means, Otsu's thresholding, and DBSCAN, it provides a comprehensive and accurate method for extracting critical ionospheric parameters. This tool plays an essential role in space weather studies, allowing scientists to analyze complex ionospheric phenomena such as those associated with the 2024 Great American Eclipse.
 
 
