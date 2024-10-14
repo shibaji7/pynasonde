@@ -1,0 +1,8 @@
+<!-- 
+Author(s): Shibaji Chakraborty
+
+Disclaimer:
+
+-->
+# AutoScale-ISCA
+`AutoScale-ISCA` is a powerful tool within Pynasonde that automatically scales ionograms by leveraging advanced machine learning, image segmentation techniques, and clustering analysis. It provides a seamless, accurate way to identify and extract key ionospheric parameters, removing the need for manual scaling and enhancing data processing efficiency. Ideal for researchers and space weather analysts, `AutoScale-ISCA` ensures reliable and precise ionospheric data interpretation.

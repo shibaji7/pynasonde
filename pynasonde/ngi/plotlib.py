@@ -170,6 +170,10 @@ class Ionogram(object):
         xlabel: str = "Time, UT",
         color: str = "r",
         marker: str = ".",
+        major_locator: mdates.RRuleLocator = mdates.HourLocator(byhour=range(0, 24, 4)),
+        minor_locator: mdates.RRuleLocator = mdates.MinuteLocator(
+            byminute=range(0, 60, 30)
+        ),
     ):
         ylim = ylim if ylim else [np.min(ys), np.max(ys)]
         ax = self._add_axis(del_ticks=False)
@@ -177,8 +181,8 @@ class Ionogram(object):
         ax.set_xlabel(xlabel)
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel)
-        hours = mdates.HourLocator(byhour=range(0, 24, 1))
-        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_major_locator(major_locator)
+        ax.xaxis.set_major_locator(minor_locator)
         ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
         ax.plot(time, ys, marker=marker, color=color, ms=ms, alpha=alpha, ls="None")
         return ax
