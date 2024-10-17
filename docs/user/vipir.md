@@ -27,8 +27,26 @@ Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure fo
 
 | Field Name              | Type     | Size(Bytes) | Note / Description  |
 | :---------------- | :------: | :------: | ----: |
-| Magic             |  16 Bit-`Integer`        | 2 | Magic number `0x51495200` (/nullRIQ) Possibly Byte Reversed |
-| sounding_table_size  |  16 Bit-`Integer`     | 2 | Bytes in sounder configuration structure |
-| pulse_table_size  |  16 Bit-`Integer`     | 2 | Bytes in pulse configuration structure |
-| raw_data_size  |  16 Bit-`Integer`     | 2 | Bytes in raw data block (one PRI) |
-| struct_version  |  64 Bit-`Float`     | 8 | Format Version Number.  Currently 1.2 |
+| magic             |  `Integer`        | 8 | `0x51495200` (/nullRIQ) Possibly Byte Reversed |
+| sounding_table_size  |  `Integer`     | 8 | Bytes in sounder configuration structure |
+| pulse_table_size  |  `Integer`     | 8 | Bytes in pulse configuration structure |
+| raw_data_size  |  `Integer`     | 8 | Bytes in raw data block (one PRI) |
+| struct_version  | `Float`     | 8 | Format Version Number.  Currently 1.2 |
+| start_year  | `Integer`     | 8 | Start time elements (Year) of the ionogram |
+| start_daynumber  | `Integer`     | 8 | Start time elements (doy) |
+| start_month | `Integer`     | 8 | Start time elements (month) |
+| start_day  | `Integer`     | 8 | Start time elements (day of month) |
+| start_hour  | `Integer`     | 8 | Start time elements (hour) |
+| start_minute  | `Integer`     | 8 | Start time elements (minute) |
+| start_second  | `Integer`     | 8 | Start time elements (second) |
+| start_epoch  | `Integer`     | 8 | Epoch time of the measurement start |
+| readme  | `String`     | 16 | Operator comment on this measurement |
+| decimation_method  | `Integer`     | 8 | If processed, 0=no process (raw data) |
+| decimation_threshold  | `Float`     | 8 | If processed, the treshold value for the given method |
+| user  | `String`     | 16 | User-defined |
+| station  | `pynasonde.riq.headers.sct.StationType`     | Variable | Station info substructure |
+| timing  | `pynasonde.riq.headers.sct.TimingType`     | Variable | Radar timing substruture |
+| frequency  | `pynasonde.riq.headers.sct.FrequencyType`     | Variable | Frequency sweep substructure |
+| receiver  | `pynasonde.riq.headers.sct.RecieverType`     | Variable | Receiver settings substructure |
+| exciter  | `pynasonde.riq.headers.sct.ExciterType`     | Variable | Exciter settings substructure |
+| monitor  | `pynasonde.riq.headers.sct.MonitorType`     | Variable | Built In Test values substructure |
