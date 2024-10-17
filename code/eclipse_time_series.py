@@ -5,7 +5,8 @@ import matplotlib.dates as mdates
 from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.ngi.source import Trace
 
-O = Trace.load_saved_scaled_parameters("./tmp/20240408/scaled/", mode="X")
+xlim = [dt.datetime(2024, 4, 7), dt.datetime(2024, 4, 8)]
+O = Trace.load_saved_scaled_parameters("./tmp/20240407/scaled/", mode="X")
 print(O.head())
 O.dropna(inplace=True)
 # X = Trace.load_saved_scaled_parameters("./tmp/20240408/scaled/", "X")
@@ -33,7 +34,7 @@ ion = Ionogram(nrows=2, ncols=1, figsize=(5, 8))
 ion.add_TS(
     O.time.tolist(),
     O.fs,
-    xlim=[dt.datetime(2024, 4, 8), dt.datetime(2024, 4, 9)],
+    xlim=xlim,
     xlabel="",
     major_locator=mdates.HourLocator(byhour=range(0, 24, 6)),
     minor_locator=mdates.HourLocator(byhour=range(0, 24, 3)),
@@ -43,10 +44,10 @@ ion.add_TS(
 ion.add_TS(
     O.time.tolist(),
     O.hs,
-    xlim=[dt.datetime(2024, 4, 8), dt.datetime(2024, 4, 9)],
+    xlim=xlim,
     ylabel=r"$hm_s$, km",
     color="b",
     major_locator=mdates.HourLocator(byhour=range(0, 24, 6)),
     minor_locator=mdates.HourLocator(byhour=range(0, 24, 3)),
 )
-ion.save("tmp/08TS.png")
+ion.save("tmp/07TS.png")

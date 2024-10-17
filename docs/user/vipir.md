@@ -25,6 +25,10 @@ An RIQ file is divided into blocks or records. Each record has the same format b
 ### Sounding Control Table (SCT)
 Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure formats are also supported, and produce nearly idential files. The exception is for the user-defined text strings, where `C` prodices a null filled character string and `FORTRAN` produces a space filled character string. Both methods are supported. For 64 bit C code, it is necessary to define the structure as `packed`. This version defined here is 1.20.
 
-| Field Name              | Type     | Note / Description  |
-| :---------------- | :------: | ----: |
-| Magic             |  `Integer`        | Default value `0x51495200`|
+| Field Name              | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| Magic             |  16 Bit-`Integer`        | 2 | Magic number `0x51495200` (/nullRIQ) Possibly Byte Reversed |
+| sounding_table_size  |  16 Bit-`Integer`     | 2 | Bytes in sounder configuration structure |
+| pulse_table_size  |  16 Bit-`Integer`     | 2 | Bytes in pulse configuration structure |
+| raw_data_size  |  16 Bit-`Integer`     | 2 | Bytes in raw data block (one PRI) |
+| struct_version  |  64 Bit-`Float`     | 8 | Format Version Number.  Currently 1.2 |

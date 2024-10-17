@@ -49,7 +49,8 @@ extra_javascript:
 nav:
     - Home: index.md
     - Installation: user/install.md  
-    - Ionosonde Data Access: user/ionosonde.md 
+    - Ionosonde Data Access: user/ionosonde.md
+    - VIPIR: user/vipir.md
     - Citing: user/citing.md
     - Toolbox: 
             - ISCA: tools/isca.md

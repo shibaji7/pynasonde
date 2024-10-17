@@ -1,14 +1,14 @@
 from pynasonde.ngi.source import DataSource, Trace
 
-ds = DataSource(source_folder="./tmp/20240408/")
-ds.load_data_sets(1200, 1201)
+ds = DataSource(source_folder="./tmp/20240407/")
+ds.load_data_sets(0, -1)
 from pynasonde.ngi.scale import AutoScaler, NoiseProfile
 
 constant = 2
 thresh = 3
 eps = 4
 min_samples = 70
-modes = ["O"]
+modes = ["O", "X"]
 for mode in modes:
     for i, dx in enumerate(ds.datasets):
         scaler = AutoScaler(
