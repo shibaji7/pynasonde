@@ -24,6 +24,7 @@ An RIQ file is divided into blocks or records. Each record has the same format b
 
 ### Sounding Control Table (SCT)
 Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure formats are also supported, and produce nearly idential files. The exception is for the user-defined text strings, where `C` prodices a null filled character string and `FORTRAN` produces a space filled character string. Both methods are supported. For 64 bit C code, it is necessary to define the structure as `packed`. This version defined here is 1.20.
+
 | Item              | Type     | Note  |
 | :---------------- | :------: | ----: |
 | magic             |  Integer        | 0x51495200|
