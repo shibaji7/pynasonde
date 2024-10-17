@@ -10,7 +10,7 @@ table td {
     align: left;
 }
 
-turquoise = hsl(171, 100%, 41%)
+turquoise=sl(171, 100%, 41%)
 blue=hsl(217, 71%, 53%)
 green=hsl(141, 71%, 48%)
 yellow=hsl(48, 100%, 67%)
@@ -55,4 +55,9 @@ blockquote {
 .is-warning {
     border-color: blue;
     background: hsl(348, 100%, 90%)
+}
+
+tr:nth-child(even) {
+  background-color: #b2b2b2!important;
+  color: #f4f4f4!important;
 }
