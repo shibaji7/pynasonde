@@ -57,3 +57,21 @@ Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure fo
 | receiver  | `pynasonde.riq.headers.sct.RecieverType`     | Variable | Receiver settings substructure |
 | exciter  | `pynasonde.riq.headers.sct.ExciterType`     | Variable | Exciter settings substructure |
 | monitor  | `pynasonde.riq.headers.sct.MonitorType`     | Variable | Built In Test values substructure |
+
+#### Station, Timing, Frequency, Reciever, Exciter, and Monitor Information Substructures
+Here are the substrcuture holding information on instrumentation stetting and control information `Python` structure.
+
+| Field Name `StationType`             | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| file_id             |  `String`        | 8 | Name of station settings file |
+| ursi_id             |  `String`        | 1 | URSI standard station ID code |
+| rx_name             |  `String`        | 4 | Rx Station Name |
+| rx_latitude             |  `Float`        | 8 | Latitude of Rx array ref point [deg North] |
+| rx_longitude             |  `Float`        | 8 | Longitude of Rx array ref point [deg East] |
+| rx_altitude             |  `Float`        | 8 | Meters above mean sea level |
+| rx_count             |  `Integer`        | 8 | Number of defined receive antennas |
+| rx_antenna_type             |  `Array[String]`        | 32[4] | Rx antenna type text descriptors |
+| rx_position             |  2D `Array[Float]`        | 32X3[8] | X,Y,Z = (East,North,Up) Positon [m] of each Rx |
+| rx_direction             |  2D `Array[Float]`        | 32X3[8] | X,Y,Z = (East,North,Up) Direction of each Rx |
+| rx_height             |  `Array[Float]`        | 32[8] | Height above ground [m] |
+| rx_cable_length             |  `Array[Float]`        | 32[8] | physical length of receive cables [m] |
