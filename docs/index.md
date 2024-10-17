@@ -22,6 +22,7 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
   - [Installation](user/install.md)
   - [Ionosonde Data Access](user/ionosonde.md)
   - [Citing](user/citing.md)
-  - [Toolbox](tools/toolbox.md)
+  - Toolbox
     - [ISCA](tools/isca.md)
   - Tutorials
+  - [VIPIR](user/vipir.md)
