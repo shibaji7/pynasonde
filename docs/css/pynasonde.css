@@ -56,3 +56,8 @@ blockquote {
     border-color: blue;
     background: hsl(348, 100%, 90%)
 }
+
+tr:nth-child(even) {
+  background-color: #b2b2b2!important;
+  color: #f4f4f4!important;
+}
