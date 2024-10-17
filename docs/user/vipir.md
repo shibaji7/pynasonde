@@ -4,7 +4,13 @@ Author(s): Shibaji Chakraborty
 Disclaimer:
 
 -->
-<link href="../css/pynasonde.css" rel="stylesheet" type="text/css"></link>
+
+<style>
+tr:nth-child(even) {
+  background-color: #b2b2b2!important;
+  color: #f4f4f4!important;
+}
+</style>
 
 # VIPIR: _Vertical Incidence Pulsed Ionospheric Radar_
 The Vertical Incidence Pulsed Ionospheric Radar (VIPIR) was initially developed by Scion Associates under a Small Business Innovative Research grant from the U.S. Air Force Research Laboratory. The first installation of VIPIR took place at NASA's Wallops Island Flight Facility in 2008. Since then, 15 VIPIR instruments have been deployed in various locations.
