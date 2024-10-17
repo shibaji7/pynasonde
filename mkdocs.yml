@@ -2,7 +2,7 @@ site_name: Pynasonde Documentation
 repo_url: https://github.com/shibaji7/pynasonde
 theme: 
   name: "material"
-  logo: assets/DALLE-pynasonde-logo1.png
+  logo: assets/Colab-pynasonde-logo1.png
   features:
     - content.code.copy
     - content.code.select
