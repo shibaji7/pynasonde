@@ -75,3 +75,19 @@ Here are the substrcuture holding information on instrumentation stetting and co
 | rx_direction             |  2D `Array[Float]`        | 32X3[8] | X,Y,Z = (East,North,Up) Direction of each Rx |
 | rx_height             |  `Array[Float]`        | 32[8] | Height above ground [m] |
 | rx_cable_length             |  `Array[Float]`        | 32[8] | physical length of receive cables [m] |
+| frontend_atten             |  `Float`        | 8 | Front End attenuator setting |
+| tx_name             |  `String`        | 4 | Transmitter station name |
+| tx_latitude             |  `Float`        | 8 | Latitude of Tx array ref point [deg North] |
+| tx_longitude             |  `Float`        | 8 | Latitude of Tx array ref point [deg East] |
+| tx_altitude             |  `Float`        | 8 | Meters above mean sea level |
+| tx_antenna_type             |  `String`        | 4 | Tx antenna type text descriptors |
+| tx_vector             |  `Array[Float]`        | 3[8] | Tx antenna direction vector [m] |
+| tx_height             |  `Float`        | 8 | Antenna height above reference ground [m] |
+| tx_cable_length | `Float` | 8 | Physical length of transmit cables [m] |
+| drive_band_count | `Integer` | 8 | Number of antenna drive bands |
+| drive_band_bounds | 2D `Array[Float]` | 2X64[8] | Drive bands start/stop in kHz |
+| drive_band_atten | `Array[Float]` | 64[8] | Antenna drive atteunuation in dB |
+| rf_control | `Integer` | 64[8] | -1 = none, 0 = drive/quiet, 1 = full, 2 = only quiet, 3 = only atten |
+| ref_type | `String` | 4 | Type of reference oscillator |
+| clock_type | `String` | 8 | Source of absoulte UT timing |
+| user | `String` | 16 | Spare space for user-defined information |
