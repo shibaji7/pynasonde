@@ -10,25 +10,25 @@ from pynasonde.riq.utils import trim_null
 
 @dataclass
 class PctType:
-    record_id: int = 0  # Sequence number of this PCT
-    pri_ut: float = 0.0  # UT of this pulse
-    pri_time_offset: float = 0.0  # Time read from system clock, not precise
-    base_id: int = 0  # Base Frequency counter
-    pulse_id: int = 0  # Pulse set element for this PRI
-    ramp_id: int = 0  # Ramp set element for this PRI
-    repeat_id: int = 0  # Ramp repeat element for this PRI
-    loop_id: int = 0  # Outer loop element for this PRI
-    frequency: float = 0.0  # Frequency of observation (kHz)
-    nco_tune_word: int = 0  # Tuning word sent to the receiver
-    drive_attenuation: float = 0.0  # Low-level drive attenuation [dB]
-    pa_flags: int = 0  # Status flags from amplifier
-    pa_forward_power: float = 0.0  # Forward power from amplifier
-    pa_reflected_power: float = 0.0  # Reflected power from amplifier
-    pa_vswr: float = 0.0  # Voltage Standing Wave Ratio from amplifier
-    pa_temperature: float = 0.0  # Amplifier temperature
-    proc_range_count: int = 0  # Number of range gates kept this PRI
-    proc_noise_level: float = 0.0  # Estimated noise level for this PRI
-    user: str = ""  # Spare space for user-defined information (64-character string)
+    record_id: np.int32 = 0  # Sequence number of this PCT
+    pri_ut: np.float64 = 0.0  # UT of this pulse
+    pri_time_offset: np.float64 = 0.0  # Time read from system clock, not precise
+    base_id: np.int32 = 0  # Base Frequency counter
+    pulse_id: np.int32 = 0  # Pulse set element for this PRI
+    ramp_id: np.int32 = 0  # Ramp set element for this PRI
+    repeat_id: np.int32 = 0  # Ramp repeat element for this PRI
+    loop_id: np.int32 = 0  # Outer loop element for this PRI
+    frequency: np.float64 = 0.0  # Frequency of observation (kHz)
+    nco_tune_word: np.int32 = 0  # Tuning word sent to the receiver
+    drive_attenuation: np.float64 = 0.0  # Low-level drive attenuation [dB]
+    pa_flags: np.int32 = 0  # Status flags from amplifier
+    pa_forward_power: np.float64 = 0.0  # Forward power from amplifier
+    pa_reflected_power: np.float64 = 0.0  # Reflected power from amplifier
+    pa_vswr: np.float64 = 0.0  # Voltage Standing Wave Ratio from amplifier
+    pa_temperature: np.float64 = 0.0  # Amplifier temperature
+    proc_range_count: np.int32 = 0  # Number of range gates kept this PRI
+    proc_noise_level: np.float64 = 0.0  # Estimated noise level for this PRI
+    user: str = ""  # Spare spa`ce for user-defined information (64-character string)
 
     def fix_PCT_strings(self) -> None:
         logger.info("Fixing PCT strings...")
@@ -67,7 +67,7 @@ class PctType:
         return
 
     def read_pct(
-        self, fname: str, pulse_num: int = 1, unicode: str = "latin-1"
+        self, fname: str, pulse_num: np.int32 = 1, unicode: str = "latin-1"
     ) -> None:
         logger.info(f"Reading PCT Pulse: {pulse_num}")
         byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
@@ -86,7 +86,7 @@ class PctType:
         self.read_pct_IQRxRG(fname, pulse_num)
         return
 
-    def read_pct_IQRxRG(self, fname: str, pulse_num: int = 1) -> None:
+    def read_pct_IQRxRG(self, fname: str, pulse_num: np.int32 = 1) -> None:
         logger.info(f"Reading IQRxRG Pulse: {pulse_num}")
         byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
         factory = [("IQRxRG", "int16", (2, self.num_receivers, self.num_gates))]
@@ -104,7 +104,7 @@ class PctType:
         logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 
-    def dump_pct(self, t32: float = 0.0000186264514923096, to_file: str = None) -> None:
+    def dump_pct(self, t32: np.float64 = 0.0000186264514923096, to_file: str = None) -> None:
         self.fix_PCT_strings()
         txt = f"{'pct.record_id':<30}{self.record_id:>12}\n"
         txt += f"{'pct.pri_ut':<30}{self.pri_ut:>12.2f}\n"

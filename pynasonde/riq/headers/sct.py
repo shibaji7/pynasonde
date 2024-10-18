@@ -22,14 +22,14 @@ class StationType:
     file_id: str = ""  # Name of station settings file
     ursi_id: str = ""  # URSI standard station ID code
     rx_name: str = ""  # Receiver Station Name
-    rx_latitude: float = (
+    rx_latitude: np.float64 = (
         0.0  # Position of the Receive array reference point [degrees North]
     )
-    rx_longitude: float = (
+    rx_longitude: np.float64 = (
         0.0  # Position of the Receive array reference point [degrees East]
     )
-    rx_altitude: float = 0.0  # Meters above mean sea level
-    rx_count: int = 0  # Number of defined receive antennas
+    rx_altitude: np.float64 = 0.0  # Meters above mean sea level
+    rx_count: np.int32 = 0  # Number of defined receive antennas
     rx_antenna_type: List[str] = field(
         default_factory=lambda: [""] * 16
     )  # Rx antenna type text descriptors
@@ -45,29 +45,29 @@ class StationType:
     rx_cable_length: List[float] = field(
         default_factory=lambda: [0.0] * 32
     )  # Physical length of receive cables [m]
-    frontend_atten: float = 0.0  # Front End attenuator setting
+    frontend_atten: np.float64 = 0.0  # Front End attenuator setting
     tx_name: str = ""  # Transmitter Station Name
-    tx_latitude: float = (
+    tx_latitude: np.float64 = (
         0.0  # Position of the Transmit Antenna reference point [degrees North]
     )
-    tx_longitude: float = (
+    tx_longitude: np.float64 = (
         0.0  # Position of the Transmit Antenna reference point [degrees East]
     )
-    tx_altitude: float = 0.0  # Meters above mean sea level
+    tx_altitude: np.float64 = 0.0  # Meters above mean sea level
     tx_antenna_type: str = ""  # Tx antenna type text descriptors
     tx_vector: List[float] = field(
         default_factory=lambda: [0.0] * 3
     )  # Tx antenna direction vector [m]
-    tx_height: float = 0.0  # Antenna height above reference ground [m]
-    tx_cable_length: float = 0.0  # Physical length of transmit cables [m]
-    drive_band_count: int = 0  # Number of antenna drive bands
+    tx_height: np.float64 = 0.0  # Antenna height above reference ground [m]
+    tx_cable_length: np.float64 = 0.0  # Physical length of transmit cables [m]
+    drive_band_count: np.int32 = 0  # Number of antenna drive bands
     drive_band_bounds: List[List[float]] = field(
         default_factory=lambda: [[0.0] * 64 for _ in range(2)]
     )  # Drive bands start/stop in kHz
     drive_band_atten: List[float] = field(
         default_factory=lambda: [0.0] * 64
     )  # Antenna drive atteunuation in dB
-    rf_control: int = (
+    rf_control: np.int32 = (
         -1
     )  # -1 = none, 0 = drive/quiet, 1 = full, 2 = only quiet, 3 = only atten
     ref_type: str = ""  # Type of reference oscillator
@@ -108,31 +108,31 @@ class TimingType:
     """
 
     file_id: str = ""  # Name of the timing settings file
-    pri: float = 0.0  # Pulse Repetition Interval (PRI) (microseconds)
-    pri_count: int = 0  # number of PRI's in the measurement
-    ionogram_count: int = 0  # Repeat count for ionogram within same data file
-    holdoff: float = 0.0  # Time between GPS 1 pps and start
-    range_gate_offset: float = 0.0  # True range to gate 0
-    gate_count: int = 0  # Number of range gates, adjusted up for USB blocks
-    gate_start: float = 0.0  # Start gate placement [us], adjusted
-    gate_end: float = 0.0  # End gate placement [us], adjusted
-    gate_step: float = 0.0  # Range delta [us]
-    data_start: float = 0.0  # Data range placement start [us]
-    data_width: float = 0.0  # Data pulse baud width [us]
-    data_baud_count: int = 0  # Data pulse baud count
+    pri: np.float64 = 0.0  # Pulse Repetition Interval (PRI) (microseconds)
+    pri_count: np.int32 = 0  # number of PRI's in the measurement
+    ionogram_count: np.int32 = 0  # Repeat count for ionogram within same data file
+    holdoff: np.float64 = 0.0  # Time between GPS 1 pps and start
+    range_gate_offset: np.float64 = 0.0  # True range to gate 0
+    gate_count: np.int32 = 0  # Number of range gates, adjusted up for USB blocks
+    gate_start: np.float64 = 0.0  # Start gate placement [us], adjusted
+    gate_end: np.float64 = 0.0  # End gate placement [us], adjusted
+    gate_step: np.float64 = 0.0  # Range delta [us]
+    data_start: np.float64 = 0.0  # Data range placement start [us]
+    data_width: np.float64 = 0.0  # Data pulse baud width [us]
+    data_baud_count: np.int32 = 0  # Data pulse baud count
     data_wave_file: str = ""  # Data baud pattern file name
     data_baud: List[complex] = field(
         default_factory=lambda: [complex(0.0, 0.0)] * 1024
     )  # Data waveform baud pattern
-    data_pairs: int = 0  # Number of IQ pairs in waveform memory
-    cal_start: float = 0.0  # Cal range placement start [us]
-    cal_width: float = 0.0  # Cal pulse baud width [us]
-    cal_baud_count: int = 0  # Cal pulse baud count
+    data_pairs: np.int32 = 0  # Number of IQ pairs in waveform memory
+    cal_start: np.float64 = 0.0  # Cal range placement start [us]
+    cal_width: np.float64 = 0.0  # Cal pulse baud width [us]
+    cal_baud_count: np.int32 = 0  # Cal pulse baud count
     cal_wave_file: str = ""  # Alternative baud pattern file name
     cal_baud: List[complex] = field(
         default_factory=lambda: [complex(0.0, 0.0)] * 1024
     )  # Cal waveform baud pattern
-    cal_pairs: int = 0  # Number of IQ pairs in waveform memory
+    cal_pairs: np.int32 = 0  # Number of IQ pairs in waveform memory
     user: str = ""  # Spare space for user-defined information
 
     def read_timing(self, fname: str, unicode: str = "latin-1") -> None:
@@ -158,26 +158,26 @@ class FrequencyType:
     """
 
     file_id: str = ""  # Frequency settings file
-    base_start: float = 0.0  # Initial base frequency
-    base_end: float = 0.0  # Final base frequency
-    base_steps: int = 0  # Number of base frequencies
-    tune_type: int = (
+    base_start: np.float64 = 0.0  # Initial base frequency
+    base_end: np.float64 = 0.0  # Final base frequency
+    base_steps: np.int32 = 0  # Number of base frequencies
+    tune_type: np.int32 = (
         0  # Tuning type flag:  1=log, 2=linear, 3=table, 4=Log+Fixed ShuffleMode
     )
     base_table: List[float] = field(
         default_factory=lambda: [0.0] * 8192
     )  # Nominal or Base frequency table
-    linear_step: float = 0.0  # Linear frequency step [kHz]
-    log_step: float = 0.0  # Log frequency step, [percent]
+    linear_step: np.float64 = 0.0  # Linear frequency step [kHz]
+    log_step: np.float64 = 0.0  # Log frequency step, [percent]
     freq_table_id: str = ""  # Manual tuning table filename
-    tune_steps: int = 0  # All frequencies pre-ramp repeats
-    pulse_count: int = 0  # Pulset frequency vector length
+    tune_steps: np.int32 = 0  # All frequencies pre-ramp repeats
+    pulse_count: np.int32 = 0  # Pulset frequency vector length
     pulse_pattern: List[int] = field(
         default_factory=lambda: [0] * 256
     )  # Pulse_pattern ! Pulset frequency vector
-    pulse_offset: float = 0.0  # Pulset offset [kHz]
-    ramp_steps: int = 0  # Pulsets per B-mode ramp (ramp length, base freqs per B-block)
-    ramp_repeats: int = 0  # Repeat count of B-mode ramps
+    pulse_offset: np.float64 = 0.0  # Pulset offset [kHz]
+    ramp_steps: np.int32 = 0  # Pulsets per B-mode ramp (ramp length, base freqs per B-block)
+    ramp_repeats: np.int32 = 0  # Repeat count of B-mode ramps
     drive_table: List[float] = field(
         default_factory=lambda: [0.0] * 8192
     )  # Base frequencies attenuation/silent table
@@ -206,25 +206,25 @@ class FrequencyType:
 @dataclass
 class RecieverType:
     file_id: str = ""  # Frequency settings file
-    rx_chan: int = 0  # Number of receivers
+    rx_chan: np.int32 = 0  # Number of receivers
     rx_map: List[int] = field(
         default_factory=lambda: [0] * 16
     )  # Receiver-to-antenna mapping
-    word_format: int = (
+    word_format: np.int32 = (
         0  # 0 = big endian fixed, 1 = little endian, 2 = floating_point, 3=32 bit little endian integer (v2.z)
     )
-    cic2_dec: int = 0  # DDC filter block
-    cic2_interp: int = 0  # DDC filter block
-    cic2_scale: int = 0  # DDC filter block
-    cic5_dec: int = 0  # DDC filter block
-    cic5_scale: int = 0  # DDC filter block
+    cic2_dec: np.int32 = 0  # DDC filter block
+    cic2_interp: np.int32 = 0  # DDC filter block
+    cic2_scale: np.int32 = 0  # DDC filter block
+    cic5_dec: np.int32 = 0  # DDC filter block
+    cic5_scale: np.int32 = 0  # DDC filter block
     rcf_type: str = ""  # Text descriptor of FIR filter block
-    rcf_dec: int = 0  # Decimation factor for FIR filter block
-    rcf_taps: int = 0  # Number of taps in FIR filter block
+    rcf_dec: np.int32 = 0  # Decimation factor for FIR filter block
+    rcf_taps: np.int32 = 0  # Number of taps in FIR filter block
     coefficients: List[int] = field(
         default_factory=lambda: [0] * 160
     )  # Receiver filter coefficients
-    analog_delay: float = 0.0  # Analog delay of receiver, us
+    analog_delay: np.float64 = 0.0  # Analog delay of receiver, us
     user: str = ""  # Spare space for user-defined information
 
     def read_reciever(self, fname: str, unicode="latin-1") -> None:
@@ -246,17 +246,17 @@ class RecieverType:
 @dataclass
 class ExciterType:
     file_id: str = ""  # Frequency settings file
-    cic_scale: int = 0  # DUC filter block
-    cic2_dec: int = 0  # DUC filter block
-    cic2_interp: int = 0  # DUC filter block
-    cic5_interp: int = 0  # DUC filter block
+    cic_scale: np.int32 = 0  # DUC filter block
+    cic2_dec: np.int32 = 0  # DUC filter block
+    cic2_interp: np.int32 = 0  # DUC filter block
+    cic5_interp: np.int32 = 0  # DUC filter block
     rcf_type: str = ""  # Text descriptor of FIR filter block
-    rcf_taps: int = 0  # Number of taps in FIR filter block
-    rcf_taps_phase: int = 0  # Number of taps in FIR filter block
+    rcf_taps: np.int32 = 0  # Number of taps in FIR filter block
+    rcf_taps_phase: np.int32 = 0  # Number of taps in FIR filter block
     coefficients: List[int] = field(
         default_factory=lambda: [0] * 256
     )  # Receiver filter coefficients
-    analog_delay: float = 0.0  # Analog delay of exciter/transmitter, us
+    analog_delay: np.float64 = 0.0  # Analog delay of exciter/transmitter, us
     user: str = ""  # Spare space for user-defined information
 
     def read_exciter(self, fname: str, unicode="latin-1") -> None:
@@ -312,24 +312,24 @@ class MonitorType:
 
 @dataclass
 class SctType:
-    magic: int = (
+    magic: np.int32 = (
         0x51495200  # Magic number 0x51495200 (/nullRIQ) {POSSIBLY BYTE REVERSED}
     )
-    sounding_table_size: int = 0  # Bytes in sounder configuration structure (this file)
-    pulse_table_size: int = 0  # Bytes in pulse configuration structure
-    raw_data_size: int = 0  # Bytes in raw data block (one PRI)
-    struct_version: float = 1.20  # Format Version Number. Currently 1.2
-    start_year: int = 1970  # Start Time Elements of the ionogram (Universal Time)
-    start_daynumber: int = 1
-    start_month: int = 1
-    start_day: int = 1
-    start_hour: int = 0
-    start_minute: int = 0
-    start_second: int = 0
-    start_epoch: int = 0  # Epoch time of the measurement start.
+    sounding_table_size: np.int32 = 0  # Bytes in sounder configuration structure (this file)
+    pulse_table_size: np.int32 = 0  # Bytes in pulse configuration structure
+    raw_data_size: np.int32 = 0  # Bytes in raw data block (one PRI)
+    struct_version: np.float64 = 1.20  # Format Version Number. Currently 1.2
+    start_year: np.int32 = 1970  # Start Time Elements of the ionogram (Universal Time)
+    start_daynumber: np.int32 = 1
+    start_month: np.int32 = 1
+    start_day: np.int32 = 1
+    start_hour: np.int32 = 0
+    start_minute: np.int32 = 0
+    start_second: np.int32 = 0
+    start_epoch: np.int32 = 0  # Epoch time of the measurement start.
     readme: str = ""  # Operator comment on this measurement
-    decimation_method: int = 0  # If processed, 0=no process (raw data)
-    decimation_threshold: float = (
+    decimation_method: np.int32 = 0  # If processed, 0=no process (raw data)
+    decimation_threshold: np.float64 = (
         0.0  # If processed, the treshold value for the given method
     )
     user: str = ""  # user-defined

@@ -8,16 +8,16 @@ from pynasonde.riq.headers.pct import PctType
 
 @dataclass
 class PriType:
-    frequency: float = 0.0
-    ut_time: float = 0.0
-    gate_start: float = 0.0
-    gate_step: float = 0.0
-    relative_time: float = 0.0
-    tk: float = 0.0  # Magnitude of K vector |k|
-    pulset_length: int = 0
-    pulset_index: int = 0
-    receiver_count: int = 0
-    gate_count: int = 0
+    frequency: np.float64 = 0.0
+    ut_time: np.float64 = 0.0
+    gate_start: np.float64 = 0.0
+    gate_step: np.float64 = 0.0
+    relative_time: np.float64 = 0.0
+    tk: np.float64 = 0.0  # Magnitude of K vector |k|
+    pulset_length: np.int32 = 0
+    pulset_index: np.int32 = 0
+    receiver_count: np.int32 = 0
+    gate_count: np.int32 = 0
 
     # Control flags
     raw: bool = False
@@ -26,15 +26,15 @@ class PriType:
     gate_select: bool = False
     r_limit: bool = False
 
-    mask_rx: int = 0
-    phase_ref: int = 0
-    ir_gate: int = 0
-    rgt1: int = 0
-    rgt2: int = 0
+    mask_rx: np.int32 = 0
+    phase_ref: np.int32 = 0
+    ir_gate: np.int32 = 0
+    rgt1: np.int32 = 0
+    rgt2: np.int32 = 0
 
     pct: PctType = field(default_factory=PctType)
 
-    def __init__(self, MAXRX: int = 16, MAXRG: int = 64):
+    def __init__(self, MAXRX: np.int32 = 16, MAXRG: np.int32 = 64):
         # The raw I/Q values for each receiver/range
         self.a_scan: np.ndarray = field(
             default_factory=lambda: np.zeros((MAXRX, MAXRG), dtype=np.complex128)
