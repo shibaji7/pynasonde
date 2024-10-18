@@ -99,4 +99,27 @@ Here are the substrcuture holding information on instrumentation stetting and co
 | pri             |  `np.float64`        | 8 | Pulse Repetition Interval (PRI) (us) |
 | pri_count             |  `np.int32`        | 4 | Number of PRI's in the measurement |
 | ionogram_count             |  `np.int32`        | 4 | Repeat count for ionogram within same data file |
-| ionogram_count             |  `np.float64`        | 4 | Repeat count for ionogram within same data file |
+| holdoff             |  `np.float64`        | 8 | Time between GPS 1 pps and start |
+| range_gate_offset             |  `np.float64`        | 8 | True range to gate 0 |
+| gate_count             |  `np.int32`        | 8 | Number of range gates, adjusted up for USB blocks |
+| gate_start             |  `np.float64`        | 8 | Start gate placement [us], adjusted |
+| gate_end             |  `np.float64`        | 8 | End gate placement [us], adjusted |
+| gate_step             |  `np.float64`        | 8 | Range delta [us] |
+| data_start             |  `np.float64`        | 8 | Data range placement start [us] |
+| data_width             |  `np.float64`        | 8 | Data pulse baud width [us] |
+| data_baud_count             |  `np.int32`        | 4 | Data pulse baud count |
+| data_wave_file             |  `str`        | 8 | Data baud pattern file name |
+| data_baud             |  `Array[np.float64]`        | 1024[8] | Data waveform baud pattern |
+| data_pairs             |  `np.int32`        | 4 | Number of IQ pairs in waveform memory |
+| cal_start             |  `np.float64`        | 8 | Cal range placement start [us] |
+| cal_width             |  `np.float64`        | 8 | Cal pulse baud width [us] |
+| cal_baud_count             |  `np.int32`        | 4 | Cal pulse baud count |
+| cal_baud_count             |  `str`        | 8 | Alternative baud pattern file name |
+| cal_baud             |  `Array[np.float64]`        | 1024[8] | Cal waveform baud pattern |
+| cal_pairs             |  `np.int32`        | 4 | Number of IQ pairs in waveform memory |
+| user             |  `str`        | 16 | Spare space for user-defined information |
+
+
+| Field Name `FrequencyType`             | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| file_id             |  `str`        | 8 | Name of the timing settings file |
