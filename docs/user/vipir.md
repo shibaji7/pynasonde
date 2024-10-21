@@ -71,8 +71,8 @@ Here are the substrcuture holding information on instrumentation stetting and co
 | rx_altitude             |  `float64`        | 8 | Meters above mean sea level |
 | rx_count             |  `int32`        | 4 | Number of defined receive antennas |
 | rx_antenna_type             |  `[str]`        | 32[4] | Rx antenna type text descriptors |
-| rx_position             |  `[[float64]]`        | 32X3[8] | X,Y,Z = (East,North,Up) Positon [m] of each Rx |
-| rx_direction             | `[[float64]]`        | 32X3[8] | X,Y,Z = (East,North,Up) Direction of each Rx |
+| rx_position             |  `[float64]`        | 32X3[8] | X,Y,Z = (East,North,Up) Positon [m] of each Rx |
+| rx_direction             | `[float64]`        | 32X3[8] | X,Y,Z = (East,North,Up) Direction of each Rx |
 | rx_height             |  `[float64]`        | 32[8] | Height above ground [m] |
 | rx_cable_length             |  `[float64]`        | 32[8] | physical length of receive cables [m] |
 | frontend_atten             |  `float64`        | 8 | Front End attenuator setting |
@@ -85,7 +85,7 @@ Here are the substrcuture holding information on instrumentation stetting and co
 | tx_height             |  `float64`        | 8 | Antenna height above reference ground [m] |
 | tx_cable_length | `float64` | 8 | Physical length of transmit cables [m] |
 | drive_band_count | `int32` | 4 | Number of antenna drive bands |
-| drive_band_bounds | `[[float64]]` | 2X64[8] | Drive bands start/stop in kHz |
+| drive_band_bounds | `[float64]` | 2X64[8] | Drive bands start/stop in kHz |
 | drive_band_atten | `[float64]` | 64[8] | Antenna drive atteunuation in dB |
 | rf_control | `int32` | 64[8] | -1 = none, 0 = drive/quiet, 1 = full, 2 = only quiet, 3 = only atten |
 | ref_type | `str` | 4 | Type of reference oscillator |
