@@ -6,7 +6,9 @@ Disclaimer:
 -->
 
 # Pynasonde
-<img src="assets/Colab-pynasonde-logo2.jpeg" alt="Pynasonde" width="50%">
+<div style="text-align: center;">
+  <img src="assets/Colab-pynasonde-logo2.jpeg" alt="Pynasonde" width="50%">
+</div>
 
 Pynasonde is an open-source Python-based application designed for precision ionospheric radio sounding, with a strong focus on analyzing the phase characteristics of radio echoes. Tailored for Space Weather applications, Pynasonde offers a suite of unique tools that help extract valuable insights directly and autonomously from ionogram data.
 
