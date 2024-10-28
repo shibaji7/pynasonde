@@ -3,3 +3,4 @@ title = "Pynasonde"
 author = "S. Chakraborty"
 
 # Tables
+[ngi.scaler]

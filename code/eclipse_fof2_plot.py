@@ -1,7 +1,11 @@
 from pynasonde.ngi.source import DataSource, Trace
 
 ds = DataSource(source_folder="./tmp/20240407/")
-ds.load_data_sets(0, -1)
+ds.load_data_sets(0, 1)
+from pynasonde.ngi.utils import load_toml
+
+o = load_toml()
+
 from pynasonde.ngi.scale import AutoScaler, NoiseProfile
 
 constant = 2

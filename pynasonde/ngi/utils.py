@@ -1,4 +1,4 @@
-import os
+import importlib.resources
 from types import SimpleNamespace
 
 import toml
@@ -25,12 +25,14 @@ def setsize(size=8):
     return
 
 
-def load_toml(fname: str = "config.toml") -> SimpleNamespace:
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    fpath = os.path.join(package_dir, fname)
-    logger.info(f"Load config file {fpath}")
-    cfg = SimpleNamespace(**toml.load(fpath))
-    print(cfg)
+def load_toml(fpath: str = None) -> SimpleNamespace:
+    if fpath:
+        logger.info(f"Loading from {fpath}")
+        cfg = SimpleNamespace(**toml.load(fpath))
+    else:
+        with importlib.resources.path("pynasonde", "config.toml") as config_path:
+            logger.info(f"Loading from {config_path}")
+            cfg = SimpleNamespace(**toml.load(config_path))
     return cfg
 
 

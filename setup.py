@@ -1,7 +1,7 @@
 # read the contents of your README file
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
@@ -9,12 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name="pynasonde",
     version="0.1",
-    packages=[
-        "pynasonde/",
-        "pynasonde/ngi/",
-        "pynasonde/riq/",
-        "pynasonde/riq/headers/",
-    ],
+    packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
         "pynasonde": ["config.toml"],
