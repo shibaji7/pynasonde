@@ -119,6 +119,7 @@ class AutoScaler(object):
         from sklearn.cluster import DBSCAN
 
         thresh = thresh * threshold_otsu(np.copy(self.image2d), nbins=nbins)
+        logger.info(f"Otsu's thresh {thresh}")
         self.binary_image = self.segmented_image > thresh
 
         vertices = np.where(self.binary_image == True)
