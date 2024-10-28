@@ -176,7 +176,9 @@ class FrequencyType:
         default_factory=lambda: [0] * 256
     )  # Pulse_pattern ! Pulset frequency vector
     pulse_offset: np.float64 = 0.0  # Pulset offset [kHz]
-    ramp_steps: np.int32 = 0  # Pulsets per B-mode ramp (ramp length, base freqs per B-block)
+    ramp_steps: np.int32 = (
+        0  # Pulsets per B-mode ramp (ramp length, base freqs per B-block)
+    )
     ramp_repeats: np.int32 = 0  # Repeat count of B-mode ramps
     drive_table: List[float] = field(
         default_factory=lambda: [0.0] * 8192
@@ -315,7 +317,9 @@ class SctType:
     magic: np.int32 = (
         0x51495200  # Magic number 0x51495200 (/nullRIQ) {POSSIBLY BYTE REVERSED}
     )
-    sounding_table_size: np.int32 = 0  # Bytes in sounder configuration structure (this file)
+    sounding_table_size: np.int32 = (
+        0  # Bytes in sounder configuration structure (this file)
+    )
     pulse_table_size: np.int32 = 0  # Bytes in pulse configuration structure
     raw_data_size: np.int32 = 0  # Bytes in raw data block (one PRI)
     struct_version: np.float64 = 1.20  # Format Version Number. Currently 1.2

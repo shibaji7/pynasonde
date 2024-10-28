@@ -1,1 +1,1 @@
-include pynasonde/config.toml
+recursive-include pynasonde *.toml

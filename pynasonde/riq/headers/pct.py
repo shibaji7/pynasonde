@@ -104,7 +104,9 @@ class PctType:
         logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 
-    def dump_pct(self, t32: np.float64 = 0.0000186264514923096, to_file: str = None) -> None:
+    def dump_pct(
+        self, t32: np.float64 = 0.0000186264514923096, to_file: str = None
+    ) -> None:
         self.fix_PCT_strings()
         txt = f"{'pct.record_id':<30}{self.record_id:>12}\n"
         txt += f"{'pct.pri_ut':<30}{self.pri_ut:>12.2f}\n"

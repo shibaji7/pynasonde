@@ -1,3 +1,10 @@
+import os
+from types import SimpleNamespace
+
+import toml
+from loguru import logger
+
+
 def setsize(size=8):
     pass
 
@@ -16,6 +23,15 @@ def setsize(size=8):
         {"xtick.labelsize": size, "ytick.labelsize": size, "font.size": size}
     )
     return
+
+
+def load_toml(fname: str = "config.toml") -> SimpleNamespace:
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(package_dir, fname)
+    logger.info(f"Load config file {fpath}")
+    cfg = SimpleNamespace(**toml.load(fpath))
+    print(cfg)
+    return cfg
 
 
 def get_color_by_index(index, total_indices, cmap_name="viridis"):
