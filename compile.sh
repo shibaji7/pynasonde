@@ -7,3 +7,4 @@ autoflake --remove-all-unused-imports -i -r .
 isort -rc -m 3 .
 black .
 pip install .
+ls $(python -c "import pynasonde; print(pynasonde.__path__[0])")
