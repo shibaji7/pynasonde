@@ -3,4 +3,14 @@ title = "Pynasonde"
 author = "S. Chakraborty"
 
 # Tables
-[ngi.scaler]
+[ngi]
+scaler.noise_constant=2
+scaler.frequency_min=0
+scaler.frequency_max=15
+scaler.height_min=50
+scaler.height_max=400
+scaler.mode="X"
+scaler.dbscan.eps=4
+scaler.dbscan.min_samples=70
+scaler.otsu.nbins=1000
+scaler.otsu.thresh=3

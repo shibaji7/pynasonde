@@ -25,14 +25,23 @@ def setsize(size=8):
     return
 
 
+def to_namespace(d: object) -> SimpleNamespace:
+    if isinstance(d, dict):
+        return SimpleNamespace(**{k: to_namespace(v) for k, v in d.items()})
+    elif isinstance(d, list):
+        return [to_namespace(v) for v in d]
+    else:
+        return d
+
+
 def load_toml(fpath: str = None) -> SimpleNamespace:
     if fpath:
         logger.info(f"Loading from {fpath}")
-        cfg = SimpleNamespace(**toml.load(fpath))
+        cfg = to_namespace(toml.load(fpath))
     else:
         with importlib.resources.path("pynasonde", "config.toml") as config_path:
             logger.info(f"Loading from {config_path}")
-            cfg = SimpleNamespace(**toml.load(config_path))
+            cfg = to_namespace(toml.load(config_path))
     return cfg
 
 
