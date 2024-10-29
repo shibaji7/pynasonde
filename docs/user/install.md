@@ -8,7 +8,7 @@ Disclaimer:
 ---
 
 [![License: MIT](https://img.shields.io/badge/License%3A-MIT-green)](https://choosealicense.com/licenses/mit/) 
-[![Python 3.11](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/) 
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-311/) 
 ![GitHub Stable Release (latest by date)](https://img.shields.io/github/v/release/shibaji7/pynasonde)
 
 
