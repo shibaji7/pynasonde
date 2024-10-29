@@ -2,15 +2,17 @@
 title = "Pynasonde"
 author = "S. Chakraborty"
 
-# Tables
+# Table for auto-scaler
 [ngi]
 scaler.noise_constant=2
 scaler.frequency_min=0
 scaler.frequency_max=15
 scaler.height_min=50
 scaler.height_max=400
-scaler.mode="X"
+scaler.mode="O"
 scaler.dbscan.eps=4
 scaler.dbscan.min_samples=70
 scaler.otsu.nbins=1000
 scaler.otsu.thresh=3
+scaler.segmentation_method="k-means"
+scaler.apply_filter=true

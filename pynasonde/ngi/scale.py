@@ -123,7 +123,12 @@ class AutoScaler(object):
         self.binary_image = self.segmented_image > thresh
 
         vertices = np.where(self.binary_image == True)
-        self.indices, self.traces, self.trace_params = [], dict(), dict()
+        self.indices, self.traces, self.trace_params, self.fitted_trace_params = (
+            [],
+            dict(),
+            dict(),
+            dict(),
+        )
         for i, j in zip(vertices[0], vertices[1]):
             self.indices.append(
                 dict(frequency=self.frequency[i], height=self.height[j])
@@ -141,16 +146,20 @@ class AutoScaler(object):
 
             for label in np.unique(self.indices["labels"]):
                 trace = self.indices[self.indices.labels == label]
+
+                # TODO: Add more than one hockey stick curve
                 if (
                     trace.height.max() - trace.height.min()
                     > trace_params["region_thick_thresh"]
                 ):
                     logger.info("Identified region is too thick")
-                    # TODO
+
                     u_freq = np.unique(trace.frequency)
                     for f_bin in zip(u_freq[:-1], u_freq[1:]):
                         print(f_bin)
-
+                # TODO: Fit a hockey stick curve
+                else:
+                    pass
                 self.traces[label] = trace.copy()
                 self.trace_params[label] = {
                     "hs": trace.height.min(),
@@ -298,4 +307,9 @@ class AutoScaler(object):
         ion.save(fname)
         ion.close()
         logger.info(f"Save file to: {fname}")
+        return
+
+    @staticmethod
+    def median_filter_fos_hms(method: str = "", window: int = 11):
+        # This method is used to conduct a 1D median filter on the final hms and fos.
         return
