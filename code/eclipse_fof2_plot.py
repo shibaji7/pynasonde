@@ -5,7 +5,7 @@ from pynasonde.ngi.source import DataSource, Trace
 date = dt.datetime(2024, 4, 7)
 
 ds = DataSource(source_folder=f"./tmp/{date.strftime('%Y%m%d')}/")
-ds.load_data_sets(0, 1)
+ds.load_data_sets(0, -1)
 from pynasonde.ngi.utils import load_toml
 
 cfg = load_toml()
@@ -24,6 +24,7 @@ for i, dx in enumerate(ds.datasets):
         apply_filter=cfg.ngi.scaler.apply_filter,
         segmentation_method=cfg.ngi.scaler.segmentation_method,
     )
+    scaler.mdeian_filter()
     scaler.image_segmentation()
     scaler.to_binary_traces(
         nbins=cfg.ngi.scaler.otsu.nbins,

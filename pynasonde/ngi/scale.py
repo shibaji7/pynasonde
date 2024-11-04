@@ -3,10 +3,18 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 from loguru import logger
+from scipy.optimize import curve_fit
 
 import pynasonde.ngi.utils as utils
 from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.ngi.source import Dataset
+
+
+# Define the hockey stick function
+def hockey_stick(x, a, b, c):
+    return np.piecewise(
+        x, [x <= c], [lambda x: a * x + b, lambda x: a * c + b + (x - c) ** 2]
+    )
 
 
 class NoiseProfile(object):
@@ -72,13 +80,38 @@ class AutoScaler(object):
             ] = 0
         return
 
-    def image_segmentation(self, segmentation_method: str = None, **kwargs):
+    def mdeian_filter(
+        self,
+        tau: int = 4,
+        kernel: np.array = np.array([[1, 2, 1], [2, 5, 2], [1, 2, 1]]),
+    ):
+        self.filtered_2D_image = np.zeros_like(self.image2d)
+        med_filt_data = np.copy(self.image2d)
+        shape = med_filt_data.shape
+        logger.info(f"Inside median filter {shape}")
+        for i in range(1, shape[0] - 1):
+            for j in range(1, shape[1] - 1):
+                local_window = med_filt_data[i - 1 : i + 2, j - 1 : j + 2]
+                valid_count = np.count_nonzero(local_window)
+                if valid_count >= tau:
+                    self.filtered_2D_image[i, j] = np.nanmean(
+                        np.repeat(local_window.ravel(), kernel.ravel())
+                    )
+                else:
+                    self.filtered_2D_image[i, j] = 0.0
+        return
+
+    def image_segmentation(
+        self, segmentation_method: str = None, data: np.array = None, **kwargs
+    ):
+        if data is None:
+            data = np.copy(self.filtered_2D_image)
         segmentation_method = (
             segmentation_method if segmentation_method else self.segmentation_method
         )
         logger.info(f"Running {segmentation_method} image segmentation...")
         if segmentation_method == "k-means":
-            self.kmeans_image_segmentation(np.copy(self.image2d), *kwargs)
+            self.kmeans_image_segmentation(data, *kwargs)
         return
 
     def kmeans_image_segmentation(
@@ -152,18 +185,30 @@ class AutoScaler(object):
                     trace.height.max() - trace.height.min()
                     > trace_params["region_thick_thresh"]
                 ):
+                    # Fit the curve
+                    popt, _ = curve_fit(
+                        hockey_stick,
+                        np.array(trace.frequency),
+                        np.array(trace.height),
+                        p0=[1, 0, 5],
+                    )
                     logger.info("Identified region is too thick")
-
-                    u_freq = np.unique(trace.frequency)
-                    for f_bin in zip(u_freq[:-1], u_freq[1:]):
-                        print(f_bin)
                 # TODO: Fit a hockey stick curve
                 else:
-                    pass
+                    logger.info("Identified region, fitting hockey stick")
+                    # Fit the curve
+                    popt, _ = curve_fit(
+                        hockey_stick,
+                        np.array(trace.frequency),
+                        np.array(trace.height),
+                        p0=[1, 0, 5],
+                        maxfev=5000,
+                    )
                 self.traces[label] = trace.copy()
                 self.trace_params[label] = {
                     "hs": trace.height.min(),
                     "fs": trace.frequency.max(),
+                    "popt": popt,
                 }
             if len(self.traces) > 0:
                 self.ds.set_traces(self.traces, self.trace_params)
@@ -218,9 +263,9 @@ class AutoScaler(object):
         ion.add_ionogram(
             self.frequency,
             self.height,
-            self.segmented_image,
+            self.filtered_2D_image,
             mode=self.mode,
-            text="(c) Segmented ionogram",
+            text="(c) Med-filtered ionogram",
             xlabel="",
             ylabel="",
             cmap=cmap,
@@ -287,12 +332,19 @@ class AutoScaler(object):
             prange=[0, 1],
         )
         for key in list(self.trace_params.keys()):
-            trace = self.trace_params[key]
+            trace_info = self.trace_params[key]
             color = utils.get_color_by_index(key, len(self.traces.keys()))
             ax.axvline(
-                np.log10(trace["fs"]), color=color, ls="--", lw=0.6, alpha=0.8, zorder=5
+                np.log10(trace_info["fs"]),
+                color=color,
+                ls="--",
+                lw=0.6,
+                alpha=0.8,
+                zorder=5,
             )
-            ax.axhline(trace["hs"], color=color, ls="--", lw=0.6, alpha=0.8, zorder=5)
+            ax.axhline(
+                trace_info["hs"], color=color, ls="--", lw=0.6, alpha=0.8, zorder=5
+            )
             trace = self.traces[key]
             ax.plot(
                 np.log10(trace["frequency"]),
@@ -304,12 +356,43 @@ class AutoScaler(object):
                 zorder=5,
                 alpha=0.6,
             )
+            ax.plot(
+                np.log10(trace["frequency"]),
+                hockey_stick(
+                    np.array(trace["frequency"]),
+                    trace_info["popt"][0],
+                    trace_info["popt"][1],
+                    trace_info["popt"][2],
+                ),
+                color="yellow",
+                ls="-",
+                lw=1.2,
+                zorder=8,
+            )
         ion.save(fname)
         ion.close()
         logger.info(f"Save file to: {fname}")
         return
 
     @staticmethod
-    def median_filter_fos_hms(method: str = "", window: int = 11):
+    def median_filter_fos_hms(x: np.array, method: str = "", window: int = 11):
         # This method is used to conduct a 1D median filter on the final hms and fos.
-        return
+        if x.ndim != 1:
+            raise ValueError("smooth only accepts 1 dimension arrays.")
+        if x.size < window:
+            raise ValueError("Input vector needs to be bigger than window size.")
+        if window < 3:
+            return x
+        if not window in ["flat", "hanning", "hamming", "bartlett", "blackman"]:
+            raise ValueError(
+                "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+            )
+        s = np.r_[x[window_len - 1 : 0 : -1], x, x[-2 : -window_len - 1 : -1]]
+        if window == "flat":
+            w = numpy.ones(window_len, "d")
+        else:
+            w = eval("np." + window + "(window_len)")
+        y = np.convolve(w / w.sum(), s, mode="valid")
+        d = window_len - 1
+        y = y[int(d / 2) : -int(d / 2)]
+        return y
