@@ -6,7 +6,9 @@ from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.ngi.source import Trace
 
 xlim = [dt.datetime(2024, 4, 7), dt.datetime(2024, 4, 8)]
-O = Trace.load_saved_scaled_parameters(f"./tmp/{xlim[0].strftime('%Y%m%d')}/scaled/", mode="O")
+O = Trace.load_saved_scaled_parameters(
+    f"./tmp/{xlim[0].strftime('%Y%m%d')}/scaled/", mode="O"
+)
 print(O.head())
 O.dropna(inplace=True)
 # X = Trace.load_saved_scaled_parameters("./tmp/20240408/scaled/", "X")
