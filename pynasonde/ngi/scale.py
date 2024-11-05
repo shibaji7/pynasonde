@@ -191,6 +191,7 @@ class AutoScaler(object):
                         np.array(trace.frequency),
                         np.array(trace.height),
                         p0=[1, 0, 5],
+                        maxfev=5000,
                     )
                     logger.info("Identified region is too thick")
                 # TODO: Fit a hockey stick curve
