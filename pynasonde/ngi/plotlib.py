@@ -30,7 +30,8 @@ class Ionogram(object):
             nrows=nrows,
             ncols=ncols,
         )  # Size for website
-        self.axes = self.axes.ravel()
+        if type(self.axes) == list:
+            self.axes = self.axes.ravel()
         self.fig_title = fig_title
         self.font_size = font_size
         utils.setsize(font_size)
@@ -92,7 +93,11 @@ class Ionogram(object):
         return ax
 
     def _add_axis(self, del_ticks=True):
-        ax = self.axes[self._num_subplots_created]
+        ax = (
+            self.axes[self._num_subplots_created]
+            if type(self.axes) == list
+            else self.axes
+        )
         if del_ticks:
             ax.set_xticks([])
             ax.set_yticks([])

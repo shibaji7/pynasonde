@@ -6,7 +6,6 @@ from loguru import logger
 
 
 def setsize(size=8):
-    pass
 
     import matplotlib as mpl
     import matplotlib.pyplot as plt
