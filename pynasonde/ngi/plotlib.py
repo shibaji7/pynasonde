@@ -30,7 +30,7 @@ class Ionogram(object):
             nrows=nrows,
             ncols=ncols,
         )  # Size for website
-        if type(self.axes) == list:
+        if type(self.axes) == list or type(self.axes) == np.ndarray:
             self.axes = self.axes.ravel()
         self.fig_title = fig_title
         self.font_size = font_size
@@ -95,7 +95,7 @@ class Ionogram(object):
     def _add_axis(self, del_ticks=True):
         ax = (
             self.axes[self._num_subplots_created]
-            if type(self.axes) == list
+            if type(self.axes) == np.ndarray or type(self.axes) == list
             else self.axes
         )
         if del_ticks:

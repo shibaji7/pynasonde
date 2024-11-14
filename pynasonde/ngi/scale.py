@@ -17,6 +17,11 @@ def hockey_stick(x, a, b, c):
     )
 
 
+# Define the parabola function
+def parabola(x, a, b, c):
+    return a * x**2 + b * x + c
+
+
 class NoiseProfile(object):
 
     def __init__(self, type="exp", constant=1.5):
@@ -170,9 +175,15 @@ class AutoScaler(object):
         self.indices.dropna(inplace=True)
 
         if len(self.indices) > 0:
+            self.indices.sort_values(by=["frequency"], inplace=True)
+            freqs, dfreqs = self.indices.frequency.unique(), []
+            for i, f in enumerate(freqs):
+                dfreqs.extend([i] * len(self.indices[self.indices.frequency == f]))
+            self.indices["dfrequency"] = dfreqs
+            print(self.indices.head())
             # Run DBScan to identify individual regions
             dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(
-                self.indices[["frequency", "height"]]
+                self.indices[["dfrequency", "height"]]
             )
             self.indices["labels"] = dbscan.labels_
             self.indices = self.indices[self.indices.labels != -1]
@@ -187,7 +198,7 @@ class AutoScaler(object):
                 ):
                     # Fit the curve
                     popt, _ = curve_fit(
-                        hockey_stick,
+                        parabola,
                         np.array(trace.frequency),
                         np.array(trace.height),
                         p0=[1, 0, 5],
@@ -199,7 +210,7 @@ class AutoScaler(object):
                     logger.info("Identified region, fitting hockey stick")
                     # Fit the curve
                     popt, _ = curve_fit(
-                        hockey_stick,
+                        parabola,
                         np.array(trace.frequency),
                         np.array(trace.height),
                         p0=[1, 0, 5],
@@ -359,7 +370,7 @@ class AutoScaler(object):
             )
             ax.plot(
                 np.log10(trace["frequency"]),
-                hockey_stick(
+                parabola(
                     np.array(trace["frequency"]),
                     trace_info["popt"][0],
                     trace_info["popt"][1],
