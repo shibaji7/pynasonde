@@ -70,7 +70,7 @@ ion = Ionogram(nrows=1, ncols=1, figsize=(5, 3))
 #     r += 1
 ax = ion.add_TS(
     O.time.tolist(),
-    O.fs,
+    O.fs + 0.6,
     xlim=xlim,
     major_locator=mdates.HourLocator(byhour=range(0, 24, 3)),
     minor_locator=mdates.HourLocator(byhour=range(0, 24, 1)),

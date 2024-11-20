@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Tuple
 
 import cv2
@@ -8,13 +9,6 @@ from scipy.optimize import curve_fit
 import pynasonde.ngi.utils as utils
 from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.ngi.source import Dataset
-
-
-# Define the hockey stick function
-def hockey_stick(x, a, b, c):
-    return np.piecewise(
-        x, [x <= c], [lambda x: a * x + b, lambda x: a * c + b + (x - c) ** 2]
-    )
 
 
 # Define the parabola function
@@ -142,6 +136,34 @@ class AutoScaler(object):
         self.segmented_image = self.segmented_image.reshape(image.shape)
         return
 
+    def fit_parabola(self, tr, label):
+        if len(tr) > 10:
+            try:
+                logger.info("Identified region, fitting parabola")
+                # Fit the curve
+                popt, _ = curve_fit(
+                    parabola,
+                    np.array(tr.frequency),
+                    np.array(tr.height),
+                    maxfev=10000,
+                )
+                self.traces[label] = tr.copy()
+                self.trace_params[label] = {
+                    "hs": tr.height.min(),
+                    "fs": tr.frequency.max(),
+                    "popt": popt,
+                    "function": parabola,
+                    "frequency": np.array(tr.frequency),
+                    "height": parabola(
+                        np.array(tr.frequency), popt[0], popt[1], popt[2]
+                    ),
+                }
+            except Exception:
+                logger.error(f"Issue in long traces: {traceback.format_exc()}")
+        else:
+            logger.warning(f"Issue in len of dataset < 10")
+        return
+
     def to_binary_traces(
         self,
         nbins: int = 1000,
@@ -180,48 +202,41 @@ class AutoScaler(object):
             for i, f in enumerate(freqs):
                 dfreqs.extend([i] * len(self.indices[self.indices.frequency == f]))
             self.indices["dfrequency"] = dfreqs
-            print(self.indices.head())
             # Run DBScan to identify individual regions
             dbscan = DBSCAN(eps=eps, min_samples=min_samples).fit(
                 self.indices[["dfrequency", "height"]]
             )
             self.indices["labels"] = dbscan.labels_
             self.indices = self.indices[self.indices.labels != -1]
+            # Create new labels for F1/F2
+            new_label_start = dbscan.labels_.max() + 1
 
             for label in np.unique(self.indices["labels"]):
                 trace = self.indices[self.indices.labels == label]
 
-                # TODO: Add more than one hockey stick curve
+                # TODO: Add more than one curves
                 if (
                     trace.height.max() - trace.height.min()
                     > trace_params["region_thick_thresh"]
                 ):
-                    # Fit the curve
-                    popt, _ = curve_fit(
-                        parabola,
-                        np.array(trace.frequency),
-                        np.array(trace.height),
-                        p0=[1, 0, 5],
-                        maxfev=5000,
-                    )
-                    logger.info("Identified region is too thick")
-                # TODO: Fit a hockey stick curve
+                    # Fit the duble gaussian curve
+                    logger.info("Identified region(s), fitting 2-parabola(s)")
+                    try:
+                        logger.info("Identified region is too thick")
+                        # Extract F1/F2 Properties
+                        # Estimated theoritical values of median F1/2 height
+                        med_hs = np.nanmedian(trace.height)
+                        trace.loc[trace.height >= med_hs, "labels"] = new_label_start
+                        for i, l in enumerate(trace.labels.unique()):
+                            o = trace[trace.labels == l]
+                            self.fit_parabola(o, l)
+                        new_label_start += 1
+                    except Exception:
+                        self.fit_parabola(trace, label)
+                        logger.error(f"Issue in long traces: {traceback.format_exc()}")
+                # Fit a parabolic curve
                 else:
-                    logger.info("Identified region, fitting hockey stick")
-                    # Fit the curve
-                    popt, _ = curve_fit(
-                        parabola,
-                        np.array(trace.frequency),
-                        np.array(trace.height),
-                        p0=[1, 0, 5],
-                        maxfev=5000,
-                    )
-                self.traces[label] = trace.copy()
-                self.trace_params[label] = {
-                    "hs": trace.height.min(),
-                    "fs": trace.frequency.max(),
-                    "popt": popt,
-                }
+                    self.fit_parabola(trace, label)
             if len(self.traces) > 0:
                 self.ds.set_traces(self.traces, self.trace_params)
         return
@@ -369,13 +384,8 @@ class AutoScaler(object):
                 alpha=0.6,
             )
             ax.plot(
-                np.log10(trace["frequency"]),
-                parabola(
-                    np.array(trace["frequency"]),
-                    trace_info["popt"][0],
-                    trace_info["popt"][1],
-                    trace_info["popt"][2],
-                ),
+                np.log10(trace_info["frequency"]),
+                trace_info["height"],
                 color="yellow",
                 ls="-",
                 lw=1.2,
