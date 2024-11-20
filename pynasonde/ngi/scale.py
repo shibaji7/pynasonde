@@ -172,6 +172,7 @@ class AutoScaler(object):
         min_samples: int = 40,
         trace_params: dict = dict(
             region_thick_thresh=100,
+            sza_thresh=90.0,
         ),
     ):
         import pandas as pd
@@ -218,7 +219,8 @@ class AutoScaler(object):
                 if (
                     trace.height.max() - trace.height.min()
                     > trace_params["region_thick_thresh"]
-                ):
+                ) & (self.ds.sza < trace_params["sza_thresh"]):
+                    logger.info(f"SZA: {self.ds.sza}")
                     # Fit the duble gaussian curve
                     logger.info("Identified region(s), fitting 2-parabola(s)")
                     try:
