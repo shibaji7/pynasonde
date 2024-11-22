@@ -2,7 +2,7 @@ import datetime as dt
 
 from pynasonde.ngi.source import DataSource, Trace
 
-date = dt.datetime(2024, 4, 8)
+date = dt.datetime(2024, 4, 7)
 
 ds = DataSource(source_folder=f"./tmp/{date.strftime('%Y%m%d')}/")
 ds.load_data_sets(0, -1)
