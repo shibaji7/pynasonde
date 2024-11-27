@@ -13,6 +13,7 @@ from loguru import logger
 from pysolar.solar import get_altitude
 
 from pynasonde.ngi.plotlib import Ionogram
+from pynasonde.ngi.utils import TimeZoneConversion
 
 
 @dataclass
@@ -21,7 +22,14 @@ class Trace:
     trace_params: pd.DataFrame = None
 
     @staticmethod
-    def load_saved_scaled_parameters(folder: str, extension="*.nc", mode: str = "O"):
+    def load_saved_scaled_parameters(
+        folder: str,
+        extension="*.nc",
+        mode: str = "O",
+        local_tz: str = None,
+        lat: float = 37.8815,
+        long: float = -75.4374,
+    ):
         import glob
 
         files = glob.glob(os.path.join(folder, mode + extension))
@@ -31,11 +39,16 @@ class Trace:
             "time": [],
             "fs": [],
             "hs": [],
+            "local_time": [],
         }
+        LTC = TimeZoneConversion(local_tz, lat, long)
         for file in files:
             d = xr.open_dataset(file)
             L = len(d.hs.values)
             traces["time"].extend(d.time.values.tolist() * L)
+            traces["local_time"].extend(
+                LTC.utc_to_local_time(pd.to_datetime(d.time.values).tolist()) * L
+            )
             traces["sza"].extend(d.sza.values.tolist() * L)
             traces["hs"].extend(d.hs.values.tolist())
             traces["fs"].extend(d.fs.values.tolist())
