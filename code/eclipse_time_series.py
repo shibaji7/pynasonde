@@ -8,6 +8,7 @@ from matplotlib.dates import DateFormatter
 from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.ngi.source import Trace
 from pynasonde.ngi.utils import TimeZoneConversion, running_median, setsize, smooth
+from timezonefinder import TimezoneFinder
 
 LTC = TimeZoneConversion(
     None,
@@ -16,18 +17,12 @@ LTC = TimeZoneConversion(
 )
 
 
-def get_sun_time(utc_day, lat=37.8815, long=-75.4374):
-    import pytz
-    from suntime import Sun
-    from timezonefinder import TimezoneFinder
-
-    tf = TimezoneFinder()
-    timezone_str = tf.timezone_at(lng=long, lat=lat)
-    timezone = pytz.timezone(timezone_str)
-    sun = Sun(lat, long)
-    sunset_time = sun.get_sunset_time(utc_day, timezone)
-    print(sunset_time, timezone, type(timezone), sunset_time.astimezone(pytz.utc))
-    return sunset_time, sunset_time.astimezone(pytz.utc)
+def get_sun_time(utc_day, lat=37.8815, long=-75.4374, timezone_str="America/New_York"):
+    from astral import LocationInfo
+    from astral.sun import sun
+    loc = LocationInfo(timezone=timezone_str, latitude=lat, longitude=long)
+    s = sun(loc.observer, date=utc_day, tzinfo=timezone_str)
+    return s["sunset"].replace(tzinfo=dt.timezone.utc)
 
 
 def load_occultation(fname, t):
@@ -77,6 +72,7 @@ O8.dropna(inplace=True)
 setsize(15)
 ion = Ionogram(nrows=2, ncols=1, figsize=(5, 7), font_size=15)
 o7f = O[(O.fs >= 8)]
+get_sun_time(o7f.time.tolist()[0])
 ax = ion._add_axis(del_ticks=False)
 ax.set_xlim(xlim)
 ax.set_xlabel("")
@@ -102,6 +98,13 @@ ax.axvline(
     lw=0.6,
     alpha=1,
     color="b",
+)
+ax.axvline(
+    get_sun_time(dt.datetime(2024, 4, 7, 18, 40)),
+    ls="--",
+    lw=0.6,
+    alpha=1,
+    color="k",
 )
 ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, 4)))
 ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, 2)))
@@ -201,6 +204,13 @@ ax.axvline(
     alpha=1,
     color="b",
 )
+ax.axvline(
+    get_sun_time(dt.datetime(2024, 4, 7, 18, 40)),
+    ls="--",
+    lw=0.6,
+    alpha=1,
+    color="k",
+)
 ax.set_ylim(0, 1)
 ax.set_ylabel("Obscuration", fontdict=dict(color="blue"))
 
@@ -233,6 +243,13 @@ ax.axvline(
     lw=0.6,
     alpha=1,
     color="b",
+)
+ax.axvline(
+    get_sun_time(dt.datetime(2024, 4, 7, 18, 40)),
+    ls="--",
+    lw=0.6,
+    alpha=1,
+    color="k",
 )
 ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, 4)))
 ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, 2)))
@@ -327,6 +344,13 @@ ax.axvline(
     lw=0.6,
     alpha=1,
     color="b",
+)
+ax.axvline(
+    get_sun_time(dt.datetime(2024, 4, 7, 18, 40)),
+    ls="--",
+    lw=0.6,
+    alpha=1,
+    color="k",
 )
 ax.set_ylim(0, 1)
 ax.set_ylabel("Obscuration", fontdict=dict(color="blue"))
