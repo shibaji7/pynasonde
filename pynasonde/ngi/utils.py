@@ -45,6 +45,13 @@ def to_local_time(dates: list, tz1, tz2):
     return dates
 
 
+def remove_outliers(o: pd.DataFrame, pname: str, quantiles=[0.05, 0.95]):
+    lower_bound = o[pname].quantile(quantiles[0])
+    upper_bound = o[pname].quantile(quantiles[1])
+    o = o[(o[pname] >= lower_bound) & (o[pname] <= upper_bound)]
+    return o
+
+
 def running_median(arr, window=21):
     return pd.Series(arr).rolling(window=window, min_periods=1).median().tolist()
 
