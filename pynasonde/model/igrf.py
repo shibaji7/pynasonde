@@ -17,7 +17,8 @@ class IGRF(object):
         alts: np.array,
     ):
         self.lats, self.alts, self.lons = (lats, alts, lons)
-        B_north, B_east, B_down, B, B_incl, B_decl = (
+        B_north, B_east, B_down, B_tot, B_incl, B_decl = (
+            np.zeros((len(self.alts), len(self.lats), len(self.lons))),
             np.zeros((len(self.alts), len(self.lats), len(self.lons))),
             np.zeros((len(self.alts), len(self.lats), len(self.lons))),
             np.zeros((len(self.alts), len(self.lats), len(self.lons))),
@@ -36,7 +37,7 @@ class IGRF(object):
                     B_north[:, i, j],
                     B_east[:, i, j],
                     B_down[:, i, j],
-                    B[:, i, j],
+                    B_tot[:, i, j],
                     B_incl[:, i, j],
                     B_decl[:, i, j],
                 ) = (
@@ -47,4 +48,4 @@ class IGRF(object):
                     mag.variables["incl"][:],
                     mag.variables["decl"][:],
                 )
-        return B_north, B_east, B_down, B, B_incl, B_decl
+        return B_north, B_east, B_down, B_tot, B_incl, B_decl

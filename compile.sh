@@ -7,3 +7,8 @@ autoflake --remove-all-unused-imports -i -r .
 isort -rc -m 3 .
 black .
 pip install .
+
+###################
+# Install igrf and clean / build igrf from git 
+# repo then use the repo to reshuffle to site-packages
+###################
