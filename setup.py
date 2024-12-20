@@ -26,7 +26,7 @@ setup(
     description=long_description,
     long_description=long_description,
     install_requires=[],
-    keywords=["python", "ionosonde", "dynasonde"],
+    keywords=["python", "ionosonde"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Education",
