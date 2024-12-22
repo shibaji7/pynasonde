@@ -17,14 +17,37 @@ import numpy as np
 np.seterr(divide="ignore", invalid="ignore")
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 from constant import pconst
 
 
 @dataclass
-class Collision:
-    nu_FT: np.array = None  # Friedrich-Tonker electron neutral collision frequency
-    nu_avg_cc: np.array = None  #
+class CollisionProfiles:
+    nu: SimpleNamespace = None
+
+    def _initialize_(self):
+        self.nu = SimpleNamespace(
+            ft=None,
+            av_cc=None,
+            av_mb=None,
+            sn=SimpleNamespace(
+                total=None,
+                en=SimpleNamespace(
+                    N2=None,
+                    O2=None,
+                    O=None,
+                    He=None,
+                    total=None,
+                ),
+                ei=SimpleNamespace(
+                    O2p=None,
+                    Op=None,
+                    total=None,
+                ),
+            ),
+        )
+        return
 
 
 # ======================================================================================
@@ -41,34 +64,26 @@ class CalculateCollision(object):
     Ti = ion temperature
     """
 
-    def __init__(self, msis, iri, Ne, Te, Ti, frac=1.0, _run_=True):
+    def __init__(
+        self,
+        msis,
+        iri,
+        Ne,
+        Te,
+        Ti,
+    ):
         self.alts = np.arange(500)
         self.Ne = Ne
         self.Te = Te
         self.Ti = Ti
         self.msis = msis
         self.iri = iri
-        self.frac = frac
-        self.nu_FT = None
-        self.nu_av_CC = None
-        self.nu_av_MB = None
-        self.nu_SN = {
-            "en": {
-                "N2": None,
-                "O2": None,
-                "O": None,
-                "H": None,
-                "He": None,
-                "total": None,
-            },
-            "ei": {"O2+": None, "O+": None, "total": None},
-            "total": None,
-        }
-        self.calculate_FT_collision_frequency(self.frac)
-        self.calculate_SN_en_collision_frequency()
-        self.calculate_SN_ei_collision_frequency()
-        self.nu_av_CC = self.nu_FT * 2.5
-        self.nu_av_MB = self.nu_FT * 1.5
+        self.cp = CollisionProfiles()
+        self.cp._initialize_()
+
+        self.calculate_FT_collision_frequency()
+        # self.calculate_SN_en_collision_frequency()
+        # self.calculate_SN_ei_collision_frequency()
         return
 
     def calculate_FT_collision_frequency(self, frac=1.0):
@@ -84,20 +99,10 @@ class CalculateCollision(object):
         https://azformula.com/physics/dimensional-formulae/what-is-dimensional-formula-of-temperature/
         """
         p = self.msis["nn"] * self.msis["Tn"] * pconst["boltz"]
-        nu = (2.637e6 / np.sqrt(self.Te) + 4.945e5) * p
-        self.nu_FT = frac * nu
+        self.cp.nu.ft = (2.637e6 / np.sqrt(self.Te) + 4.945e5) * p
+        self.cp.nu.av_cc = self.self.cp.nu.ft * 2.5
+        self.cp.nu.av_mb = self.nu_FT * 1.5
         return
-
-    def atmospheric_ion_neutral_collision_frequency(self):
-        """
-        This method only provides the atmsphreic ion neutral collision frequency from collision theory
-
-        nn <float> = neutral density
-
-        nu <float> = collision frequency
-        """
-        nu = 3.8e-11 * self.msis["nn"]
-        return nu
 
     def calculate_SN_ei_collision_frequency(self, gamma=0.5572, zi=2):
         """
@@ -195,20 +200,13 @@ class CalculateCollision(object):
         nu = ni_profile(T, ni) + na_profile(T, nn)
         return nu
 
-    @staticmethod
-    def load(nc):
-        _col_ = Collision(None, None, None, None, None, None, _run_=False)
-        _col_.nu_FT = nc.variables["col.ft"][:]
-        _col_.nu_av_CC = nc.variables["col.av.cc"][:]
-        _col_.nu_av_MB = nc.variables["col.av.mb"][:]
-        _col_.nu_SN["total"] = nc.variables["col.av.sn"][:]
-        _col_.nu_SN["en"]["total"] = nc.variables["col.av.sn.en"][:]
-        _col_.nu_SN["en"]["N2"] = nc.variables["col.av.sn.en.n2"][:]
-        _col_.nu_SN["en"]["O"] = nc.variables["col.av.sn.en.o"][:]
-        _col_.nu_SN["en"]["He"] = nc.variables["col.av.sn.en.he"][:]
-        _col_.nu_SN["en"]["O2"] = nc.variables["col.av.sn.en.o2"][:]
-        _col_.nu_SN["en"]["H"] = nc.variables["col.av.sn.en.h"][:]
-        _col_.nu_SN["ei"]["O2+"] = nc.variables["col.av.sn.ei.o2+"][:]
-        _col_.nu_SN["ei"]["O+"] = nc.variables["col.av.sn.ei.o+"][:]
-        _col_.nu_SN["ei"]["total"] = nc.variables["col.av.sn.ei"][:]
-        return _col_
+    def atmospheric_ion_neutral_collision_frequency(self):
+        """
+        This method only provides the atmsphreic ion neutral collision frequency from collision theory
+
+        nn <float> = neutral density
+
+        nu <float> = collision frequency
+        """
+        nu = 3.8e-11 * self.msis["nn"]
+        return nu

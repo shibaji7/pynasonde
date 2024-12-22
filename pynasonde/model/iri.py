@@ -16,6 +16,7 @@ class IRI(object):
         lats: np.array,
         lons: np.array,
         alts: np.array,
+        unit: float = 1.0,  # change to 1e-6 if need /cc, as is /cm
     ):
         self.lats, self.alts, self.lons = (lats, alts, lons)
         self.param = np.zeros((len(self.alts), len(self.lats), len(self.lons)))
@@ -29,6 +30,6 @@ class IRI(object):
                     self.lons[j],
                     self.iri_version,
                 )
-                self.param[:, i, j] = iriout.edens * 1e-6
-        # return density in /cc
+                self.param[:, i, j] = iriout.edens * unit
+        # return density in /cm
         return self.param

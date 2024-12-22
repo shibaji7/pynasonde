@@ -1,8 +1,40 @@
+import datetime as dt
+import glob
+import os
 import re
+from functools import partial
+from multiprocessing import Pool
 
+import numpy as np
+import pandas as pd
 from loguru import logger
+from tqdm import tqdm
 
 from pynasonde.digisonde.digi_utils import to_namespace
+
+
+class SummaryPlots(object):
+    """
+    A class to plot a summary stack plots using the data obtained from SAO
+    """
+
+    def __init__(self, title, dates, n_sub_plots=2):
+        self.title = title
+        self.dates = dates
+        self.n_sub_plots = n_sub_plots
+        return
+
+    def add_parameters_map(self):
+        return
+
+    def axes(self):
+        return
+
+    def save(self):
+        return
+
+    def close(self):
+        return
 
 
 class SAOExtractor(object):
@@ -14,7 +46,7 @@ class SAOExtractor(object):
         sao_struct (dict): A dictionary to store the parsed data from the SAO file.
     """
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, extract_time_from_name: bool = False):
         """
         Initialize the SAOExtractor with the given file.
 
@@ -24,6 +56,15 @@ class SAOExtractor(object):
         # Initialize the data structure to hold extracted data
         self.filename = filename
         self.sao_struct = {}
+        if extract_time_from_name:
+            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
+            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
+                int(date[4:7]) - 1
+            )
+            self.date = self.date.replace(
+                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
+            )
+            logger.info(f"Date: {self.date}")
         return
 
     def read_file(self):
@@ -376,6 +417,25 @@ class SAOExtractor(object):
         self.sao = to_namespace(self.sao_struct)
         return self.sao_struct
 
+    def get_scaled_datasets(self, asdf=True):
+        o = pd.DataFrame.from_records(vars(self.sao.Scaled))
+        o.replace(9999.0, np.nan, inplace=True)
+        if hasattr(self, "date"):
+            o["date"] = self.date
+        return o
+
+    def get_height_profile(self, asdf=True):
+        o = pd.DataFrame()
+        if (
+            hasattr(self.sao, "PF")
+            and hasattr(self.sao, "TH")
+            and hasattr(self.sao, "ED")
+        ):
+            o["pf"], o["th"], o["ed"] = self.sao.PF, self.sao.TH, self.sao.ED
+            if hasattr(self, "date"):
+                o["date"] = self.date
+        return o
+
     def display_struct(self):
         """
         Prints the extracted SAO structure in a readable format.
@@ -383,11 +443,58 @@ class SAOExtractor(object):
         logger.info(self.sao_struct)
         return
 
+    @staticmethod
+    def extract_SAO(
+        file: str,
+        extract_time_from_name: bool = True,
+        func_name: str = "height_profile",
+    ):
+        extractor = SAOExtractor(file, extract_time_from_name)
+        extractor.extract()
+        if func_name == "height_profile":
+            df = extractor.get_height_profile()
+        elif func_name == "scaled":
+            df = extractor.get_scaled_datasets()
+        else:
+            df = pd.DataFrame()
+        return df
+
+    @staticmethod
+    def load_SAO_files(
+        folders: str = "tmp/SKYWAVE_DPS4D_2023_10_13",
+        ext: str = "*.SAO",
+        n_procs: int = 4,
+        extract_time_from_name: bool = True,
+        func_name: str = "scaled",
+    ):
+        logger.info(f"Searching for files under: {os.path.join(folders, ext)}")
+        files = glob.glob(os.path.join(folders, ext))
+        files.sort()
+        logger.info(f"N files: {len(files)}")
+        with Pool(n_procs) as pool:
+            df_collection = list(
+                tqdm(
+                    pool.imap(
+                        partial(
+                            SAOExtractor.extract_SAO,
+                            extract_time_from_name=extract_time_from_name,
+                            func_name=func_name,
+                        ),
+                        files,
+                    ),
+                    total=len(files),
+                )
+            )
+        df_collection = pd.concat(df_collection)
+        return df_collection
+
 
 # Example Usage
 if __name__ == "__main__":
     # Replace 'example.sao' with the path to your SAO file
-    extractor = SAOExtractor("tmp/KR835_2023286235237.SAO")
-    sao_data = extractor.extract()
+    # extractor = SAOExtractor("tmp/KR835_2023286235237.SAO", True)
+    # sao_data = extractor.extract()
+    # extractor.get_scaled_datasets()
     # extractor.display_struct()
     # print(sao_data["ED"])
+    SAOExtractor.load_SAO_files()

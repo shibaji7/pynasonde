@@ -16,11 +16,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from pynasonde.model.absorption.collisions import CollisionProfiles
+from pynasonde.model.absorption.dispersion_relations import AbsorptionProfiles
 from pynasonde.model.igrf import IGRF
 from pynasonde.model.iri import IRI
 from pynasonde.model.msise import MSISE
-
-
 
 
 @dataclass
@@ -55,6 +55,9 @@ class Point:
     Ap: np.float64 = np.nan
     f107: np.float64 = np.nan
     f107a: np.float64 = np.nan
+    # Collision and absorption profiles
+    absorption_profile: AbsorptionProfiles = None
+    collision_profiles: CollisionProfiles = None
 
     def _load_profile_(
         self,

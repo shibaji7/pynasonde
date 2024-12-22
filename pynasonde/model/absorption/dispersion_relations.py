@@ -14,7 +14,21 @@ from pynasonde.model.absorption.constants import pconst
 
 @dataclass
 class AbsorptionProfiles:
-    ah: SimpleNamespace = SimpleNamespace(ft=SimpleNamespace(O=[]))
+    ah: SimpleNamespace = None
+    sw: SimpleNamespace = None
+
+    def _initialize_(self):
+        self.ah = SimpleNamespace(
+            ft=SimpleNamespace(O=None, X=None, L=None, R=None),
+            sn=SimpleNamespace(O=None, X=None, L=None, R=None),
+            av_cc=SimpleNamespace(O=None, X=None, L=None, R=None),
+            av_mb=SimpleNamespace(O=None, X=None, L=None, R=None),
+        )
+        self.sw = SimpleNamespace(
+            ft=SimpleNamespace(O=None, X=None, L=None, R=None),
+            sn=SimpleNamespace(O=None, X=None, L=None, R=None),
+        )
+        return
 
 
 # ===================================================================================
