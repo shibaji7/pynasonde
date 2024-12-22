@@ -13,30 +13,6 @@ from tqdm import tqdm
 from pynasonde.digisonde.digi_utils import to_namespace
 
 
-class SummaryPlots(object):
-    """
-    A class to plot a summary stack plots using the data obtained from SAO
-    """
-
-    def __init__(self, title, dates, n_sub_plots=2):
-        self.title = title
-        self.dates = dates
-        self.n_sub_plots = n_sub_plots
-        return
-
-    def add_parameters_map(self):
-        return
-
-    def axes(self):
-        return
-
-    def save(self):
-        return
-
-    def close(self):
-        return
-
-
 class SAOExtractor(object):
     """
     A class to extract and process data from SAO (Standard Archiving Output) files.
@@ -465,7 +441,7 @@ class SAOExtractor(object):
         ext: str = "*.SAO",
         n_procs: int = 4,
         extract_time_from_name: bool = True,
-        func_name: str = "scaled",
+        func_name: str = "height_profile",
     ):
         logger.info(f"Searching for files under: {os.path.join(folders, ext)}")
         files = glob.glob(os.path.join(folders, ext))
@@ -486,6 +462,7 @@ class SAOExtractor(object):
                 )
             )
         df_collection = pd.concat(df_collection)
+        print(df_collection.head())
         return df_collection
 
 
@@ -497,4 +474,5 @@ if __name__ == "__main__":
     # extractor.get_scaled_datasets()
     # extractor.display_struct()
     # print(sao_data["ED"])
+    from pynasonde.digisonde.digi_plots import SAOSummaryPlots
     SAOExtractor.load_SAO_files()
