@@ -10,6 +10,7 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
+from pynasonde.digisonde.digi_plots import SAOSummaryPlots
 from pynasonde.digisonde.digi_utils import to_namespace
 
 
@@ -22,7 +23,12 @@ class SAOExtractor(object):
         sao_struct (dict): A dictionary to store the parsed data from the SAO file.
     """
 
-    def __init__(self, filename: str, extract_time_from_name: bool = False):
+    def __init__(
+        self,
+        filename: str,
+        extract_time_from_name: bool = False,
+        extract_stn_from_name: bool = False,
+    ):
         """
         Initialize the SAOExtractor with the given file.
 
@@ -41,6 +47,9 @@ class SAOExtractor(object):
                 hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
             )
             logger.info(f"Date: {self.date}")
+        if extract_stn_from_name:
+            self.stn_code = self.filename.split("/")[-1].split("_")[0]
+            logger.info(f"Station code: {self.stn_code}")
         return
 
     def read_file(self):
@@ -394,13 +403,19 @@ class SAOExtractor(object):
         return self.sao_struct
 
     def get_scaled_datasets(self, asdf=True):
+        for key in vars(self.sao.Scaled).keys():
+            if (
+                len(vars(self.sao.Scaled)[key]) == 1
+                and type(vars(self.sao.Scaled)[key][0]) == str
+            ):
+                setattr(self.sao.Scaled, key, [np.nan])
         o = pd.DataFrame.from_records(vars(self.sao.Scaled))
         o.replace(9999.0, np.nan, inplace=True)
         if hasattr(self, "date"):
             o["date"] = self.date
         return o
 
-    def get_height_profile(self, asdf=True):
+    def get_height_profile(self, asdf=True, plot_ionogram=False):
         o = pd.DataFrame()
         if (
             hasattr(self.sao, "PF")
@@ -410,6 +425,14 @@ class SAOExtractor(object):
             o["pf"], o["th"], o["ed"] = self.sao.PF, self.sao.TH, self.sao.ED
             if hasattr(self, "date"):
                 o["date"] = self.date
+            if plot_ionogram:
+                logger.info("Save figures...")
+                sao_plot = SAOSummaryPlots()
+                sao_plot.plot_ionogram(
+                    o, text=f"{self.stn_code}/{self.date.strftime('%Y-%m-%d %H:%M:%S')}"
+                )
+                sao_plot.save(self.filename.split(".")[0] + ".png")
+                sao_plot.close()
         return o
 
     def display_struct(self):
@@ -423,9 +446,10 @@ class SAOExtractor(object):
     def extract_SAO(
         file: str,
         extract_time_from_name: bool = True,
+        extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
     ):
-        extractor = SAOExtractor(file, extract_time_from_name)
+        extractor = SAOExtractor(file, extract_time_from_name, extract_stn_from_name)
         extractor.extract()
         if func_name == "height_profile":
             df = extractor.get_height_profile()
@@ -441,6 +465,7 @@ class SAOExtractor(object):
         ext: str = "*.SAO",
         n_procs: int = 4,
         extract_time_from_name: bool = True,
+        extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
     ):
         logger.info(f"Searching for files under: {os.path.join(folders, ext)}")
@@ -454,6 +479,7 @@ class SAOExtractor(object):
                         partial(
                             SAOExtractor.extract_SAO,
                             extract_time_from_name=extract_time_from_name,
+                            extract_stn_from_name=extract_stn_from_name,
                             func_name=func_name,
                         ),
                         files,
@@ -462,7 +488,6 @@ class SAOExtractor(object):
                 )
             )
         df_collection = pd.concat(df_collection)
-        print(df_collection.head())
         return df_collection
 
 
@@ -474,5 +499,15 @@ if __name__ == "__main__":
     # extractor.get_scaled_datasets()
     # extractor.display_struct()
     # print(sao_data["ED"])
-    from pynasonde.digisonde.digi_plots import SAOSummaryPlots
-    SAOExtractor.load_SAO_files()
+    # from pynasonde.digisonde.digi_plots import SAOSummaryPlots
+    # collection = SAOExtractor.load_SAO_files()
+    # sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
+    # sao_plot.add_TS(collection)
+    # sao_plot.save("tmp/example_pf.png")
+    # sao_plot.close()
+    collection = SAOExtractor.load_SAO_files(func_name="scaled")
+    print(collection.columns)
+    sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
+    sao_plot.plot_TS(collection)
+    sao_plot.save("tmp/example_ts.png")
+    sao_plot.close()
