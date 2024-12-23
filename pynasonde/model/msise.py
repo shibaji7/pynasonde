@@ -15,34 +15,35 @@ class MSISE(object):
         lats: np.array,
         lons: np.array,
         alts: np.array,
+        units: float = 1e6,  # to /cm
     ):
         self.lats, self.alts, self.lons = (lats, alts, lons)
         self.ds = msise_4d(self.event, alts, lats, lons)
         nn = (
-            self.ds.variables["He"][0, :, :, :]
-            + self.ds.variables["H"][0, :, :, :]
-            + self.ds.variables["O"][0, :, :, :]
-            + self.ds.variables["Ar"][0, :, :, :]
-            + self.ds.variables["N"][0, :, :, :]
-            + self.ds.variables["N2"][0, :, :, :]
-            + self.ds.variables["O2"][0, :, :, :]
-            + self.ds.variables["rho"][0, :, :, :]
-            + self.ds.variables["AnomO"][0, :, :, :]
-        )
+            self.ds.variables["He"].values[0, :, :, :]
+            + self.ds.variables["H"].values[0, :, :, :]
+            + self.ds.variables["O"].values[0, :, :, :]
+            + self.ds.variables["Ar"].values[0, :, :, :]
+            + self.ds.variables["N"].values[0, :, :, :]
+            + self.ds.variables["N2"].values[0, :, :, :]
+            + self.ds.variables["O2"].values[0, :, :, :]
+            + self.ds.variables["rho"].values[0, :, :, :]
+            + self.ds.variables["AnomO"].values[0, :, :, :]
+        ) * units
         return (
-            self.ds.variables["He"][0, :, :, :],
-            self.ds.variables["H"][0, :, :, :],
-            self.ds.variables["O"][0, :, :, :],
-            self.ds.variables["Ar"][0, :, :, :],
-            self.ds.variables["N"][0, :, :, :],
-            self.ds.variables["N2"][0, :, :, :],
-            self.ds.variables["O2"][0, :, :, :],
-            self.ds.variables["rho"][0, :, :, :],
-            self.ds.variables["AnomO"][0, :, :, :],
-            self.ds.variables["Texo"][0, :, :, :],
-            self.ds.variables["Talt"][0, :, :, :],
-            self.ds.variables["Ap"],
-            self.ds.variables["f107"],
-            self.ds.variables["f107a"],
+            self.ds.variables["He"].values[0, :, :, :] * units,
+            self.ds.variables["H"].values[0, :, :, :] * units,
+            self.ds.variables["O"].values[0, :, :, :] * units,
+            self.ds.variables["Ar"].values[0, :, :, :] * units,
+            self.ds.variables["N"].values[0, :, :, :] * units,
+            self.ds.variables["N2"].values[0, :, :, :] * units,
+            self.ds.variables["O2"].values[0, :, :, :] * units,
+            self.ds.variables["rho"].values[0, :, :, :],
+            self.ds.variables["AnomO"].values[0, :, :, :] * units,
+            self.ds.variables["Texo"].values[0, :, :, :],
+            self.ds.variables["Talt"].values[0, :, :, :],
+            self.ds.variables["Ap"].values,
+            self.ds.variables["f107"].values,
+            self.ds.variables["f107a"].values,
             nn,
         )

@@ -35,5 +35,5 @@ class IRI(object):
                     self.iri_version,
                 )
                 self.edens[:, i, j] = iriout.edens * unit
-        # return density in /cm
+        # return density in /cm, and K
         return self.edens, self.itemp, self.etemp

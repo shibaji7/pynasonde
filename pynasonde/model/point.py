@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import List
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from pynasonde.model.absorption.collisions import CalculateCollision, CollisionProfiles
@@ -124,8 +125,8 @@ class Point:
             self.alts,
             self.edens,
             self.total_n_density,
-            self.etemp,
-            self.itemp,
+            self.Texo,
+            self.Texo,
             self.Talt,
         )
         col.calculate_FT_collision_frequency()
@@ -139,12 +140,50 @@ class Point:
     def calculate_absorptions(self, f_sweep: np.array = np.linspace(2, 4, 5)):
         if self.collision_profile is None:
             self.calculate_collision_freqs()
-        self.absorption_profiles = []
+        self.absorption_profiles, self.f_sweep = [], f_sweep
         for fo in f_sweep:
             caa = CalculateAbsorption(
-                self.B_tot, self.collision_profile, self.edens, fo
+                self.B_tot, self.collision_profile, self.edens, fo * 1e6
             )
             caa.estimate_AH()
             # caa.estimate_SW()
             self.absorption_profiles.append(copy.copy(caa.abs_profiles))
         return
+
+    def get_absoption_profiles(
+        self,
+        fo: float = 2,
+        disp_equation_kind: str = "ah",
+        freq_kind: str = "av_cc",
+        mode: str = "O",
+    ):
+        profile = self.absorption_profiles[self.f_sweep.tolist().index(fo)]
+        absorption = getattr(
+            getattr(getattr(profile, disp_equation_kind), freq_kind), mode
+        )
+        return absorption
+
+    def find_ionogram_trace_max_height(
+        self,
+        f_sweep: List[float],
+        disp_equation_kind: str = "ah",
+        freq_kind: str = "av_cc",
+        mode: str = "O",
+        power_limit: float = 1.0,
+        height_limit: float = 250.0,
+    ):
+        max_ret_heights = []
+        for fo in f_sweep:
+            df = pd.DataFrame()
+            df["alts"], df["absorption"] = (
+                self.alts,
+                self.get_absoption_profiles(
+                    fo, disp_equation_kind, freq_kind, mode
+                ).ravel(),
+            )
+            df = df[(df.absorption <= power_limit) & (df.alts <= height_limit)]
+            max_ret_heights.append(df.alts.max())
+        df = pd.DataFrame()
+        df["max_ret_heights"], df["f_sweep"] = max_ret_heights, f_sweep
+        df.max_ret_heights.replace(height_limit, np.nan, inplace=True)
+        return df

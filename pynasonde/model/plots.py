@@ -131,27 +131,40 @@ class AnalysisPlots(ModelPlots):
 
     def plot_ionogram_trace(
         self,
-        absorption: np.array,
-        ht: np.array,
-        xlabel: str = "Absorption, dB",
-        ylabel: str = "Height, km",
-        ylim: List[float] = [0, 600],
-        xlim: List[float] = [],
+        f_sweep: np.array,
+        max_ret_heights: np.array,
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        ylim: List[float] = [0, 400],
+        xlim: List[float] = [1, 22],
+        xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
         text: str = None,
-        ls: str = "-",
+        del_ticks: bool = False,
         lcolor: str = "k",
         lw: float = 0.7,
         zorder: int = 2,
+        ax=None,
     ):
         setsize(self.font_size)
-        ax = self.get_axes(del_ticks=False)
+        ax = ax if ax else self.get_axes(del_ticks=del_ticks)
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
+        ax.set_xlim(np.log10(xlim))
         ax.set_ylabel(
             ylabel,
             fontdict={"size": self.font_size},
         )
-        ax.plot(absorption, ht, ls=ls, zorder=zorder, lw=lw, color=lcolor)
+        ax.plot(
+            np.log10(f_sweep),
+            max_ret_heights,
+            ls="None",
+            zorder=zorder,
+            marker="s",
+            ms=0.6,
+            color=lcolor,
+        )
+        ax.set_xticks(np.log10(xticks))
+        ax.set_xticklabels(xticks)
         if text:
             ax.text(
                 0.05,
@@ -162,4 +175,4 @@ class AnalysisPlots(ModelPlots):
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size},
             )
-        return
+        return ax
