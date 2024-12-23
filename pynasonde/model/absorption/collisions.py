@@ -19,7 +19,7 @@ np.seterr(divide="ignore", invalid="ignore")
 from dataclasses import dataclass
 from types import SimpleNamespace
 
-from constant import pconst
+from pynasonde.model.absorption.constants import pconst
 
 
 @dataclass
@@ -66,23 +66,22 @@ class CalculateCollision(object):
 
     def __init__(
         self,
-        msis,
-        iri,
+        alts,
         Ne,
+        Nn,
         Te,
         Ti,
+        Tn,
     ):
-        self.alts = np.arange(500)
+        self.alts = alts
         self.Ne = Ne
         self.Te = Te
         self.Ti = Ti
-        self.msis = msis
-        self.iri = iri
+        self.Nn = Nn
+        self.Tn = Tn
         self.cp = CollisionProfiles()
         self.cp._initialize_()
 
-        self.calculate_FT_collision_frequency()
-        # self.calculate_SN_en_collision_frequency()
         # self.calculate_SN_ei_collision_frequency()
         return
 
@@ -98,10 +97,10 @@ class CalculateCollision(object):
         nu <float> = collision frequency
         https://azformula.com/physics/dimensional-formulae/what-is-dimensional-formula-of-temperature/
         """
-        p = self.msis["nn"] * self.msis["Tn"] * pconst["boltz"]
+        p = self.Nn * self.Tn * pconst["boltz"]
         self.cp.nu.ft = (2.637e6 / np.sqrt(self.Te) + 4.945e5) * p
-        self.cp.nu.av_cc = self.self.cp.nu.ft * 2.5
-        self.cp.nu.av_mb = self.nu_FT * 1.5
+        self.cp.nu.av_cc = self.cp.nu.ft * 2.5
+        self.cp.nu.av_mb = self.cp.nu.ft * 1.5
         return
 
     def calculate_SN_ei_collision_frequency(self, gamma=0.5572, zi=2):
@@ -143,46 +142,32 @@ class CalculateCollision(object):
         self.nu_SN["total"] = self.nu_SN["total"] + self.nu_SN["ei"]["total"]
         return
 
-    def calculate_SN_en_collision_frequency(self):
+    def calculate_SN_en_collision_frequency(self, N2, O2, O, He, H):
         """
         This method provides electron neutral collision frequency profile, nu_en
 
         nn <float> = Neutral density m^-3
         Te <float> = Electron temerature in K
         """
-        self.nu_SN["en"]["N2"] = (
-            1e-6 * 2.33e-11 * self.msis["N2"] * (1 - (1.12e-4 * self.Te)) * self.Te
+        self.cp.nu.sn.en.N2 = 1e-6 * 2.33e-11 * N2 * (1 - (1.12e-4 * self.Te)) * self.Te
+        self.cp.nu.sn.en.O2 = (
+            1e-6 * 1.82e-10 * O2 * (1 + (3.6e-2 * np.sqrt(self.Te))) * np.sqrt(self.Te)
         )
-        self.nu_SN["en"]["O2"] = (
-            1e-6
-            * 1.82e-10
-            * self.msis["O2"]
-            * (1 + (3.6e-2 * np.sqrt(self.Te)))
-            * np.sqrt(self.Te)
+        self.cp.nu.sn.en.O = (
+            1e-6 * 8.9e-11 * O * (1 + (5.7e-4 * self.Te)) * np.sqrt(self.Te)
         )
-        self.nu_SN["en"]["O"] = (
-            1e-6
-            * 8.9e-11
-            * self.msis["O"]
-            * (1 + (5.7e-4 * self.Te))
-            * np.sqrt(self.Te)
+        self.cp.nu.sn.en.He = 1e-6 * 4.6e-10 * He * np.sqrt(self.Te)
+        self.cp.nu.sn.en.H = (
+            1e-6 * 4.5e-9 * H * (1 - (1.35e-4 * self.Te)) * np.sqrt(self.Te)
         )
-        self.nu_SN["en"]["He"] = 1e-6 * 4.6e-10 * self.msis["HE"] * np.sqrt(self.Te)
-        self.nu_SN["en"]["H"] = (
-            1e-6
-            * 4.5e-9
-            * self.msis["H"]
-            * (1 - (1.35e-4 * self.Te))
-            * np.sqrt(self.Te)
+        self.cp.nu.sn.en.total = (
+            self.cp.nu.sn.en.N2
+            + self.cp.nu.sn.en.O2
+            + self.cp.nu.sn.en.O
+            + self.cp.nu.sn.en.He
+            + self.cp.nu.sn.en.H
         )
-        self.nu_SN["en"]["total"] = (
-            self.nu_SN["en"]["N2"]
-            + self.nu_SN["en"]["O2"]
-            + self.nu_SN["en"]["O"]
-            + self.nu_SN["en"]["He"]
-            + self.nu_SN["en"]["H"]
-        )
-        self.nu_SN["total"] = self.nu_SN["en"]["total"]  # * np.random.uniform(0.7,0.75)
+        self.cp.nu.sn.total = self.cp.nu.sn.en.total
         return
 
     def atmospheric_collision_frequency(ni, nn, T):

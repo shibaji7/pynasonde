@@ -18,6 +18,17 @@ class MSISE(object):
     ):
         self.lats, self.alts, self.lons = (lats, alts, lons)
         self.ds = msise_4d(self.event, alts, lats, lons)
+        nn = (
+            self.ds.variables["He"][0, :, :, :]
+            + self.ds.variables["H"][0, :, :, :]
+            + self.ds.variables["O"][0, :, :, :]
+            + self.ds.variables["Ar"][0, :, :, :]
+            + self.ds.variables["N"][0, :, :, :]
+            + self.ds.variables["N2"][0, :, :, :]
+            + self.ds.variables["O2"][0, :, :, :]
+            + self.ds.variables["rho"][0, :, :, :]
+            + self.ds.variables["AnomO"][0, :, :, :]
+        )
         return (
             self.ds.variables["He"][0, :, :, :],
             self.ds.variables["H"][0, :, :, :],
@@ -33,4 +44,5 @@ class MSISE(object):
             self.ds.variables["Ap"],
             self.ds.variables["f107"],
             self.ds.variables["f107a"],
+            nn,
         )

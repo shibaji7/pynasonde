@@ -11,13 +11,19 @@ __maintainer__ = "Chakraborty, S."
 __email__ = "chakras4@erau.edu"
 __status__ = "Research"
 
+import copy
 import datetime as dt
 from dataclasses import dataclass
+from typing import List
 
 import numpy as np
+from loguru import logger
 
-from pynasonde.model.absorption.collisions import CollisionProfiles
-from pynasonde.model.absorption.dispersion_relations import AbsorptionProfiles
+from pynasonde.model.absorption.collisions import CalculateCollision, CollisionProfiles
+from pynasonde.model.absorption.dispersion_relations import (
+    AbsorptionProfiles,
+    CalculateAbsorption,
+)
 from pynasonde.model.igrf import IGRF
 from pynasonde.model.iri import IRI
 from pynasonde.model.msise import MSISE
@@ -33,7 +39,9 @@ class Point:
     lat: np.float64 = np.nan  # Latitude of the point
     lon: np.float64 = np.nan  # Longitude of the point
     alts: np.array = None  # Height along lat/lon
-    eden: np.array = None  # Electron density profile
+    edens: np.array = None  # Electron density profile
+    etemp: np.array = None  # Electron Temperature
+    itemp: np.array = None  # Ion Temperature
     B_north: np.array = None  # Magnetic field [North]
     B_east: np.array = None  # Magnetic field [East]
     B_down: np.array = None  # Magnetic field [Down]
@@ -56,8 +64,8 @@ class Point:
     f107: np.float64 = np.nan
     f107a: np.float64 = np.nan
     # Collision and absorption profiles
-    absorption_profile: AbsorptionProfiles = None
-    collision_profiles: CollisionProfiles = None
+    absorption_profiles: List[AbsorptionProfiles] = None
+    collision_profile: CollisionProfiles = None
 
     def _load_profile_(
         self,
@@ -69,11 +77,13 @@ class Point:
         Load based on the model types
         """
         if "iri" in edensity_model:
+            logger.info(f"Loading IRI for {self.date} at {self.lat}/{self.lon}")
             self.iri = IRI(self.date, int(edensity_model.replace("iri", "")))
-            self.eden = self.iri.fetch_dataset(
+            self.edens, self.itemp, self.etemp = self.iri.fetch_dataset(
                 np.array([self.lat]), np.array([self.lon]), self.alts
             )
         if "igrf" in mag_model:
+            logger.info(f"Loading IGRF for {self.date} at {self.lat}/{self.lon}")
             self.igrf = IGRF(self.date)
             (
                 self.B_north,
@@ -86,6 +96,7 @@ class Point:
                 np.array([self.lat]), np.array([self.lon]), self.alts
             )
         if neutral_density_model == "msise":
+            logger.info(f"Loading MSISE00 for {self.date} at {self.lat}/{self.lon}")
             self.msise = MSISE(self.date)
             (
                 self.He,
@@ -102,7 +113,38 @@ class Point:
                 self.Ap,
                 self.f107,
                 self.f107a,
+                self.total_n_density,
             ) = self.msise.fetch_dataset(
                 np.array([self.lat]), np.array([self.lon]), self.alts
             )
+        return
+
+    def calculate_collision_freqs(self):
+        col = CalculateCollision(
+            self.alts,
+            self.edens,
+            self.total_n_density,
+            self.etemp,
+            self.itemp,
+            self.Talt,
+        )
+        col.calculate_FT_collision_frequency()
+        col.calculate_SN_en_collision_frequency(
+            self.N2, self.O2, self.O, self.He, self.H
+        )
+        # col.calculate_SN_ei_collision_frequency()
+        self.collision_profile = copy.copy(col.cp)
+        return
+
+    def calculate_absorptions(self, f_sweep: np.array = np.linspace(2, 4, 5)):
+        if self.collision_profile is None:
+            self.calculate_collision_freqs()
+        self.absorption_profiles = []
+        for fo in f_sweep:
+            caa = CalculateAbsorption(
+                self.B_tot, self.collision_profile, self.edens, fo
+            )
+            caa.estimate_AH()
+            # caa.estimate_SW()
+            self.absorption_profiles.append(copy.copy(caa.abs_profiles))
         return
