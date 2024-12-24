@@ -154,21 +154,23 @@ class SkyExtractor(object):
                     if line_indent == 4:  # Frequency header
                         fh = self.parse_freq_header(sky_arch)
                         # Nesting 2nd layer for datasets from sources 'n_sources'
-                        n_sources=fh["n_sources"]
+                        n_sources = fh["n_sources"]
                         print("n_sources", n_sources)
-                        if n_sources > 0: # Check if data esists
+                        if n_sources > 0:  # Check if data esists
                             # if n_sources <= 26:
                             for _i_nest_nest in range(5):
                                 # add next line to above to this nest (previous while loop)
                                 _i += 1  # you need to add this previous to work on sky_arch
-                                line_indent, sky_arch = self.parse_line(sky_arch_list, _i)
+                                line_indent, sky_arch = self.parse_line(
+                                    sky_arch_list, _i
+                                )
                                 print(">>>", _i, line_indent, sky_arch)
                                 data = dict(
-                                    y_coords = [], # Y coordinate
-                                    x_coords = [], # X coordinate
-                                    spect_amp = [], # Spectral Amplitude number
-                                    spect_dop = [], # Spectral Doppler line number
-                                    rms_error = [], # Least Squares Fit RMS error
+                                    y_coords=[],  # Y coordinate
+                                    x_coords=[],  # X coordinate
+                                    spect_amp=[],  # Spectral Amplitude number
+                                    spect_dop=[],  # Spectral Doppler line number
+                                    rms_error=[],  # Least Squares Fit RMS error
                                 )
                                 fh["sky_data"].append(data)
                         ds["freq_headers"].append(fh)

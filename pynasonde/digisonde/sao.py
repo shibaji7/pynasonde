@@ -493,18 +493,6 @@ class SaoExtractor(object):
 
 # Example Usage
 if __name__ == "__main__":
-    # Replace 'example.sao' with the path to your SAO file
-    # extractor = SAOExtractor("tmp/KR835_2023286235237.SAO", True)
-    # sao_data = extractor.extract()
-    # extractor.get_scaled_datasets()
-    # extractor.display_struct()
-    # print(sao_data["ED"])
-    # from pynasonde.digisonde.digi_plots import SAOSummaryPlots
-    # collection = SAOExtractor.load_SAO_files()
-    # sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
-    # sao_plot.add_TS(collection)
-    # sao_plot.save("tmp/example_pf.png")
-    # sao_plot.close()
     collection = SaoExtractor.load_SAO_files(func_name="scaled")
     print(collection.columns)
     sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
