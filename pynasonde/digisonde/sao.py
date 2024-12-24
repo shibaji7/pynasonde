@@ -14,7 +14,7 @@ from pynasonde.digisonde.digi_plots import SAOSummaryPlots
 from pynasonde.digisonde.digi_utils import to_namespace
 
 
-class SAOExtractor(object):
+class SaoExtractor(object):
     """
     A class to extract and process data from SAO (Standard Archiving Output) files.
 
@@ -30,7 +30,7 @@ class SAOExtractor(object):
         extract_stn_from_name: bool = False,
     ):
         """
-        Initialize the SAOExtractor with the given file.
+        Initialize the SaoExtractor with the given file.
 
         Args:
             filename (str): Path to the SAO file to be processed.
@@ -449,7 +449,7 @@ class SAOExtractor(object):
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
     ):
-        extractor = SAOExtractor(file, extract_time_from_name, extract_stn_from_name)
+        extractor = SaoExtractor(file, extract_time_from_name, extract_stn_from_name)
         extractor.extract()
         if func_name == "height_profile":
             df = extractor.get_height_profile()
@@ -477,7 +477,7 @@ class SAOExtractor(object):
                 tqdm(
                     pool.imap(
                         partial(
-                            SAOExtractor.extract_SAO,
+                            SaoExtractor.extract_SAO,
                             extract_time_from_name=extract_time_from_name,
                             extract_stn_from_name=extract_stn_from_name,
                             func_name=func_name,
@@ -505,7 +505,7 @@ if __name__ == "__main__":
     # sao_plot.add_TS(collection)
     # sao_plot.save("tmp/example_pf.png")
     # sao_plot.close()
-    collection = SAOExtractor.load_SAO_files(func_name="scaled")
+    collection = SaoExtractor.load_SAO_files(func_name="scaled")
     print(collection.columns)
     sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
     sao_plot.plot_TS(collection)
