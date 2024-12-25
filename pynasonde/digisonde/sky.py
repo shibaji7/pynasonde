@@ -121,7 +121,7 @@ class SkyExtractor(object):
             # Polarization Identifier 0/1=O/X-mode
             polarization=int(sky_arch[10]),
             # Skymap dataset
-            sky_data=[],
+            sky_data=None,
         )
         return parsed_freq_header
 
@@ -157,32 +157,41 @@ class SkyExtractor(object):
                         n_sources = fh["n_sources"]
                         print("n_sources", n_sources)
                         if n_sources > 0:  # Check if data esists
-                            # if n_sources <= 26:
-                            for _i_nest_nest in range(5):
-                                # add next line to above to this nest (previous while loop)
-                                _i += 1  # you need to add this previous to work on sky_arch
-                                line_indent, sky_arch = self.parse_line(
-                                    sky_arch_list, _i
-                                )
-                                print(">>>", _i, line_indent, sky_arch)
-                                data = dict(
-                                    y_coords=[],  # Y coordinate
-                                    x_coords=[],  # X coordinate
-                                    spect_amp=[],  # Spectral Amplitude number
-                                    spect_dop=[],  # Spectral Doppler line number
-                                    rms_error=[],  # Least Squares Fit RMS error
-                                )
-                                fh["sky_data"].append(data)
+                            fh["sky_data"], _i = self.parse_sky_data(
+                                sky_arch_list, _i, n_sources
+                            )
                         ds["freq_headers"].append(fh)
                     _i_nest += 1
                 self.sky_struct["dataset"].append(ds)
-            if _i >= 20:
-                break
             # Loop add next line
             _i += 1
         self.sky = to_namespace(self.sky_struct)
-        print(self.sky_struct)
         return
+
+    def parse_sky_data(self, sky_arch_list, _i, n_sources):
+        # add next line to above to this nest (previous while loop)
+        # we need to add 5 more lines to main index
+
+        # if n_sources <= 26 then they are in 1 line otherwise check on _i+5 lines
+        _, y_coords = self.parse_line(sky_arch_list, _i + 1)
+        y_coords = [float(y) for y in y_coords]
+        _, x_coords = self.parse_line(sky_arch_list, _i + 2)
+        x_coords = [float(x) for x in x_coords]
+        _, spect_amp = self.parse_line(sky_arch_list, _i + 3)
+        spect_amp = [float(a) for a in spect_amp]
+        _, spect_dop = self.parse_line(sky_arch_list, _i + 4)
+        spect_dop = [float(d) for d in spect_dop]
+        _, rms_error = self.parse_line(sky_arch_list, _i + 5)
+        rms_error = [float(r) for r in rms_error]
+        data = dict(
+            y_coords=y_coords,  # Y coordinate
+            x_coords=x_coords,  # X coordinate
+            spect_amp=spect_amp,  # Spectral Amplitude number
+            spect_dop=spect_dop,  # Spectral Doppler line number
+            rms_error=rms_error,  # Least Squares Fit RMS error
+        )
+        _i = _i + 5 if n_sources <= 26 else _i + (5 * (int(n_sources / 26) + 1))
+        return data, _i
 
 
 if __name__ == "__main__":
