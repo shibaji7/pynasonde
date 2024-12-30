@@ -10,7 +10,7 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
-from pynasonde.digisonde.digi_plots import SAOSummaryPlots
+from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import to_namespace
 
 
@@ -427,7 +427,7 @@ class SaoExtractor(object):
                 o["date"] = self.date
             if plot_ionogram:
                 logger.info("Save figures...")
-                sao_plot = SAOSummaryPlots()
+                sao_plot = SaoSummaryPlots()
                 sao_plot.plot_ionogram(
                     o, text=f"{self.stn_code}/{self.date.strftime('%Y-%m-%d %H:%M:%S')}"
                 )
@@ -495,7 +495,7 @@ class SaoExtractor(object):
 if __name__ == "__main__":
     collection = SaoExtractor.load_SAO_files(func_name="scaled")
     print(collection.columns)
-    sao_plot = SAOSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
+    sao_plot = SaoSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
     sao_plot.plot_TS(collection)
     sao_plot.save("tmp/example_ts.png")
     sao_plot.close()

@@ -1,7 +1,13 @@
 import datetime as dt
+import glob
+import os
+from functools import partial
+from multiprocessing import Pool
 
 import numpy as np
+import pandas as pd
 from loguru import logger
+from tqdm import tqdm
 
 from pynasonde.digisonde.digi_utils import to_namespace
 
@@ -123,7 +129,56 @@ class DvlExtractor(object):
         self.dvl = to_namespace(self.dvl_struct)
         return self.dvl_struct
 
+    @staticmethod
+    def extract_DVL_pandas(
+        file: str,
+        extract_time_from_name: bool = True,
+        extract_stn_from_name: bool = True,
+    ):
+        extractor = DvlExtractor(file, extract_time_from_name, extract_stn_from_name)
+        df = pd.DataFrame.from_records([extractor.extract()])
+        df["datetime"] = extractor.date
+        return df
+
+    @staticmethod
+    def load_DVL_files(
+        folders: str = "tmp/SKYWAVE_DPS4D_2023_10_13",
+        ext: str = "*.DVL",
+        n_procs: int = 4,
+        extract_time_from_name: bool = True,
+        extract_stn_from_name: bool = True,
+    ):
+        logger.info(f"Searching for files under: {os.path.join(folders, ext)}")
+        files = glob.glob(os.path.join(folders, ext))
+        files.sort()
+        logger.info(f"N files: {len(files)}")
+        with Pool(n_procs) as pool:
+            df_collection = list(
+                tqdm(
+                    pool.imap(
+                        partial(
+                            DvlExtractor.extract_DVL_pandas,
+                            extract_time_from_name=extract_time_from_name,
+                            extract_stn_from_name=extract_stn_from_name,
+                        ),
+                        files,
+                    ),
+                    total=len(files),
+                )
+            )
+        df_collection = pd.concat(df_collection)
+        return df_collection
+
 
 if __name__ == "__main__":
-    extractor = DvlExtractor("tmp/KR835_2023286235715.DVL", True, True)
-    extractor.extract()
+    # extractor = DvlExtractor("tmp/KR835_2023286235715.DVL", True, True)
+    # extractor.extract()
+    collection = DvlExtractor.load_DVL_files()
+    print(collection.columns)
+    from pynasonde.digisonde.digi_plots import SkySummaryPlots
+
+    SkySummaryPlots.plot_dvl_drift_velocities(collection, fname="tmp/extract_dvl.png")
+    # sky = SkySummaryPlots(figsize=(8, 4), subplot_kw=None)
+    # sky.plot_dvl_drift_velocities(collection)
+    # sky.save("tmp/extract_dvl.png")
+    # sky.close()

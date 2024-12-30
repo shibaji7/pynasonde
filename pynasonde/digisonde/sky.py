@@ -1,5 +1,6 @@
 import datetime as dt
 
+import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.digi_utils import to_namespace
@@ -166,7 +167,7 @@ class SkyExtractor(object):
             # Loop add next line
             _i += 1
         self.sky = to_namespace(self.sky_struct)
-        return
+        return self.sky
 
     def parse_sky_data(self, sky_arch_list, _i, n_sources):
         # add next line to above to this nest (previous while loop)
@@ -193,7 +194,50 @@ class SkyExtractor(object):
         _i = _i + 5 if n_sources <= 26 else _i + (5 * (int(n_sources / 26) + 1))
         return data, _i
 
+    def to_pandas(self) -> pd.DataFrame:
+        """Convert dataset to pandas dataframe"""
+        df = pd.DataFrame()
+        for ds in self.sky.dataset:
+            for fh in ds.freq_headers:
+                d = []
+                if fh.sky_data:
+                    d.extend(
+                        [
+                            dict(
+                                zenith_angle=fh.zenith_angle,
+                                sampl_freq=fh.sampl_freq,
+                                group_range=fh.group_range,
+                                gain_ampl=fh.gain_ampl,
+                                height_spctrum_ampl=fh.height_spctrum_ampl,
+                                max_height_spctrum_ampl=fh.max_height_spctrum_ampl,
+                                n_sources=fh.n_sources,
+                                height_spctrum_cl_th=fh.height_spctrum_cl_th,
+                                spect_line_cl_th=fh.spect_line_cl_th,
+                                polarization=fh.polarization,
+                                x_coord=fh.sky_data.x_coords[i],
+                                y_coord=fh.sky_data.y_coords[i],
+                                spect_amp=fh.sky_data.spect_amp[i],
+                                spect_dop=fh.sky_data.spect_dop[i],
+                                rms_error=fh.sky_data.rms_error[i],
+                            )
+                            for i in range(len(fh.sky_data.y_coords))
+                        ]
+                    )
+                d = pd.DataFrame.from_records(d)
+                df = pd.concat([df, d])
+        return df
+
 
 if __name__ == "__main__":
+    from pynasonde.digisonde.digi_plots import SkySummaryPlots
+
     extractor = SkyExtractor("tmp/KR835_2023286235715.SKY", True, True)
-    extractor.extract()
+    print(extractor.extract().dataset[-1].freq_headers)
+    df = extractor.to_pandas()
+    skyplot = SkySummaryPlots()
+    skyplot.plot_skymap(
+        df,
+        text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M UT, %d %b %Y')}",
+    )
+    skyplot.save("tmp/extract_sky.png")
+    skyplot.close()
