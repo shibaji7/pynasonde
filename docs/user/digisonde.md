@@ -50,11 +50,11 @@ Outputs from a DIGISONDE are stored in `.SAO`, `.SKY`, `.DVL`, `.DFT` and `.RSF`
 All these files are either a custom binary format or structured ASCII formats. Structures of the datas is best understood through `C`, and `FORTRAN` definitions. However, we provide `Python`-version of the data structure.
 
 ### Standard Archiving Output (SAO) Format
-
+This file is in a structured ASCII format, with each file providing a complete DIGISONDE sounding for a specific date and time, along with the corresponding parameters.
 ### Skymap Datafile (SKY) Format
-
+This file is in a structured ASCII format, with each file providing a complete DIGISONDE sounding for a specific date and time, along with the corresponding parameters.
 ### Differential Velocity (DVL) Format
-This file is in structured ASCII format, with each row is a record with following parameters.
+This file is formatted in structured ASCII, with each entry corresponding to a specific date and time, along with the associated parameters.
 
 | Field Name              | Type     | Size(Bytes) | Note / Description  |
 | :---------------- | :------: | :------: | ----: |
