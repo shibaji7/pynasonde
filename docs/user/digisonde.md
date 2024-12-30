@@ -54,6 +54,7 @@ All these files are either a custom binary format or structured ASCII formats. S
 ### Skymap Datafile (SKY) Format
 
 ### Differential Velocity (DVL) Format
+This file is in structured ASCII format, with each row is a record with following parameters.
 
 | Field Name              | Type     | Size(Bytes) | Note / Description  |
 | :---------------- | :------: | :------: | ----: |
