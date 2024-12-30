@@ -268,7 +268,68 @@ class SaoSummaryPlots(DigiPlots):
             )
         return
 
-    def plot_isodensity_contours(self):
+    @staticmethod
+    def plot_isodensity_contours(
+        df: pd.DataFrame,
+        xparam: str = "date",
+        yparam: str = "th",
+        zparam: str = "pf",
+        xlabel: str = "Time, UT",
+        ylabel: str = "Virtual Height, km",
+        ylim: List[float] = [50, 300],
+        major_locator: mdates.RRuleLocator = mdates.HourLocator(
+            byhour=range(0, 24, 12)
+        ),
+        minor_locator: mdates.RRuleLocator = mdates.HourLocator(byhour=range(0, 24, 4)),
+        xlim: List[dt.datetime] = None,
+        fbins: List[float] = [1, 2, 3, 4, 5, 6, 7, 8],
+        text: str = None,
+        del_ticks: bool = False,
+        fname: str = None,
+        figsize: tuple = (5, 3),
+        lw: float = 0.7,
+        alpha: float = 0.8,
+        zorder: int = 4,
+        cmap="Spectral",
+    ):
+        plot = SaoSummaryPlots(figsize=figsize, nrows=1, ncols=1)
+        ax = plot.get_axes(del_ticks)
+        xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
+        ax.set_xlim(xlim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylim(ylim)
+        ax.set_ylabel(ylabel)
+        ax.xaxis.set_major_locator(major_locator)
+        ax.xaxis.set_major_locator(minor_locator)
+        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        for i in range(len(fbins) - 1):
+            f_max, f_min = fbins[i + 1], fbins[i]
+            o = df[(df[zparam] >= f_min) & (df[zparam] <= f_max)]
+            im = ax.scatter(
+                o[xparam],
+                o[yparam],
+                c=o[zparam],
+                marker="s",
+                s=1.5,
+                cmap=cmap,
+                vmax=f_max,
+                vmin=f_min,
+                zorder=zorder,
+                alpha=alpha,
+            )
+        if text:
+            ax.text(
+                0.05,
+                0.9,
+                text,
+                ha="left",
+                va="center",
+                transform=ax.transAxes,
+                fontdict={"size": plot.font_size},
+            )
+        if fname:
+            plot.save(fname)
+        plot.close()
         return
 
 

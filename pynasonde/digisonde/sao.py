@@ -493,9 +493,14 @@ class SaoExtractor(object):
 
 # Example Usage
 if __name__ == "__main__":
-    collection = SaoExtractor.load_SAO_files(func_name="scaled")
+    collection = SaoExtractor.load_SAO_files(func_name="height_profile")
     print(collection.columns)
-    sao_plot = SaoSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
-    sao_plot.plot_TS(collection)
-    sao_plot.save("tmp/example_ts.png")
-    sao_plot.close()
+    # sao_plot = SaoSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
+    # sao_plot.plot_TS(collection)
+    # sao_plot.save("tmp/example_ts.png")
+    # sao_plot.close()
+    SaoSummaryPlots.plot_isodensity_contours(
+        collection,
+        xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
+        fname="tmp/example_id.png",
+    )
