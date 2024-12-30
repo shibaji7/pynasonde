@@ -51,6 +51,7 @@ nav:
     - Installation: user/install.md  
     - Ionosonde Data Access: user/ionosonde.md
     - VIPIR: user/vipir.md
+    - DIGISONDE: user/digisonde.md
     - Citing: user/citing.md
     - Toolbox: 
             - ISCA: tools/isca.md
