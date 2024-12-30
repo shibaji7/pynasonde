@@ -452,8 +452,9 @@ class SkySummaryPlots(DigiPlots):
         ylim: List = [-100, 100],
         xlim: List[dt.datetime] = None,
         fname: str = None,
+        figsize: tuple = (2.5, 7),
     ):
-        dvlplot = SkySummaryPlots(figsize=(4, 7), nrows=3, ncols=1, subplot_kw=None)
+        dvlplot = SkySummaryPlots(figsize=figsize, nrows=3, ncols=1, subplot_kw=None)
         for i, y, col, err, lab in zip(
             range(len(yparams)), yparams, colors, errors, labels
         ):
