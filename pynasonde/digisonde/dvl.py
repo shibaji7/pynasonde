@@ -3,6 +3,7 @@ import glob
 import os
 from functools import partial
 from multiprocessing import Pool
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -142,32 +143,35 @@ class DvlExtractor(object):
 
     @staticmethod
     def load_DVL_files(
-        folders: str = "tmp/SKYWAVE_DPS4D_2023_10_13",
+        folders: List[str] = ["tmp/SKYWAVE_DPS4D_2023_10_13"],
         ext: str = "*.DVL",
         n_procs: int = 4,
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
     ):
-        logger.info(f"Searching for files under: {os.path.join(folders, ext)}")
-        files = glob.glob(os.path.join(folders, ext))
-        files.sort()
-        logger.info(f"N files: {len(files)}")
-        with Pool(n_procs) as pool:
-            df_collection = list(
-                tqdm(
-                    pool.imap(
-                        partial(
-                            DvlExtractor.extract_DVL_pandas,
-                            extract_time_from_name=extract_time_from_name,
-                            extract_stn_from_name=extract_stn_from_name,
+        collections = []
+        for folder in folders:
+            logger.info(f"Searching for files under: {os.path.join(folder, ext)}")
+            files = glob.glob(os.path.join(folder, ext))
+            files.sort()
+            logger.info(f"N files: {len(files)}")
+            with Pool(n_procs) as pool:
+                df_collection = list(
+                    tqdm(
+                        pool.imap(
+                            partial(
+                                DvlExtractor.extract_DVL_pandas,
+                                extract_time_from_name=extract_time_from_name,
+                                extract_stn_from_name=extract_stn_from_name,
+                            ),
+                            files,
                         ),
-                        files,
-                    ),
-                    total=len(files),
+                        total=len(files),
+                    )
                 )
-            )
-        df_collection = pd.concat(df_collection)
-        return df_collection
+            collections.extend(df_collection)
+        collections = pd.concat(collections)
+        return collections
 
 
 if __name__ == "__main__":
