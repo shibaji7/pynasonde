@@ -156,12 +156,18 @@ class Point:
         disp_equation_kind: str = "ah",
         freq_kind: str = "av_cc",
         mode: str = "O",
+        do_pandas: bool = True,
     ):
         profile = self.absorption_profiles[self.f_sweep.tolist().index(fo)]
         absorption = getattr(
             getattr(getattr(profile, disp_equation_kind), freq_kind), mode
         )
-        return absorption
+        if do_pandas:
+            df = pd.DataFrame()
+            df["alts"], df["absorption"] = self.alts, absorption.ravel()
+            return df
+        else:
+            return absorption
 
     def find_ionogram_trace_max_height(
         self,
@@ -174,13 +180,9 @@ class Point:
     ):
         max_ret_heights = []
         for fo in f_sweep:
-            df = pd.DataFrame()
-            df["alts"], df["absorption"] = (
-                self.alts,
-                self.get_absoption_profiles(
-                    fo, disp_equation_kind, freq_kind, mode
-                ).ravel(),
-            )
+            df = self.get_absoption_profiles(fo, disp_equation_kind, freq_kind, mode)
+            df["cumsum_abs"] = df.absorption.cumsum()
+            print(fo, df.absorption.argmax())
             df = df[(df.absorption <= power_limit) & (df.alts <= height_limit)]
             max_ret_heights.append(df.alts.max())
         df = pd.DataFrame()

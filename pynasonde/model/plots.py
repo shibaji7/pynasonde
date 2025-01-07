@@ -3,6 +3,7 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 def setsize(size=8):
@@ -165,6 +166,51 @@ class AnalysisPlots(ModelPlots):
         )
         ax.set_xticks(np.log10(xticks))
         ax.set_xticklabels(xticks)
+        if text:
+            ax.text(
+                0.05,
+                0.9,
+                text,
+                ha="left",
+                va="center",
+                transform=ax.transAxes,
+                fontdict={"size": self.font_size},
+            )
+        return ax
+
+    def plot_profile(
+        self,
+        df: pd.DataFrame,
+        f_sweep: float,
+        xlabel: str = "Absorption, dB",
+        ylabel: str = "Virtual Height, km",
+        ylim: List[float] = [0, 400],
+        xlim: List[float] = [0, 3],
+        text: str = None,
+        del_ticks: bool = False,
+        lcolor: str = "k",
+        lw: float = 0.7,
+        ls: str = "-",
+        zorder: int = 2,
+        ax=None,
+    ):
+        setsize(self.font_size)
+        ax = ax if ax else self.get_axes(del_ticks=del_ticks)
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
+        # ax.set_ylim(ylim)
+        # ax.set_xlim(xlim)
+        ax.set_ylabel(
+            ylabel,
+            fontdict={"size": self.font_size},
+        )
+        ax.plot(
+            np.log10(df.absorption.cumsum()),
+            df.alts,
+            ls=ls,
+            lw=lw,
+            zorder=zorder,
+            color=lcolor,
+        )
         if text:
             ax.text(
                 0.05,

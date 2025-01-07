@@ -52,3 +52,11 @@ def get_gridded_parameters(
         np.isnan(plotParamDF[zparam].values), plotParamDF[zparam].values
     )
     return X, Y, Z
+
+
+def get_digisonde_info(code:str, fname:str="digisonde_station_codes.csv") -> dict:
+    import pandas as pd
+    stations = pd.read_csv(fname)
+    station = stations[stations.URSI==code]
+    station = station.to_dict()
+    return station
