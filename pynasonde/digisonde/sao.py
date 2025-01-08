@@ -12,7 +12,8 @@ from loguru import logger
 from tqdm import tqdm
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
-from pynasonde.digisonde.digi_utils import to_namespace
+from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
+from pynasonde.ngi.utils import TimeZoneConversion
 
 
 class SaoExtractor(object):
@@ -51,6 +52,14 @@ class SaoExtractor(object):
         if extract_stn_from_name:
             self.stn_code = self.filename.split("/")[-1].split("_")[0]
             logger.info(f"Station code: {self.stn_code}")
+            self.stn_info = get_digisonde_info(self.stn_code)
+            self.local_timezone_converter = TimeZoneConversion(
+                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
+            )
+            self.local_time = self.local_timezone_converter.utc_to_local_time(
+                [self.date]
+            )[0]
+            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         return
 
     def read_file(self):
@@ -414,6 +423,8 @@ class SaoExtractor(object):
         o.replace(9999.0, np.nan, inplace=True)
         if hasattr(self, "date"):
             o["date"] = self.date
+        if hasattr(self, "local_time"):
+            o["local_datetime"] = self.local_time
         return o
 
     def get_height_profile(self, asdf=True, plot_ionogram=False):
@@ -426,6 +437,8 @@ class SaoExtractor(object):
             o["pf"], o["th"], o["ed"] = self.sao.PF, self.sao.TH, self.sao.ED
             if hasattr(self, "date"):
                 o["date"] = self.date
+            if hasattr(self, "local_time"):
+                o["local_datetime"] = self.local_time
             if plot_ionogram:
                 logger.info("Save figures...")
                 sao_plot = SaoSummaryPlots()

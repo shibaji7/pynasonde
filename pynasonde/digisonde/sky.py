@@ -3,7 +3,9 @@ import datetime as dt
 import pandas as pd
 from loguru import logger
 
-from pynasonde.digisonde.digi_utils import to_namespace
+from pynasonde.digisonde.digi_plots import SkySummaryPlots
+from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
+from pynasonde.ngi.utils import TimeZoneConversion
 
 
 def get_indent(line):
@@ -37,7 +39,14 @@ class SkyExtractor(object):
             logger.info(f"Date: {self.date}")
         if extract_stn_from_name:
             self.stn_code = self.filename.split("/")[-1].split("_")[0]
-            logger.info(f"Station code: {self.stn_code}")
+            self.stn_info = get_digisonde_info(self.stn_code)
+            self.local_timezone_converter = TimeZoneConversion(
+                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
+            )
+            self.local_time = self.local_timezone_converter.utc_to_local_time(
+                [self.date]
+            )[0]
+            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         return
 
     def read_file(self):
@@ -56,7 +65,6 @@ class SkyExtractor(object):
             sky_arch = sky_arch.replace("D", "")
         line_indent = get_indent(sky_arch)
         sky_arch = sky_arch.strip()
-        print(sky_arch.split(" "))
         sky_arch = list(filter(None, sky_arch.split()))
         return line_indent, sky_arch
 
@@ -139,24 +147,24 @@ class SkyExtractor(object):
         _i = 0
         while _i < len(sky_arch_list):
             line_indent, sky_arch = self.parse_line(sky_arch_list, _i)
-            print(">", _i, line_indent, sky_arch)
+            # print(">", _i, line_indent, sky_arch)
             if line_indent in [1, 2]:  # Consider it first 'Data Header'
                 ds = dict(
                     data_header=self.parse_data_header(sky_arch),
                     freq_headers=[],
                 )
                 _i_nest, n_spectrums = 0, ds["data_header"]["n_spectrums"]
-                print("n_spectrums", ds["data_header"]["n_spectrums"])
+                # print("n_spectrums", ds["data_header"]["n_spectrums"])
                 while _i_nest < n_spectrums:
                     # add next line to above to this nest (previous while loop)
                     _i += 1  # you need to add this previous to work on sky_arch
                     line_indent, sky_arch = self.parse_line(sky_arch_list, _i)
-                    print(">>", _i, line_indent, sky_arch)
+                    # print(">>", _i, line_indent, sky_arch)
                     if line_indent == 4:  # Frequency header
                         fh = self.parse_freq_header(sky_arch)
                         # Nesting 2nd layer for datasets from sources 'n_sources'
                         n_sources = fh["n_sources"]
-                        print("n_sources", n_sources)
+                        # print("n_sources", n_sources)
                         if n_sources > 0:  # Check if data esists
                             fh["sky_data"], _i = self.parse_sky_data(
                                 sky_arch_list, _i, n_sources
@@ -219,6 +227,12 @@ class SkyExtractor(object):
                                 spect_amp=fh.sky_data.spect_amp[i],
                                 spect_dop=fh.sky_data.spect_dop[i],
                                 rms_error=fh.sky_data.rms_error[i],
+                                datetime=self.date if hasattr(self, "date") else None,
+                                local_datetime=(
+                                    self.local_time
+                                    if hasattr(self, "local_time")
+                                    else None
+                                ),
                             )
                             for i in range(len(fh.sky_data.y_coords))
                         ]
@@ -229,15 +243,15 @@ class SkyExtractor(object):
 
 
 if __name__ == "__main__":
-    from pynasonde.digisonde.digi_plots import SkySummaryPlots
+    pass
 
     extractor = SkyExtractor("tmp/KR835_2023286235715.SKY", True, True)
-    print(extractor.extract().dataset[-1].freq_headers)
+    extractor.extract().dataset[-1].freq_headers
     df = extractor.to_pandas()
     skyplot = SkySummaryPlots()
     skyplot.plot_skymap(
         df,
-        text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M UT, %d %b %Y')}",
+        text=f"Skymap:\n {extractor.stn_code} / {extractor.local_time.strftime('%H:%M LT, %d %b %Y')}",
     )
     skyplot.save("tmp/extract_sky.png")
     skyplot.close()

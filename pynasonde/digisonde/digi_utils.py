@@ -1,4 +1,7 @@
+import importlib.resources
 from types import SimpleNamespace
+
+import numpy as np
 
 
 def to_namespace(d: object) -> SimpleNamespace:
@@ -54,9 +57,28 @@ def get_gridded_parameters(
     return X, Y, Z
 
 
-def get_digisonde_info(code:str, fname:str="digisonde_station_codes.csv") -> dict:
-    import pandas as pd
-    stations = pd.read_csv(fname)
-    station = stations[stations.URSI==code]
-    station = station.to_dict()
+def get_digisonde_info(code: str, fpath: str = None, long_key: str = "LONG") -> dict:
+    stations = load_station_csv(fpath)
+    stations[long_key] = np.where(
+        stations[long_key] > 180, stations[long_key] - 360, stations[long_key]
+    )
+    station = stations[stations.URSI == code]
+    station = station.to_dict("records")
+    station = station[0] if len(station) > 0 else station
     return station
+
+
+def load_station_csv(fpath: str = None) -> SimpleNamespace:
+    import pandas as pd
+    from loguru import logger
+
+    if fpath:
+        logger.info(f"Loading from {fpath}")
+        stations = pd.read_csv(fpath)
+    else:
+        with importlib.resources.path(
+            "pynasonde", "digisonde_station_codes.csv"
+        ) as fpath:
+            logger.info(f"Loading from {fpath}")
+            stations = pd.read_csv(fpath)
+    return stations

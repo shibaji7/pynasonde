@@ -10,7 +10,8 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
-from pynasonde.digisonde.digi_utils import to_namespace
+from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
+from pynasonde.ngi.utils import TimeZoneConversion
 
 
 class DvlExtractor(object):
@@ -41,6 +42,14 @@ class DvlExtractor(object):
         if extract_stn_from_name:
             self.stn_code = self.filename.split("/")[-1].split("_")[0]
             logger.info(f"Station code: {self.stn_code}")
+            self.stn_info = get_digisonde_info(self.stn_code)
+            self.local_timezone_converter = TimeZoneConversion(
+                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
+            )
+            self.local_time = self.local_timezone_converter.utc_to_local_time(
+                [self.date]
+            )[0]
+            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         self.key_order = [
             "type",
             "version",
@@ -93,7 +102,6 @@ class DvlExtractor(object):
             Fl=np.nan,  # in MHz
             Fu=np.nan,  # in MHz
         )
-
         return
 
     def read_file(self):
@@ -139,6 +147,7 @@ class DvlExtractor(object):
         extractor = DvlExtractor(file, extract_time_from_name, extract_stn_from_name)
         df = pd.DataFrame.from_records([extractor.extract()])
         df["datetime"] = extractor.date
+        df["local_datetime"] = extractor.local_time
         return df
 
     @staticmethod
@@ -178,10 +187,11 @@ if __name__ == "__main__":
     # extractor = DvlExtractor("tmp/KR835_2023286235715.DVL", True, True)
     # extractor.extract()
     collection = DvlExtractor.load_DVL_files()
-    print(collection.columns)
     from pynasonde.digisonde.digi_plots import SkySummaryPlots
 
-    SkySummaryPlots.plot_dvl_drift_velocities(collection, fname="tmp/extract_dvl.png")
+    SkySummaryPlots.plot_dvl_drift_velocities(
+        collection, fname="tmp/extract_dvl.png", draw_local_time=True
+    )
     # sky = SkySummaryPlots(figsize=(8, 4), subplot_kw=None)
     # sky.plot_dvl_drift_velocities(collection)
     # sky.save("tmp/extract_dvl.png")

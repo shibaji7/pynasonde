@@ -25,6 +25,7 @@ class DigiPlots(object):
         date: dt.datetime = None,
         date_lims: List[dt.datetime] = [],
         subplot_kw: dict = None,
+        draw_local_time: bool = False,
     ):
         self.fig_title = fig_title
         self.nrows = nrows
@@ -35,6 +36,7 @@ class DigiPlots(object):
         self.date_lims = date_lims
         self.subplot_kw = subplot_kw
         self.n_sub_plots = 0
+        self.draw_local_time = draw_local_time
         self.fig, self.axes = plt.subplots(
             figsize=(figsize[0] * nrows, figsize[1] * ncols),
             dpi=300,
@@ -114,8 +116,20 @@ class SaoSummaryPlots(DigiPlots):
         figsize: tuple = (3, 3),
         date: dt.datetime = None,
         date_lims: List[dt.datetime] = [],
+        subplot_kw: dict = None,
+        draw_local_time: bool = False,
     ):
-        super().__init__(fig_title, nrows, ncols, font_size, figsize, date, date_lims)
+        super().__init__(
+            fig_title,
+            nrows,
+            ncols,
+            font_size,
+            figsize,
+            date,
+            date_lims,
+            subplot_kw,
+            draw_local_time,
+        )
         return
 
     def add_TS(
@@ -346,9 +360,18 @@ class SkySummaryPlots(DigiPlots):
         date: dt.datetime = None,
         date_lims: List[dt.datetime] = [],
         subplot_kw: dict = dict(projection="polar"),
+        draw_local_time: bool = False,
     ):
         super().__init__(
-            fig_title, nrows, ncols, font_size, figsize, date, date_lims, subplot_kw
+            fig_title,
+            nrows,
+            ncols,
+            font_size,
+            figsize,
+            date,
+            date_lims,
+            subplot_kw,
+            draw_local_time,
         )
         return
 
@@ -514,13 +537,29 @@ class SkySummaryPlots(DigiPlots):
         xlim: List[dt.datetime] = None,
         fname: str = None,
         figsize: tuple = (2.5, 7),
+        draw_local_time: bool = False,
     ):
-        dvlplot = SkySummaryPlots(figsize=figsize, nrows=3, ncols=1, subplot_kw=None)
+        xparam = "local_" + xparam if draw_local_time else xparam
+        dvlplot = SkySummaryPlots(
+            figsize=figsize,
+            nrows=3,
+            ncols=1,
+            subplot_kw=None,
+            draw_local_time=draw_local_time,
+        )
         for i, y, col, err, lab in zip(
             range(len(yparams)), yparams, colors, errors, labels
         ):
+            text = text if text else ""
+            text = (
+                text
+                + f"{df[xparam].iloc[0].strftime('%d %b')}-{df[xparam].iloc[-1].strftime('%d %b, %Y')}"
+                if i == 0
+                else None
+            )
             ylabel = rf"Velocity({lab}), m/s"
             xlabel = "Time, UT" if i == 2 else ""
+            xlabel = "Time, LT" if xlabel == "Time, UT" and draw_local_time else xlabel
             dvlplot.plot_drift_velocities(
                 df,
                 xparam,
