@@ -186,7 +186,7 @@ class DvlExtractor(object):
 if __name__ == "__main__":
     # extractor = DvlExtractor("tmp/KR835_2023286235715.DVL", True, True)
     # extractor.extract()
-    collection = DvlExtractor.load_DVL_files()
+    collection = DvlExtractor.load_DVL_files(["tmp/SKYWAVE_DPS4D_2023_10_14"])
     from pynasonde.digisonde.digi_plots import SkySummaryPlots
 
     SkySummaryPlots.plot_dvl_drift_velocities(

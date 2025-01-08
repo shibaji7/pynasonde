@@ -135,10 +135,10 @@ class SaoSummaryPlots(DigiPlots):
     def add_TS(
         self,
         df: pd.DataFrame,
-        xparam: str = "date",
+        xparam: str = "datetime",
         yparam: str = "th",
         zparam: str = "pf",
-        cbar_label: str = r"$foF_2$, MHz",
+        cbar_label: str = r"$f_0$, MHz",
         cmap: str = "Spectral",
         prange: List[float] = [1, 15],
         ylabel: str = "Height, km",
@@ -152,6 +152,8 @@ class SaoSummaryPlots(DigiPlots):
         add_cbar: bool = True,
         zparam_lim: float = 15.0,
     ):
+        xparam = "local_" + xparam if self.draw_local_time else xparam
+        xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks=False)
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
@@ -191,9 +193,9 @@ class SaoSummaryPlots(DigiPlots):
     def plot_TS(
         self,
         df: pd.DataFrame,
-        xparam: str = "date",
+        xparam: str = "datetime",
         right_yparams: List[str] = ["hmF1"],
-        left_yparams: List[str] = ["foF1", "foF1p", "foE"],
+        left_yparams: List[str] = ["foF1", "foF1p", "foEs"],
         colors: List[str] = ["r", "b", "k"],
         ylabels: List[str] = ["Frequencies, MHz", "Height, km"],
         xlabel: str = "Time, UT",
@@ -208,6 +210,8 @@ class SaoSummaryPlots(DigiPlots):
         ms: float = 0.6,
         alpha: float = 0.7,
     ):
+        xparam = "local_" + xparam if self.draw_local_time else xparam
+        xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks=False)
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]

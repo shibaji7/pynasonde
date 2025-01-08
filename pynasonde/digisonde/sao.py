@@ -422,7 +422,7 @@ class SaoExtractor(object):
         o = pd.DataFrame.from_records(vars(self.sao.Scaled))
         o.replace(9999.0, np.nan, inplace=True)
         if hasattr(self, "date"):
-            o["date"] = self.date
+            o["datetime"] = self.date
         if hasattr(self, "local_time"):
             o["local_datetime"] = self.local_time
         return o
@@ -435,8 +435,13 @@ class SaoExtractor(object):
             and hasattr(self.sao, "ED")
         ):
             o["pf"], o["th"], o["ed"] = self.sao.PF, self.sao.TH, self.sao.ED
+            o.pf, o.th, o.ed = (
+                o.pf.astype(float),
+                o.th.astype(float),
+                o.ed.astype(float),
+            )
             if hasattr(self, "date"):
-                o["date"] = self.date
+                o["datetime"] = self.date
             if hasattr(self, "local_time"):
                 o["local_datetime"] = self.local_time
             if plot_ionogram:
@@ -510,15 +515,34 @@ class SaoExtractor(object):
 
 # Example Usage
 if __name__ == "__main__":
-    coll1 = SaoExtractor.load_SAO_files(func_name="height_profile")
-    coll2 = SaoExtractor.load_SAO_files(func_name="scaled")
-    print(coll1.columns)
-    # sao_plot = SaoSummaryPlots(figsize=(6, 3), fig_title="KR835/2023-10-13")
-    # sao_plot.plot_TS(collection)
-    # sao_plot.save("tmp/example_ts.png")
-    # sao_plot.close()
-    SaoSummaryPlots.plot_isodensity_contours(
-        coll1,
-        xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
-        fname="tmp/example_id.png",
+    coll1 = SaoExtractor.load_SAO_files(
+        folders=["tmp/SKYWAVE_DPS4D_2023_10_14"],
+        func_name="height_profile",
     )
+    coll1.ed = coll1.ed / 1e6
+    sao_plot = SaoSummaryPlots(
+        figsize=(6, 3), fig_title="KR835/13-14 Oct, 2023", draw_local_time=True
+    )
+    sao_plot.add_TS(
+        coll1,
+        zparam="ed",
+        prange=[0, 1],
+        zparam_lim=10,
+        cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
+    )
+    sao_plot.save("tmp/example_pf.png")
+    sao_plot.close()
+    coll2 = SaoExtractor.load_SAO_files(
+        folders=["tmp/SKYWAVE_DPS4D_2023_10_14"], func_name="scaled"
+    )
+    sao_plot = SaoSummaryPlots(
+        figsize=(6, 3), fig_title="KR835/13-14 Oct, 2023", draw_local_time=True
+    )
+    sao_plot.plot_TS(coll2,left_yparams=["foE", "foEs"], left_ylim=[1.75, 3.5])
+    sao_plot.save("tmp/example_ts.png")
+    sao_plot.close()
+    # SaoSummaryPlots.plot_isodensity_contours(
+    #     coll1,
+    #     xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
+    #     fname="tmp/example_id.png",
+    # )
