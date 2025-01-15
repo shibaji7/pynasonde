@@ -237,6 +237,17 @@ class SaoSummaryPlots(DigiPlots):
         ax = ax.twinx()
         ax.set_ylabel(ylabels[1])
         ax.set_ylim(right_ylim)
+        for y, col in zip(right_yparams, colors):
+            ax.plot(
+                df[xparam],
+                df[y],
+                marker="D",
+                color=col,
+                ms=ms,
+                alpha=alpha,
+                ls="None",
+                label=y,
+            )
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
         ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
