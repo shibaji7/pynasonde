@@ -155,6 +155,7 @@ class SaoSummaryPlots(DigiPlots):
         add_cbar: bool = True,
         zparam_lim: float = 15.0,
         plot_type: str = "pcolor",
+        scatter_ms: float = 4,
     ):
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
@@ -175,9 +176,9 @@ class SaoSummaryPlots(DigiPlots):
                 xparam=xparam,
                 yparam=yparam,
                 zparam=zparam,
-                rounding=True,
+                rounding=False,
             )
-            im = ax.pcolor(
+            im = ax.pcolormesh(
                 X,
                 Y,
                 Z.T,
@@ -197,7 +198,7 @@ class SaoSummaryPlots(DigiPlots):
                 cmap=cmap,
                 vmax=prange[1],
                 vmin=prange[0],
-                s=4,
+                s=scatter_ms,
                 marker="s",
             )
         if title:
@@ -225,6 +226,7 @@ class SaoSummaryPlots(DigiPlots):
         xlim: List[dt.datetime] = None,
         ms: float = 0.6,
         alpha: float = 0.7,
+        title: str = None,
     ):
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
@@ -250,24 +252,29 @@ class SaoSummaryPlots(DigiPlots):
                 label=y,
             )
         ax.legend(loc=2)
-        ax = ax.twinx()
-        ax.set_ylabel(ylabels[1])
-        ax.set_ylim(right_ylim)
-        for y, col in zip(right_yparams, colors):
-            ax.plot(
-                df[xparam],
-                df[y],
-                marker="D",
-                color=col,
-                ms=ms,
-                alpha=alpha,
-                ls="None",
-                label=y,
-            )
-        ax.xaxis.set_major_locator(major_locator)
-        ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
-        return
+        if title:
+            ax.text(0.95, 1.05, title, ha="right", va="center", transform=ax.transAxes)
+        tax = None
+        if len(right_yparams) > 0:
+            tax = ax.twinx()
+            tax.set_ylabel(ylabels[1])
+            tax.set_ylim(right_ylim)
+            colors.reverse()
+            for y, col in zip(right_yparams, colors):
+                tax.plot(
+                    df[xparam],
+                    df[y],
+                    marker="D",
+                    color=col,
+                    ms=ms,
+                    alpha=alpha,
+                    ls="None",
+                    label=y,
+                )
+            tax.xaxis.set_major_locator(major_locator)
+            tax.xaxis.set_major_locator(minor_locator)
+            tax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
+        return (ax, tax)
 
     def plot_ionogram(
         self,

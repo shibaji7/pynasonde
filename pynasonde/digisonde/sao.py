@@ -434,12 +434,14 @@ class SaoExtractor(object):
             and hasattr(self.sao, "TH")
             and hasattr(self.sao, "ED")
         ):
-            o["pf"], o["th"], o["ed"] = self.sao.PF, self.sao.TH, self.sao.ED
-            o.pf, o.th, o.ed = (
-                o.pf.astype(float),
-                o.th.astype(float),
-                o.ed.astype(float),
-            )
+            hlen, o["th"] = len(self.sao.TH), self.sao.TH
+            if len(self.sao.PF) == hlen:
+                o["pf"] = self.sao.PF
+                o.pf = o.pf.astype(float)
+            if len(self.sao.ED) == hlen:
+                o["ed"] = self.sao.ED
+                o.ed = o.ed.astype(float)
+            o.th = o.th.astype(float)
             if hasattr(self, "date"):
                 o["datetime"] = self.date
             if hasattr(self, "local_time"):
