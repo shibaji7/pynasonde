@@ -64,3 +64,33 @@ class Webhook:
         else:
             logger.info(f"Error in logging: {url} / {r.status_code}")
         return
+
+    def __check_all_sub_folders__(
+        self,
+        url: str,
+        base: str,
+        ext: List[str],
+    ):
+        logger.info(f"Checking: {url}")
+        r = requests.get(url)
+        logger.info(f"Downloading to: {base}")
+        os.makedirs(base, exist_ok=True)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "lxml")
+            table = soup.find_all("a", href=True)
+            for row in tqdm(table, total=len(table)):
+                href = row.attrs["href"]
+                if href.split(".")[-1] in ext:
+                    file = os.path.join(base, href)
+                    if not os.path.exists(file):
+                        uri = url + href
+                        logger.info(f"Downloading: {uri}")
+                        rx = requests.get(uri)
+                        if r.status_code == 200:
+                            with open(file, "wb") as f:
+                                f.write(rx.content)
+                        else:
+                            logger.info(
+                                f"Error in downloading: {href} / {rx.status_code}"
+                            )
+        return
