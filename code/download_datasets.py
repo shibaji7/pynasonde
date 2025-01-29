@@ -1,6 +1,6 @@
 from pynasonde.webhook import Webhook
 
-stn_name = "AU930"
+stn_name = "BC840"
 sources = [
     dict(
         uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2017-264/scaled/",

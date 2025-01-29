@@ -3,10 +3,10 @@ rm -rf build *.egg-info
 rm -rf `find -type d -name '.ipynb_checkpoints'`
 rm -rf `find -type d -name '__pycache__'`
 isort -rc -sl .
-autoflake --remove-all-unused-imports -i -r .
+autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots .
 isort -rc -m 3 .
 black .
-pip install .
+#pip install .
 
 ###################
 # Install igrf and clean / build igrf from git 
