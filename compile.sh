@@ -6,7 +6,7 @@ isort -rc -sl .
 autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots .
 isort -rc -m 3 .
 black .
-#pip install .
+pip install .
 
 ###################
 # Install igrf and clean / build igrf from git 

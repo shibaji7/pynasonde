@@ -17,6 +17,7 @@ def generate_digisonde_pfh_profiles(
         prange=[0, 1],
         zparam_lim=10,
         cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
+        plot_type="scatter",
     )
     sao_plot.save(fig_file_name)
     sao_plot.close()

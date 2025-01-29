@@ -1,6 +1,6 @@
 from pynasonde.webhook import Webhook
 
-stn_name = "BC840"
+stn_name = "WP937"
 sources = [
     dict(
         uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2017-264/scaled/",
@@ -35,19 +35,19 @@ sources = [
         folder=f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2023/286/image/",
     ),
     dict(
-        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024-098/scaled/",
+        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/098/scaled/",
         folder=f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024/098/scaled/",
     ),
     dict(
-        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024-098/raw/",
+        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/098/raw/",
         folder=f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024/098/raw/",
     ),
     dict(
-        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024-098/ionogram/",
+        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/098/ionogram/",
         folder=f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024/098/ionogram/",
     ),
     dict(
-        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024-098/image/",
+        uri=f"https://data.ngdc.noaa.gov/instruments/remote-sensing/active/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/098/image/",
         folder=f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/request/Eclipse/{stn_name}/2024/098/image/",
     ),
 ]

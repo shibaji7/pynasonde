@@ -2,6 +2,7 @@ import importlib.resources
 from types import SimpleNamespace
 
 import numpy as np
+from loguru import logger
 
 
 def to_namespace(d: object) -> SimpleNamespace:
@@ -17,8 +18,10 @@ def setsize(size=8):
 
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    import scienceplots
 
-    plt.style.use(["science", "ieee"])
+    logger.info(f"Invoking scienceplots: {scienceplots.__str__()}")
+    # plt.style.use(["science", "ieee"])
     plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["font.sans-serif"] = [
         "Tahoma",
@@ -70,7 +73,6 @@ def get_digisonde_info(code: str, fpath: str = None, long_key: str = "LONG") -> 
 
 def load_station_csv(fpath: str = None) -> SimpleNamespace:
     import pandas as pd
-    from loguru import logger
 
     if fpath:
         logger.info(f"Loading from {fpath}")

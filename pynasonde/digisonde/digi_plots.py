@@ -9,6 +9,8 @@ from matplotlib.dates import DateFormatter
 
 import pynasonde.digisonde.digi_utils as utils
 
+DATE_FORMAT: str = r"$%H^{%M}$"
+
 
 class DigiPlots(object):
     """
@@ -151,6 +153,7 @@ class SaoSummaryPlots(DigiPlots):
         xlim: List[dt.datetime] = None,
         add_cbar: bool = True,
         zparam_lim: float = 15.0,
+        plot_type: str = "pcolor",
     ):
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
@@ -163,32 +166,45 @@ class SaoSummaryPlots(DigiPlots):
         ax.set_ylabel(ylabel)
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
         df = df[df[zparam] <= zparam_lim]
-        X, Y, Z = utils.get_gridded_parameters(
-            df,
-            xparam=xparam,
-            yparam=yparam,
-            zparam=zparam,
-            rounding=False,
-        )
-        im = ax.pcolor(
-            X,
-            Y,
-            Z.T,
-            lw=0.01,
-            edgecolors="None",
-            cmap=cmap,
-            vmax=prange[1],
-            vmin=prange[0],
-            zorder=3,
-        )
+        if plot_type == "pcolor":
+            X, Y, Z = utils.get_gridded_parameters(
+                df,
+                xparam=xparam,
+                yparam=yparam,
+                zparam=zparam,
+                rounding=True,
+            )
+            im = ax.pcolor(
+                X,
+                Y,
+                Z.T,
+                lw=0.01,
+                edgecolors="None",
+                cmap=cmap,
+                vmax=prange[1],
+                vmin=prange[0],
+                zorder=3,
+            )
+        else:
+            im = ax.scatter(
+                df[xparam],
+                df[yparam],
+                c=df[zparam],
+                zorder=3,
+                cmap=cmap,
+                vmax=prange[1],
+                vmin=prange[0],
+                s=4,
+                marker="s",
+            )
         ax.text(
             0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
         )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label)
-        return
+        return (ax, im)
 
     def plot_TS(
         self,
@@ -221,7 +237,7 @@ class SaoSummaryPlots(DigiPlots):
         ax.set_ylim(left_ylim)
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
         for y, col in zip(left_yparams, colors):
             ax.plot(
                 df[xparam],
@@ -250,7 +266,7 @@ class SaoSummaryPlots(DigiPlots):
             )
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
         return
 
     def plot_ionogram(
@@ -330,7 +346,7 @@ class SaoSummaryPlots(DigiPlots):
         ax.set_ylabel(ylabel)
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
         for i in range(len(fbins) - 1):
             f_max, f_min = fbins[i + 1], fbins[i]
             o = df[(df[zparam] >= f_min) & (df[zparam] <= f_max)]
@@ -503,7 +519,7 @@ class SkySummaryPlots(DigiPlots):
         ax.set_ylabel(ylabel)
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
         ax.errorbar(
             df[xparam],
             df[yparam],
