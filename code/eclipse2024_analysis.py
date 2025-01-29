@@ -17,7 +17,7 @@ def generate_digisonde_pfh_profiles(
     ]
     N = len(folders)
     sao_plot = SaoSummaryPlots(
-        dpi=300, font_size=15,
+        font_size=15,
         figsize=(4, 4 * N),
         nrows=N,
         fig_title=fig_title,
