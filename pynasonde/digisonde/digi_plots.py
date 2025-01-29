@@ -151,6 +151,7 @@ class SaoSummaryPlots(DigiPlots):
         minor_locator: mdates.RRuleLocator = mdates.HourLocator(byhour=range(0, 24, 4)),
         ylim: List = [80, 800],
         xlim: List[dt.datetime] = None,
+        title: str = None,
         add_cbar: bool = True,
         zparam_lim: float = 15.0,
         plot_type: str = "pcolor",
@@ -199,9 +200,8 @@ class SaoSummaryPlots(DigiPlots):
                 s=4,
                 marker="s",
             )
-        ax.text(
-            0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
-        )
+        if title:
+            ax.text(0.95, 1.05, title, ha="right", va="center", transform=ax.transAxes)
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label)
         return (ax, im)

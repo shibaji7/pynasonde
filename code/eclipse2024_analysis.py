@@ -34,15 +34,9 @@ def generate_digisonde_pfh_profiles(
             zparam_lim=10,
             cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
             plot_type="scatter",
-        )
-        ax.text(
-            1.05,
-            0.95,
-            stns[i],
-            ha="center",
-            va="top",
-            transform=ax.transAxes,
-            rotation=90,
+            title="Stn Code: " + stns[i],
+            add_cbar=i == 2,
+            xlabel="Time, UT" if i == 2 else "",
         )
     sao_plot.save(fig_file_name)
     sao_plot.close()
