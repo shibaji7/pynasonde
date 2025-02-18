@@ -550,7 +550,6 @@ class SkySummaryPlots(DigiPlots):
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size},
             )
-
         return
 
     @staticmethod
@@ -619,5 +618,7 @@ class SkySummaryPlots(DigiPlots):
             )
         if fname:
             dvlplot.save(fname)
-        dvlplot.close()
-        return
+            dvlplot.close()
+            return
+        else:
+            return dvlplot

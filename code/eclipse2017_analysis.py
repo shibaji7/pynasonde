@@ -129,18 +129,19 @@ def generate_digisonde_edp_profiles(
 
     for i in range(N):
         df = dfs[i]
-        df.ed = df.ed / 1e6
+        print(df.density.min(), df.density.max())
+        df.density = df.density / 1e12
         ax, _ = sao_plot.add_TS(
             df,
             yparam="height",
             zparam="density",
             prange=[0, 0.5],
-            ylim=[90, 300],
-            zparam_lim=10,
-            cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
+            ylim=[90, 600],
+            zparam_lim=1e6,
+            cbar_label=r"$N_e$,$\times 10^{12}$ /cm",
             plot_type="scatter",
             title="Stn Code: " + stns[i],
-            scatter_ms=300,
+            scatter_ms=10,
             xlabel="Time, UT",  # if i == 2 else "",
         )
     sao_plot.save(fig_file_name)
@@ -154,7 +155,7 @@ def generate_digisonde_edp_profiles(
 # download_possible_datasets(["BC840", "AU930", "AL945", "WI937"])
 
 ## Analyzing the dataset form 2017 Eclipse
-stn_code = "BC840"
+stn_code = "WI937"
 folders = [
     f"/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/mids09/{stn_code}/2017/233/scaled/",
 ]
