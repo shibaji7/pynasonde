@@ -446,6 +446,7 @@ class SaoExtractor(object):
                 o["datetime"] = self.date
             if hasattr(self, "local_time"):
                 o["local_datetime"] = self.local_time
+            o["lat"], o["lon"] = (self.stn_info["LAT"], self.stn_info["LONG"])
             if plot_ionogram:
                 logger.info("Save figures...")
                 sao_plot = SaoSummaryPlots()

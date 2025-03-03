@@ -4,12 +4,10 @@ import sys
 import matplotlib.dates as mdates
 import numpy as np
 
-from pynasonde.digisonde.digi_plots import SaoSummaryPlots
-from pynasonde.digisonde.dvl import DvlExtractor
-from pynasonde.digisonde.sao import SaoExtractor
-
 sys.path.append("Projects/eclipse/")
 import utils
+
+# from read_eclipse_dataset import
 
 
 def generate_digisonde_pfh_profiles(
@@ -31,12 +29,68 @@ def generate_digisonde_pfh_profiles(
         zparam_lim=10,
         cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
         plot_type="scatter",
+        scatter_ms=20,
     )
-    obs = utils.create_eclipse_path_local(
-        df.datetime, df.lat.tolist()[0], df.lon.tolist()[0]
-    )
+    time = df.datetime.unique()
+    obs = utils.create_eclipse_path_local(time, df.lat.tolist()[0], df.lon.tolist()[0])
+    ax = sao_plot.axes
+    axt = ax.twinx()
+    axt.plot(df.local_datetime.unique(), 1 - obs, ls="--", lw=0.9, color="k")
+    axt.set_ylabel("Obscuration")
+    axt.set_ylim(0, 1)
+    ax.set_xlim([dt.datetime(2023, 10, 14, 8), dt.datetime(2023, 10, 14, 16)])
+    ax.xaxis.set_major_locator(mdates.HourLocator())
     sao_plot.save(fig_file_name)
     sao_plot.close()
+    return
+
+
+def create_dvl_analysis(folders):
+    ddf = DvlExtractor.load_DVL_files(
+        folders,
+        n_procs=12,
+    )
+    obs = utils.create_eclipse_path_local(
+        ddf.datetime, ddf.lat.tolist()[0], ddf.lon.tolist()[0]
+    )
+    from pynasonde.digisonde.digi_plots import SkySummaryPlots
+
+    dvlplot = SkySummaryPlots.plot_dvl_drift_velocities(
+        ddf, fname=None, draw_local_time=True
+    )
+
+    ax = dvlplot.axes[0]
+    axt = ax.twinx()
+    axt.plot(ddf.local_datetime, 1 - obs, ls="--", lw=0.9, color="k")
+    axt.set_ylabel("Obscuration")
+    axt.set_ylim(0, 1)
+    ax.set_xlim([dt.datetime(2023, 10, 14, 8), dt.datetime(2023, 10, 14, 16)])
+    ax.xaxis.set_major_locator(mdates.HourLocator())
+
+    ax = dvlplot.axes[1]
+    axt = ax.twinx()
+    axt.scatter(ddf.local_datetime, 0.5 * (ddf.Hb + ddf.Ht), marker="D", s=3, color="m")
+    axt.set_ylabel("Virtual Height, km", fontdict={"color": "m"})
+    axt.set_ylim(250, 500)
+    ax.set_xlim([dt.datetime(2023, 10, 14, 8), dt.datetime(2023, 10, 14, 16)])
+    ax.xaxis.set_major_locator(mdates.HourLocator())
+
+    ax = dvlplot.axes[2]
+    ax.set_ylim(-20, 20)
+    ax = dvlplot.axes[2]
+    axt = ax.twinx()
+    axt.plot(ddf.local_datetime, 1 - obs, ls="--", lw=0.9, color="k")
+    axt.set_ylabel("Obscuration")
+    axt.set_ylim(0, 1)
+    ax.set_xlim([dt.datetime(2023, 10, 14, 8), dt.datetime(2023, 10, 14, 16)])
+    ax.xaxis.set_major_locator(mdates.HourLocator())
+
+    dvlplot.save("tmp/2023_dvl.png")
+    dvlplot.close()
+    return
+
+
+def create_dvl_quiver_analysis():
     return
 
 
@@ -44,84 +98,13 @@ def generate_digisonde_pfh_profiles(
 folders = [
     "/media/chakras4/Crucial X9/APEP/AFRL_Digisondes/Digisonde Files/SKYWAVE_DPS4D_2023_10_14/"
 ]
-func_name = "height_profile"
-generate_digisonde_pfh_profiles(
-    folders,
-    func_name,
-    "tmp/2023_Oct_14_KR835_pf.png",
-    fig_title="AU930/13-14 Oct, 2023",
-)
-
-# ddf = DvlExtractor.load_DVL_files(
-#     folders=[
-#         "/media/chakras4/Crucial X9/APEP/AFRL_Digisondes/Digisonde Files/SKYWAVE_DPS4D_2023_10_14/"
-#     ],
-#     n_procs=12,
-# )
-# obs = utils.create_eclipse_path_local(
-#     ddf.datetime,
-#     ddf.lat.tolist()[0],
-#     ddf.lon.tolist()[0]
-# )
-# from pynasonde.digisonde.digi_plots import SkySummaryPlots
-
-# dvlplot = SkySummaryPlots.plot_dvl_drift_velocities(
-#     ddf, fname=None, draw_local_time=True
+# func_name = "height_profile"
+# generate_digisonde_pfh_profiles(
+#     folders,
+#     func_name,
+#     "tmp/2023_Oct_14_KR835_pf.png",
+#     fig_title="KR835/13-14 Oct, 2023",
 # )
 
-# ax = dvlplot.axes[0]
-# axt = ax.twinx()
-# axt.plot(
-#     ddf.local_datetime,
-#     1-obs, ls="--", lw=0.9,
-#     color="k"
-# )
-# axt.set_ylabel("Obscuration")
-# axt.set_ylim(0, 1)
-# ax.set_xlim(
-#     [
-#         dt.datetime(2023,10,14,8),
-#         dt.datetime(2023,10,14,16)
-#     ]
-# )
-# ax.xaxis.set_major_locator(mdates.HourLocator())
-
-# ax = dvlplot.axes[1]
-# axt = ax.twinx()
-# axt.scatter(
-#     ddf.local_datetime,
-#     0.5*(ddf.Hb+ddf.Ht),
-#     marker="D", s=3,
-#     color="m"
-# )
-# axt.set_ylabel("Virtual Height, km", fontdict={"color":"m"})
-# axt.set_ylim(250, 500)
-# ax.set_xlim(
-#     [
-#         dt.datetime(2023,10,14,8),
-#         dt.datetime(2023,10,14,16)
-#     ]
-# )
-# ax.xaxis.set_major_locator(mdates.HourLocator())
-
-# ax = dvlplot.axes[2]
-# ax.set_ylim(-20,20)
-# ax = dvlplot.axes[2]
-# axt = ax.twinx()
-# axt.plot(
-#     ddf.local_datetime,
-#     1-obs, ls="--", lw=0.9,
-#     color="k"
-# )
-# axt.set_ylabel("Obscuration")
-# axt.set_ylim(0, 1)
-# ax.set_xlim(
-#     [
-#         dt.datetime(2023,10,14,8),
-#         dt.datetime(2023,10,14,16)
-#     ]
-# )
-# ax.xaxis.set_major_locator(mdates.HourLocator())
-
-# dvlplot.save("tmp/2023_dvl.png")
-# dvlplot.close()
+# create_dvl_analysis(folders)
+create_dvl_quiver_analysis(folders)
