@@ -20,6 +20,7 @@ from loguru import logger
 
 from pynasonde.digisonde.raw.raw_plots import AFRLPlots
 
+
 def read_binary(
     t0: datetime,
     t_duration: timedelta = timedelta(seconds=1),
@@ -274,7 +275,7 @@ class RawAFRL(object):
             flags=("FFTW_ESTIMATE",),
         )
         fft_obj()
-        psd = np.abs(frq_domain) ** 2
+        psd = np.abs(frq_domain) ** 2 / (fs * N)
         ds["fft"] = dict(
             T=T,
             fs=fs,
@@ -291,7 +292,7 @@ class RawAFRL(object):
         f: str = None,
         index: int = 0,
         num_threads: int = 10,
-        nfft: int = 512,
+        nfft: int = 1024,
         window: str = "hann",
         return_onesided: bool = False,
         mode: str = "complex",
@@ -323,6 +324,7 @@ class RawAFRL(object):
             fs=fs,
             f=f,
             t_spec=t_spec,
+            range_spec=t_spec * C.c / 2000,  # in km
             psd=Sxx_db,
         )
         logger.info(f"Shape of the spectrogram outputs: {Sxx.shape}/{f.shape}")
@@ -330,6 +332,23 @@ class RawAFRL(object):
 
 
 if __name__ == "__main__":
-    r = RawAFRL(datetime(2023, 10, 14, 15, 56))
-    r.to_spectrogram()
-    
+    d = datetime(2023, 10, 14, 15, 56)
+    r = RawAFRL(d)
+    ds = r.to_pyfftw()
+    p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
+    p.draw_psd(ds["fft"]["f_fft"] / 1e6, ds["fft"]["psd"], xlim=[0, 10])
+    p.save("tmp/AFRL_psd.png")
+    p.close()
+
+    ds = r.to_spectrogram()
+    print(ds["spectrogram"].keys())
+    print(ds["spectrogram"]["t_spec"])
+    p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
+    p.draw_psd_scan(
+        ds["spectrogram"]["f"] / 1e6,
+        ds["spectrogram"]["t_spec"],
+        ds["spectrogram"]["psd"],
+        xlim=[0, 10],
+    )
+    p.save("tmp/AFRL_psd_scan.png")
+    p.close()

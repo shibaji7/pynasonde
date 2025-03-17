@@ -9,6 +9,8 @@ from matplotlib.dates import DateFormatter
 
 DATE_FORMAT: str = r"$%H^{%M}$"
 
+import pynasonde.digisonde.digi_utils as utils
+
 
 class RawPlots(object):
     """
@@ -105,6 +107,7 @@ class RawPlots(object):
 
     def add_pcolor(
         self,
+        ax,
         X: np.array,
         Y: np.array,
         zz: np.array,
@@ -116,13 +119,21 @@ class RawPlots(object):
         xlabel: str = "",
         ylim: List = [],
         xlim: List = [],
-        title: str = "",
+        cbar_label: str = "",
     ):
-
-        if title:
-            ax.text(0.95, 1.05, title, ha="right", va="center", transform=ax.transAxes)
+        im = ax.pcolormesh(
+            X,
+            Y,
+            zz.T,
+            lw=0.01,
+            edgecolors="None",
+            cmap=cmap,
+            # vmax=prange[1],
+            # vmin=prange[0],
+            zorder=3,
+        )
         if add_cbar:
-            self._add_colorbar(im, self.fig, ax, label=cbar_label)
+            self.add_colorbar(im, self.fig, ax, label=cbar_label)
         return
 
 
@@ -153,5 +164,84 @@ class AFRLPlots(RawPlots):
         )
         return
 
-    def draw_psd(self):
+    def draw_psd(
+        self,
+        f: np.array,
+        psd: np.array,
+        color: str = "r",
+        ylabel: str = "Power Spectral Density",
+        xlabel: str = "Frequency, MHz",
+        ylim: List = [],
+        xlim: List = [],
+        ls: str = "-",
+        lw: float = 0.6,
+        alpha: float = 0.7,
+        title: str = None,
+        ax=None,
+    ):
+        utils.setsize(self.font_size)
+        ax = ax if ax else self.get_axes(del_ticks=False)
+        xlim = xlim if len(xlim) == 2 else [f.min(), f.max()]
+        ylim = ylim if len(ylim) == 2 else [psd.min(), psd.max()]
+        ax.set_xlim(xlim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_ylim(ylim)
+        if title:
+            ax.text(0.95, 1.05, title, ha="right", va="center", transform=ax.transAxes)
+        ax.plot(
+            f,
+            psd,
+            ls=ls,
+            color=color,
+            lw=lw,
+            alpha=alpha,
+        )
+        ax.set_yscale("log")
+        return
+
+    def draw_psd_scan(
+        self,
+        f: np.array,
+        t_spec: np.array,
+        psd: np.array,
+        color: str = "r",
+        ylabel: str = "Time, us",
+        xlabel: str = "Frequency, MHz",
+        ylim: List = [],
+        xlim: List = [],
+        alpha: float = 0.7,
+        title: str = None,
+        ax=None,
+    ):
+        utils.setsize(self.font_size)
+        ax = ax if ax else self.get_axes(del_ticks=False)
+        xlim = xlim if len(xlim) == 2 else [f.min(), f.max()]
+        ylim = ylim if len(ylim) == 2 else [t_spec.min(), t_spec.max()]
+        ax.set_xlim(xlim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_ylim(ylim)
+        if title:
+            ax.text(0.95, 1.05, title, ha="right", va="center", transform=ax.transAxes)
+        # self.add_pcolor(
+        #     ax,
+        #     f,
+        #     t_spec,
+        #     psd,
+        # )
+        im = ax.pcolormesh(
+            f,
+            t_spec,
+            psd.T,
+            lw=0.01,
+            edgecolors="None",
+            cmap="jet",
+            # vmax=prange[1],
+            # vmin=prange[0],
+            zorder=3,
+        )
+        # if add_cbar:
+        self.add_colorbar(im, self.fig, ax, label="")
+        print(t_spec.min(), t_spec.max())
         return
