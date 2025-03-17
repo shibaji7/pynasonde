@@ -90,7 +90,14 @@ def create_dvl_analysis(folders):
     return
 
 
-def create_dvl_quiver_analysis():
+def create_dvl_quiver_analysis(folders):
+    ddf = DvlExtractor.load_DVL_files(
+        folders,
+        n_procs=12,
+    )
+    obs = utils.create_eclipse_path_local(
+        ddf.datetime, ddf.lat.tolist()[0], ddf.lon.tolist()[0]
+    )
     return
 
 

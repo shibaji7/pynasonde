@@ -14,10 +14,11 @@ from datetime import datetime, timedelta
 from glob import glob
 
 import numpy as np
+import pyfftw
+import scipy.constants as C
 from loguru import logger
 
-# import pyfftw
-
+from pynasonde.digisonde.raw.raw_plots import AFRLPlots
 
 def read_binary(
     t0: datetime,
@@ -150,7 +151,6 @@ class RawAFRL(object):
         self.file_name_ts = file_name_ts
         logger.info(f"Data directory: {self.data_dir}")
         self.search_files()
-        # read_binary(self.t0, self.t_duration, self.channel, self.data_dir)
         return
 
     def search_files(self):
@@ -168,19 +168,19 @@ class RawAFRL(object):
         self.files = []
         for f in files:
             name_tags = f.split("/")[-1].split("_")[:2]
-            t = datetime.strptime(f"{name_tags[0]}T{name_tags[1]}","%Y-%m-%dT%H%M%S")
-            if (t-self.t0) < self.t_duration:
+            t = datetime.strptime(f"{name_tags[0]}T{name_tags[1]}", "%Y-%m-%dT%H%M%S")
+            if (t - self.t0) < self.t_duration:
                 logger.info(f"Set file {f}")
                 self.files.append(f)
         logger.info(f"Files to be read under {self.data_dir}: {len(self.files)}")
         return
 
-    def read_file(self, f: str=None, index:int=0):
+    def read_file(self, f: str = None, index: int = 0):
         """
         Read files/sample under each .bin file
         """
         t0 = self.t0
-        f = f if f else self.files[index] 
+        f = f if f else self.files[index]
         ds = dict()
         ds["start_time"] = t0
         # Get parameters from filename
@@ -220,10 +220,10 @@ class RawAFRL(object):
                 # Calculate number of subsamples to read in, capped by samples left in file
                 n_subsamples = min(n_to_collect, ds["max_n_samples"])
 
-                # Read in data from file
+                # Read in data from file in int16 format
                 subsamples = np.fromfile(file, dtype="int16", count=2 * n_subsamples)
 
-                # Convert datatype to
+                # Convert datatype from int16 to float 32 and to complex64
                 subsamples = subsamples.astype("float32", copy=False)
 
                 # Convert to complex. Every other value is the imaginary component
@@ -240,10 +240,96 @@ class RawAFRL(object):
                 n_to_collect = n_to_collect - n_subsamples
                 t0 = t0 + timedelta(microseconds=n_subsamples / ds["sample_freq"] * 1e6)
         ds["end_time"] = t0
-        ds["ms"] = np.linspace(0, i_collected / ds["sample_freq"] * 1e6, int(ds["sample_freq"]))
+        ds["us"] = np.linspace(
+            0, i_collected / ds["sample_freq"] * 1e6, int(ds["sample_freq"])
+        )  # in microseconds
+        ds["range"] = 0.5 * C.c * ds["us"] * 1e-6  # to seconds and range in meters
+        logger.info(f"Sample data types: {ds['samples'].dtype}")
+        return ds
+
+    def to_pyfftw(
+        self, ds: dict() = None, f: str = None, index: int = 0, num_threads: int = 10
+    ):
+        """
+        Convert to FFT and PSD with frequencies
+        """
+        ds = ds if ds else self.read_file(f, index)
+        # Number of datapoints
+        N = ds["n_samples"]
+        # Initialze the fftw setups
+        pyfftw.config.NUM_THREADS = num_threads
+        frq_domain = pyfftw.empty_aligned(N, dtype="complex64")
+
+        # Setup frequency components
+        T = ds["us"][-1] * 1e-6  # Total time duration (seconds)
+        fs = N / T  # Sampling frequency (Hz)
+        f_fft = np.fft.fftfreq(N, d=1 / fs)  # Frequency vector (for NumPy's FFT)
+        f_fft_positive = f_fft[: N // 2]  # positive frequency range
+
+        # Create FFT object
+        fft_obj = pyfftw.FFTW(
+            ds["samples"],
+            frq_domain,
+            direction="FFTW_FORWARD",
+            flags=("FFTW_ESTIMATE",),
+        )
+        fft_obj()
+        psd = np.abs(frq_domain) ** 2
+        ds["fft"] = dict(
+            T=T,
+            fs=fs,
+            f_fft=f_fft,
+            f_fft_positive=f_fft_positive,
+            frq_domain=frq_domain,
+            psd=psd,
+        )
+        return ds
+
+    def to_spectrogram(
+        self,
+        ds: dict() = None,
+        f: str = None,
+        index: int = 0,
+        num_threads: int = 10,
+        nfft: int = 512,
+        window: str = "hann",
+        return_onesided: bool = False,
+        mode: str = "complex",
+        **kwrads,
+    ) -> dict:
+        """
+        Convert to PSD with frequencies and time/range
+        """
+        ds = ds if ds else self.read_file(f, index)
+        # Setup frequency components
+        N = ds["n_samples"]
+        T = ds["us"][-1] * 1e-6  # Total time duration (seconds)
+        fs = N / T  # Sampling frequency (Hz)
+        from scipy import signal
+
+        f, t_spec, Sxx = signal.spectrogram(
+            ds["samples"],
+            fs=fs,
+            nfft=nfft,
+            window=window,
+            return_onesided=return_onesided,
+            mode=mode,
+            **kwrads,
+        )
+        f = np.fft.fftshift(f)
+        Sxx_db = np.fft.fftshift(10 * np.log10(np.abs(Sxx) ** 2 + 1e-12), axes=0)
+        ds["spectrogram"] = dict(
+            T=T,
+            fs=fs,
+            f=f,
+            t_spec=t_spec,
+            psd=Sxx_db,
+        )
+        logger.info(f"Shape of the spectrogram outputs: {Sxx.shape}/{f.shape}")
         return ds
 
 
 if __name__ == "__main__":
     r = RawAFRL(datetime(2023, 10, 14, 15, 56))
-    r.read_file()
+    r.to_spectrogram()
+    
