@@ -7,7 +7,7 @@ from loguru import logger
 from pynasonde.digisonde.digi_plots import DigiPlots
 from pynasonde.model.absorption.constants import pconst
 from pynasonde.polan.datasets import ScaledEntries, ScaledEvent, SimulationDataset
-from pynasonde.polan.polan_utils import parabolic_ionosphere
+from pynasonde.polan.polan_utils import chapman_ionosphere, parabolic_ionosphere
 
 
 class Polan(object):
@@ -78,7 +78,7 @@ class Polan(object):
         self,
         se: ScaledEvent,
         h_base: float = 70,
-        model_ionosphere: Union[str] = "parabolic",
+        model_ionosphere: Union[str] = "chapman",
     ):
         freqs = np.linspace(se.fv.min(), se.fv.max(), 101)
         omega = 2 * np.pi * freqs
@@ -92,6 +92,15 @@ class Polan(object):
                 [3.9, se.fv.max()],
                 [125, 260],
             )
+        if model_ionosphere == "chapman":
+            (h, fh) = chapman_ionosphere(
+                self.nbins,
+                self.h_steps,
+                ["E", "F"],
+                [1.4e11, 6.1e11],
+                [110, 250],
+                [10, 45],
+            )
         h_virtual = np.zeros_like(freqs)
         base_index = h.tolist().index(h_base)
         for i, f in enumerate(freqs):
@@ -101,24 +110,6 @@ class Polan(object):
             h_reflection = h[m_index]
             h_virtual[i] = h_base + np.trapz(u, x=None, dx=self.h_steps)
         return h, fh, freqs, h_virtual
-
-    def parabolic_ionosphere(
-        self,
-        nbins: int,
-        h_step: float,
-        regions: List[str],
-        ds: List[float],
-        fps: List[float],
-        hps: List[float],
-    ):
-        h = np.arange(self.nbins) * h_step
-        fh = np.zeros(self.nbins)
-        for region, d, fp, hp in zip(regions, ds, fps, hps):
-            f = np.zeros(self.nbins)
-            mask = np.abs(h - hp) < d
-            f[mask] = (fp * (1 - ((h - hp) / d) ** 2))[mask]
-            fh += f
-        return (h, fh)
 
 
 if __name__ == "__main__":
