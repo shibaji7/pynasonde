@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 from dataclasses import dataclass
 from typing import List
@@ -7,27 +8,34 @@ from loguru import logger
 
 
 @dataclass
-class Datasets:
-    fv: List[float] = None
-    ht: List[float] = None
+class SimulationDataset:
+    fv: np.array = None
+    ht: np.array = None
     description: str = ""
-    start: float = None
+    qq: np.array = None
+    ndim: int = None
 
 
 @dataclass
 class ScaledEvent:
     description: str = ""
-    fh: float = None
-    dip: float = None
-    a_mode: float = None
-    valley: int = None
-    data_set: List[Datasets] = None
+    fv: np.array = None
+    ht: np.array = None
+    qq: np.array = None
+    ndim: int = 399
+
+    def draw_trace(self, ax):
+        logger.info(f"Drawing traces....")
+        ax.plot(self.fv[: len(self.ht)], self.ht, "r.", ms=0.7, alpha=0.8)
+        ax.set_ylabel("Height (km)")
+        ax.set_xlabel("Frequency (MHz)")
+        return
 
 
 @dataclass
 class ScaledEntries:
     filename: str = ""
-    date: str = ""
+    date: dt.datetime = None
     events: List[ScaledEvent] = None
 
     @staticmethod
@@ -35,23 +43,13 @@ class ScaledEntries:
         e = ScaledEntries(filename=fin)
         with open(fin, "r") as file:
             data = json.load(file)
-            e.date = data["date"]
+            e.date = data["date"] if data["date"] else dt.datetime.now()
             e.events = [
                 ScaledEvent(
                     description=ex["event_description"],
-                    fh=ex["fh"],
-                    dip=ex["dip"],
-                    a_mode=ex["a_mode"],
-                    valley=ex["valley"],
-                    data_set=[
-                        Datasets(
-                            description=d["description"],
-                            start=d["start"],
-                            fv=np.array(d["fv"]),  # in MHz
-                            ht=np.array(d["ht"]) * 1e-2,  # in km
-                        )
-                        for d in ex["data_set"]
-                    ],
+                    fv=np.array(ex["fv"]),  # in MHz
+                    ht=np.array(ex["ht"]) * 1e-2,  # in km
+                    qq=np.empty(50) * 0,
                 )
                 for ex in data["events"]
             ]
@@ -61,3 +59,4 @@ class ScaledEntries:
 if __name__ == "__main__":
     file_path = "tmp/polan/ionogram_data.json"
     e = ScaledEntries.load_file(file_path)
+    print(e)
