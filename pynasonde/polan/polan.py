@@ -7,6 +7,7 @@ from loguru import logger
 from pynasonde.digisonde.digi_plots import DigiPlots
 from pynasonde.model.absorption.constants import pconst
 from pynasonde.polan.datasets import ScaledEntries, ScaledEvent, SimulationDataset
+from pynasonde.polan.polan_utils import parabolic_ionosphere
 
 
 class Polan(object):
@@ -83,7 +84,7 @@ class Polan(object):
         omega = 2 * np.pi * freqs
         wave_number = omega / pconst["c"]
         if model_ionosphere == "parabolic":
-            (h, fh) = self.parabolic_ionosphere(
+            (h, fh) = parabolic_ionosphere(
                 self.nbins,
                 self.h_steps,
                 ["E", "F"],
