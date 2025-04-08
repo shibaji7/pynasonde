@@ -12,9 +12,10 @@ from pynasonde.polan.polan_utils import chapman_ionosphere, parabolic_ionosphere
 
 class Polan(object):
     """
-    ** This is an python implementation of the code in https://github.com/space-physics/POLAN
+    ** This is an python implementation of method described in 
+    https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2011RS004833
 
-    A generalised POLynomial real-height ANalysis for ionograms.
+    A generalised method to .
 
 
     This implements a complex algorithm for ionospheric analysis
