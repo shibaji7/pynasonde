@@ -7,7 +7,7 @@ Disclaimer:
 
 # Pynasonde
 <div style="text-align: center;">
-  <img src="assets/Colab-pynasonde-logo2.jpeg" alt="Pynasonde" width="50%">
+  <img src="assets/Colab-pynasonde-logo2.jpg" alt="Pynasonde" width="50%">
 </div>
 
 [![License: MIT](https://img.shields.io/badge/License%3A-MIT-green)](https://choosealicense.com/licenses/mit/) 
@@ -31,6 +31,7 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
   - [Installation](user/install.md)
   - [Ionosonde Data Access](user/ionosonde.md)
   - [Citing](user/citing.md)
+  - [Authors](user/authors.md)
   - Toolbox
     - [ISCA](tools/isca.md)
   - Tutorials

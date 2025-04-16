@@ -27,7 +27,7 @@ In addition to the raw data blocks, each RIQ file includes metadata records such
 The RIQ file is a custom binary format. The structure of the data is best understood through `C`, and `FORTRAN` definitions. However, we provide `Python`-version of the data structure. 
 
 ## RIQ Data Structure (Pythonic)
-An RIQ file is divided into blocks or records. Each record has the same format but can have varying length depending on the amount of scatter observed by the radar.
+An RIQ file is divided into blocks or records. Each record has the same format but the length and number of the records can vary with the settings of the radar.
 
 ### Sounding Control Table (SCT)
 Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure formats are also supported, and produce nearly idential files. The exception is for the user-defined text strs, where `C` prodices a null filled character string and `FORTRAN` produces a space filled character string. Both methods are supported. For 64 bit C code, it is necessary to define the structure as `packed`. This version defined here is 1.20.
