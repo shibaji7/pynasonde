@@ -9,7 +9,6 @@ sys.path.append("code/")
 import datetime as dt
 
 import matplotlib.dates as mdates
-import matplotlib.ticker as mticker
 from eclipse_utils import create_eclipse_path_local
 
 

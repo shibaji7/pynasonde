@@ -136,7 +136,7 @@ class SkyExtractor(object):
 
     def extract(self):
         """
-        Main method to extract data from the sky file and populate the sao_struct dictionary.
+        Main method to extract data from the sky file and populate the sky_struct dictionary.
 
         Returns:
             dict: The populated sky_struct dictionary containing all extracted data.
@@ -245,7 +245,9 @@ class SkyExtractor(object):
 if __name__ == "__main__":
     pass
 
-    extractor = SkyExtractor("tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000915.SKY", True, True)
+    extractor = SkyExtractor(
+        "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000915.SKY", True, True
+    )
     extractor.extract().dataset[-1].freq_headers
     df = extractor.to_pandas()
     skyplot = SkySummaryPlots()

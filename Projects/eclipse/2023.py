@@ -2,7 +2,6 @@ import datetime as dt
 import sys
 
 import matplotlib.dates as mdates
-import numpy as np
 
 sys.path.append("Projects/eclipse/")
 import utils

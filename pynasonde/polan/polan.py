@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 from loguru import logger
@@ -12,7 +12,7 @@ from pynasonde.polan.polan_utils import chapman_ionosphere, parabolic_ionosphere
 
 class Polan(object):
     """
-    ** This is an python implementation of method described in 
+    ** This is an python implementation of method described in
     https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2011RS004833
 
     A generalised method to .

@@ -52,7 +52,9 @@ class PctType:
         self.num_receivers = sct.receiver.rx_chan
         self.num_gates = sct.timing.gate_count
         self.echo_count = self.num_receivers * self.num_gates  # per pulse, bytes
-        self.total_pulse_count = sct.timing.pri_count # Total pulse count for integration
+        self.total_pulse_count = (
+            sct.timing.pri_count
+        )  # Total pulse count for integration
         self.frequency_count = sct.frequency.base_steps
         self.max_range = sct.timing.gate_end * 0.15
         # to km

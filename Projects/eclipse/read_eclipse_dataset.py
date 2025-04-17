@@ -1,10 +1,5 @@
-import datetime as dt
 import sys
 
-import matplotlib.dates as mdates
-import numpy as np
-
-from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.dvl import DvlExtractor
 from pynasonde.digisonde.sao import SaoExtractor
 
