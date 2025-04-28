@@ -1,13 +1,14 @@
 import datetime as dt
+import shutil
+
 import numpy as np
 from loguru import logger
-
-import shutil
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import get_digisonde_info
 from pynasonde.digisonde.dvl import DvlExtractor
 from pynasonde.digisonde.sao import SaoExtractor
+
 
 def generate_digisonde_pfh_profiles(
     folders,
@@ -54,7 +55,7 @@ def generate_digisonde_pfh_profiles(
             plot_type="scatter",
             title="Stn Code: " + stns[i],
             add_cbar=True,
-            xlabel="Time, UT" if i == 2 else "",
+            xlabel="Time, UT" if i == N - 1 else "",
         )
         ax.plot(
             dfsc.datetime,
@@ -74,14 +75,14 @@ def generate_digisonde_pfh_profiles(
 ## Analyzing the dataset form Speed Deamon 2022
 for doy in range(233, 238, 1):
     stn = "WP937"
-    date = dt.datetime(2022, 1, 1) + dt.timedelta(days=doy-1)
+    date = dt.datetime(2022, 1, 1) + dt.timedelta(days=doy - 1)
     fig_file_name = f"../../tmp/SAO.{stn}.2022.doy-{doy}.png"
-    fig_title = f"Speed Deamon / {date.strftime('%Y-%m-%d')}"
+    fig_title = f"Speed Demon / {date.strftime('%Y-%m-%d')}"
 
     shutil.rmtree(f"/tmp/{doy}/", ignore_errors=True)
     shutil.copytree(
-        f"/media/chakras4/ERAU/SpeedDemon/WP937/individual/2022/{doy}/scaled/", 
-        f"/tmp/{doy}/scaled/"
+        f"/media/chakras4/ERAU/SpeedDemon/WP937/individual/2022/{doy}/scaled/",
+        f"/tmp/{doy}/scaled/",
     )
     generate_digisonde_pfh_profiles(
         folders=[f"/tmp/{doy}/scaled/"],
