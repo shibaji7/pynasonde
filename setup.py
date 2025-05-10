@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pynasonde",
-    version="0.0.2",
+    version="0.0.2.1",
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
@@ -19,6 +19,22 @@ setup(
             "pynasonde",
             ["pynasonde/config.toml", "pynasonde/digisonde_station_codes.csv"],
         )
+    ],
+    install_requires=[
+        "loguru",
+        "numpy==1.26.4",
+        "matplotlib==3.9.2",
+        "xarray==2024.9.0",
+        "toml==0.10.2",
+        "tqdm==4.66.5",
+        "timezonefinder==6.5.5",
+        "scipy==1.14.1",
+        "SciencePlots==2.1.1",
+        "pysolar==0.11",
+        "pytz==2024.2",
+        "requests==2.32.3",
+        "opencv-python",
+        "nrlmsise00==0.1.2",
     ],
     include_package_data=True,
     use_scm_version=True,
@@ -31,7 +47,6 @@ setup(
     license_files=["LICENSE"],
     description=long_description,
     long_description=long_description,
-    install_requires=[],
     keywords=["python", "ionosonde"],
     classifiers=[
         "Development Status :: 3 - Alpha",
