@@ -5,7 +5,7 @@ from pynasonde.ngi.source import DataSource, Trace
 date = dt.datetime(2024, 4, 9)
 
 ds = DataSource(source_folder=f"./tmp/{date.strftime('%Y%m%d')}/")
-ds.load_data_sets(0, 1201)
+ds.load_data_sets(0, 1)
 from pynasonde.ngi.utils import load_toml
 
 cfg = load_toml()
@@ -34,6 +34,7 @@ for i, dx in enumerate(ds.datasets):
     )
     scaler.draw_sanity_check_images(f"tmp/scan_{i}.png", font_size=15)
     del scaler
+    break
 ds.save_scaled_parameters(
     {
         "mode": cfg.ngi.scaler.mode,

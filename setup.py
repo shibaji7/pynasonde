@@ -8,13 +8,18 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pynasonde",
-    version="0.1",
+    version="0.0.1",
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
-        "pynasonde": ["config.toml"],
+        "pynasonde": ["config.toml", "digisonde_station_codes.csv"],
     },
-    data_files=[("pynasonde", ["pynasonde/config.toml"])],
+    data_files=[
+        (
+            "pynasonde",
+            ["pynasonde/config.toml", "pynasonde/digisonde_station_codes.csv"],
+        )
+    ],
     include_package_data=True,
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
@@ -34,6 +39,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
+        "License :: OSI Approved :: MIT License",
     ],
     url="https://github.com/shibaji7/pynasonde",
 )

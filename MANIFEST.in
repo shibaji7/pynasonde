@@ -1,1 +1,1 @@
-recursive-include pynasonde *.toml
+recursive-include pynasonde *.toml *.csv

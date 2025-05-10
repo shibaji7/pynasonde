@@ -1,12 +1,8 @@
 import datetime as dt
 import shutil
 
-import numpy as np
-from loguru import logger
-
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import get_digisonde_info
-from pynasonde.digisonde.dvl import DvlExtractor
 from pynasonde.digisonde.sao import SaoExtractor
 
 

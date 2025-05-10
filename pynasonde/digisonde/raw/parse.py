@@ -6,12 +6,15 @@ Copyright Space Dynamics Laboratory, 2025. The U.S. Federal Government retains a
 transferable license to read_binary_iq_sdl_afrl_receivers.py pursuant to
 DFARS 252.227-7014. All other rights reserved.
 """
-from dataclasses import dataclass
-import numpy as np
-import os
-from loguru import logger
+
 import datetime as dt
+import os
+from dataclasses import dataclass
+
+import numpy as np
+
 from pynasonde.digisonde.raw.iqstream_afrl import IQStream
+
 
 @dataclass
 class Program:
@@ -37,6 +40,7 @@ class Program:
     polarization: str
     data_dir: str
     out_dir: str
+
 
 class IQDigisonde(object):
     """Class to process IQ data from a digisonde to create the FFT outputs.
@@ -67,11 +71,12 @@ class IQDigisonde(object):
         # Get the program datasets
         epoch, id, rx_rag, save_phase = (
             self.program.epoch,
-            self.program.id, self.program.rx_tag,
-            self.program.save_phase
+            self.program.id,
+            self.program.rx_tag,
+            self.program.save_phase,
         )
         out_dir = os.path.join(
-            self.program.out_dir, 
+            self.program.out_dir,
             epoch.strftime("%Y-%m-%d_%H%M%S"),
         )
         if not os.path.exists(out_dir):
