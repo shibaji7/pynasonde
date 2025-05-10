@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pynasonde",
-    version="0.0.2.1",
+    version="0.0.2.4",
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
@@ -35,6 +35,8 @@ setup(
         "requests==2.32.3",
         "opencv-python",
         "nrlmsise00==0.1.2",
+        "scikit-image==0.24.0",
+        "scikit-learn==1.5.2",
     ],
     include_package_data=True,
     use_scm_version=True,

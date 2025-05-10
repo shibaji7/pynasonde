@@ -19,7 +19,9 @@ def clean():
 
 def build():
     os.system("isort -rc -sl .")
-    os.system("autoflake --remove-all-unused-imports -i -r .")
+    os.system(
+        "autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots ."
+    )
     os.system("isort -rc -m 3 .")
     os.system("black .")
     os.system("python setup.py sdist bdist_wheel")
