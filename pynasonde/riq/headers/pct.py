@@ -4,6 +4,7 @@ import numpy as np
 from loguru import logger
 
 from pynasonde.riq.headers.default_factory import PCT_default_factory
+from pynasonde.riq.headers.pri import PriType
 from pynasonde.riq.headers.sct import SctType
 from pynasonde.riq.utils import trim_null
 
@@ -71,7 +72,7 @@ class PctType:
     def read_pct(
         self, fname: str, pulse_num: np.int32 = 1, unicode: str = "latin-1"
     ) -> None:
-        logger.info(f"Reading PCT Pulse: {pulse_num}")
+        logger.info(f"Reading PCT Pulse: {fname}")
         byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
         # Load all PCT Type parameters
         o = np.memmap(

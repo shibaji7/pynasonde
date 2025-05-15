@@ -16,3 +16,7 @@ scaler.otsu.nbins=1000
 scaler.otsu.thresh=2
 scaler.segmentation_method="k-means"
 scaler.apply_filter=true
+
+[polan]
+h_max_simulation=500
+h_step=1e-3

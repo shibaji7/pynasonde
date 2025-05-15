@@ -1,13 +1,20 @@
-fname = "tmp/WI937_2024264001803.RIQ"
+fname = (
+    "/home/chakras4/Research/ERAUCodeBase/readriq-2.08/Justin/PL407_2024058061501.RIQ"
+)
 from pynasonde.riq.headers.pct import PctType
+from pynasonde.riq.headers.pri import PriType
 from pynasonde.riq.headers.sct import SctType
+from pynasonde.riq.load import RiqDataset
 
 x, y = SctType(), PctType()
 x.read_sct(fname)
-x.dump_sct("tmp/WI937_2024264001803_sct.txt")
+x.dump_sct("tmp/PL407_2024058061501_sct.txt")
 y.load_sct(x)
 y.read_pct(fname)
-y.dump_pct(to_file="tmp/WI937_2024264001803_pct.txt")
+y.dump_pct(to_file="tmp/PL407_2024058061501_pct.txt")
+
+pri = PriType()
+pri.load_data(fname)
 
 # from pynasonde.pynasonde.ngi.source import DataSource
 

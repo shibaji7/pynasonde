@@ -8,6 +8,14 @@ from loguru import logger
 
 
 @dataclass
+class SimulationOutputs:
+    h: np.array = None
+    fh: np.array = None
+    tf_sweeps: np.array = None
+    h_virtual: np.array = None
+
+
+@dataclass
 class SimulationDataset:
     fv: np.array = None
     ht: np.array = None

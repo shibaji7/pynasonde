@@ -1,13 +1,13 @@
 import datetime as dt
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 from loguru import logger
 
 from pynasonde.digisonde.digi_plots import DigiPlots
 from pynasonde.model.absorption.constants import pconst
-from pynasonde.polan.datasets import ScaledEntries, ScaledEvent, SimulationDataset
-from pynasonde.polan.polan_utils import chapman_ionosphere, parabolic_ionosphere
+from pynasonde.polan.datasets import ScaledEntries, ScaledEvent, SimulationOutputs
+from pynasonde.polan.polan_utils import chapman_ionosphere, ne2f, parabolic_ionosphere
 
 
 class Polan(object):
@@ -29,21 +29,91 @@ class Polan(object):
         entries: ScaledEntries,
         h_max_simulation: float = 500,
         h_steps: Union[float, str] = 1e-3,
+        fig_file_name: str = None,
     ):
         self.entries = entries
         self.h_max_simulation = h_max_simulation
         self.h_steps = h_steps
         if type(h_steps) == float:
             self.nbins = int(h_max_simulation / h_steps)
-        self.polan(self.entries.events[0], self.entries.date)
+        self.fig_file_name = fig_file_name
         return
 
-    def polan(self, se: ScaledEvent, date: dt.datetime):
+    def polan(
+        self,
+        se: ScaledEvent,
+        date: dt.datetime,
+        h_base: float = 70,
+        model_ionospheres: List[dict] = [
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=6.1e11,
+                hp=250,
+                scale_h=45,
+            ),
+        ],
+        index: int = 0,
+        plot: bool = False,
+    ):
+        se = se if se else self.entries.events[index]
         logger.info(f"Running POLAN for {date} on {se.description}")
-        sd = SimulationDataset()
-        h, fh, freqs, h_virtual = self.solving_integral(se)
-        self.draw_traces(se, date, h, fh, h_virtual, freqs)
-        return
+        sd = self.solving_integral(se, h_base, model_ionospheres)
+
+        if plot:
+            self.draw_traces(se, date, h, fh, h_virtual, freqs)
+        return sd
+
+    def solving_integral(
+        self,
+        se: ScaledEvent,
+        h_base: float = 70,
+        model_ionospheres: List[dict] = [
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=6.1e11,
+                hp=250,
+                scale_h=45,
+            ),
+        ],
+    ):
+        freqs = np.linspace(se.fv.min(), se.fv.max(), 101)
+        fhs, hs = None, None
+        for model_ionosphere in model_ionospheres:
+            if "Parabolic" == model_ionosphere["model"]:
+                (h, fh) = parabolic_ionosphere(
+                    self.nbins,
+                    self.h_steps,
+                    [model_ionosphere["layer"]],
+                    [model_ionosphere["D"]],
+                    [model_ionosphere["Np"]],
+                    [model_ionosphere["hp"]],
+                )
+            if "Chapman" == model_ionosphere["model"]:
+                (h, fh) = chapman_ionosphere(
+                    self.nbins,
+                    self.h_steps,
+                    [model_ionosphere["layer"]],
+                    [model_ionosphere["Np"]],
+                    [model_ionosphere["hp"]],
+                    [model_ionosphere["scale_h"]],
+                )
+            if hs is None:
+                hs, fhs = h, fh
+            else:
+                fhs += fh
+        hvs = np.zeros_like(freqs) * np.nan
+        base_index = hs.tolist().index(h_base)
+        for i, f in enumerate(freqs):
+            X = (fhs / f) ** 2
+            if np.nanmax(X) >= 1.0:
+                m_index = np.where(X >= 1)[0][0]
+                u = 1 / (np.sqrt(1 - X[base_index:m_index]))
+                # h_reflection = h[m_index]
+                hvs[i] = h_base + np.trapz(u, x=None, dx=self.h_steps)
+        sd = SimulationOutputs(h=hs, fh=fhs, tf_sweeps=freqs, h_virtual=hvs)
+        return sd
 
     def draw_traces(
         self,
@@ -71,46 +141,10 @@ class Polan(object):
         ax.plot(freqs, h_virtual, "g.", ms=0.7, alpha=0.8)
         ax.set_xlim(2, 8)
         ax.set_ylim(80, 400)
-        dp.save(f"tmp/polan/{date.strftime('%Y%m%d%H%M')}.png")
+        if self.fig_file_name:
+            dp.save(self.fig_file_name)
         dp.close()
         return
-
-    def solving_integral(
-        self,
-        se: ScaledEvent,
-        h_base: float = 70,
-        model_ionosphere: Union[str] = "chapman",
-    ):
-        freqs = np.linspace(se.fv.min(), se.fv.max(), 101)
-        omega = 2 * np.pi * freqs
-        wave_number = omega / pconst["c"]
-        if model_ionosphere == "parabolic":
-            (h, fh) = parabolic_ionosphere(
-                self.nbins,
-                self.h_steps,
-                ["E", "F"],
-                [50, 80],
-                [3.9, se.fv.max()],
-                [125, 260],
-            )
-        if model_ionosphere == "chapman":
-            (h, fh) = chapman_ionosphere(
-                self.nbins,
-                self.h_steps,
-                ["E", "F"],
-                [1.4e11, 6.1e11],
-                [110, 250],
-                [10, 45],
-            )
-        h_virtual = np.zeros_like(freqs)
-        base_index = h.tolist().index(h_base)
-        for i, f in enumerate(freqs):
-            X = (fh / f) ** 2
-            m_index = np.where(X >= 1)[0][0]
-            u = 1 / (np.sqrt(1 - X[base_index:m_index]))
-            h_reflection = h[m_index]
-            h_virtual[i] = h_base + np.trapz(u, x=None, dx=self.h_steps)
-        return h, fh, freqs, h_virtual
 
 
 if __name__ == "__main__":

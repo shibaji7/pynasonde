@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 import numpy as np
-
-from pynasonde.riq.headers.pct import PctType
+from loguru import logger
 
 
 @dataclass
@@ -31,8 +30,6 @@ class PriType:
     ir_gate: np.int32 = 0
     rgt1: np.int32 = 0
     rgt2: np.int32 = 0
-
-    pct: PctType = field(default_factory=PctType)
 
     def __init__(self, MAXRX: np.int32 = 16, MAXRG: np.int32 = 64):
         # The raw I/Q values for each receiver/range
@@ -75,3 +72,4 @@ class PriType:
         self.peak: List[float] = field(default_factory=lambda: [0.0] * MAXRX)
 
         self.peak_range_gate: List[int] = field(default_factory=lambda: [0] * MAXRX)
+        return

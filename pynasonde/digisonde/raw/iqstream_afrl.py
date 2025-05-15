@@ -88,16 +88,13 @@ class IQStream(object):
         ds = dict()
         ds["start_time"] = t0
         # Get parameters from filename
-        ds["i_khz_1"] = f.find("kHz")
-        ds["i_khz_2"] = f.find("kHz", ds["i_khz_1"] + 1)
-        ds["i_fc"] = f.find("fc")
-        ds["i_bw"] = f.find("bw")
-
         # Get the center frequency in Hz
-        ds["center_freq"] = float(f[ds["i_fc"] + 2 : ds["i_khz_1"]]) * 1e3
+        ds["center_freq"] = float(f[f.find("fc") + 2 : f.find("kHz")]) * 1e3
 
         # Get the band width frequency in Hz
-        ds["sample_freq"] = float(f[ds["i_bw"] + 2 : ds["i_khz_2"]]) * 1e3
+        ds["sample_freq"] = (
+            float(f[f.find("bw") + 2 : f.find("kHz", f.find("kHz") + 1)]) * 1e3
+        )
 
         # Max number of samples that can be read in
         ds["max_n_samples"] = int(ds["sample_freq"] * (1000000 - t0.microsecond) * 1e-6)
@@ -237,21 +234,22 @@ class IQStream(object):
 if __name__ == "__main__":
     d = datetime(2023, 10, 14, 15, 56)
     r = IQStream(d)
-    ds = r.to_pyfftw()
-    p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
-    p.draw_psd(ds["fft"]["f_fft"] / 1e6, ds["fft"]["psd"], xlim=[0, 10])
-    p.save("tmp/AFRL_psd.png")
-    p.close()
+    r.read_file()
+    # ds = r.to_pyfftw()
+    # p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
+    # p.draw_psd(ds["fft"]["f_fft"] / 1e6, ds["fft"]["psd"], xlim=[0, 10])
+    # p.save("tmp/AFRL_psd.png")
+    # p.close()
 
-    ds = r.to_spectrogram()
-    print(ds["spectrogram"].keys())
-    print(ds["spectrogram"]["t_spec"])
-    p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
-    p.draw_psd_scan(
-        ds["spectrogram"]["f"] / 1e6,
-        ds["spectrogram"]["t_spec"],
-        ds["spectrogram"]["psd"],
-        xlim=[0, 10],
-    )
-    p.save("tmp/AFRL_psd_scan.png")
-    p.close()
+    # ds = r.to_spectrogram()
+    # print(ds["spectrogram"].keys())
+    # print(ds["spectrogram"]["t_spec"])
+    # p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
+    # p.draw_psd_scan(
+    #     ds["spectrogram"]["f"] / 1e6,
+    #     ds["spectrogram"]["t_spec"],
+    #     ds["spectrogram"]["psd"],
+    #     xlim=[0, 10],
+    # )
+    # p.save("tmp/AFRL_psd_scan.png")
+    # p.close()

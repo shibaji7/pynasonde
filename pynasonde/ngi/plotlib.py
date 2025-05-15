@@ -92,6 +92,49 @@ class Ionogram(object):
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
         return ax
 
+    def add_ionogram_traces(
+        self,
+        frequency: np.array,
+        height: np.array,
+        mode: str = "O",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        ylim: List[float] = [50, 400],
+        xlim: List[float] = [1, 22],
+        xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
+        text: str = None,
+        del_ticks: bool = True,
+        alpha: float = 0.8,
+        ms: float = 0.7,
+        color: str = "r",
+        ax=None,
+    ) -> None:
+        ax = ax if ax else self._add_axis(del_ticks)
+        ax.set_xlim(np.log10(xlim))
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
+        ax.set_ylim(ylim)
+        ax.set_ylabel(
+            ylabel,
+            fontdict={"size": self.font_size},
+        )
+        ax.plot(np.log10(frequency), height, color + ".", ms=ms, alpha=alpha)
+        if np.logical_not(del_ticks):
+            ax.set_xticks(np.log10(xticks))
+            ax.set_xticklabels(xticks)
+        text = (
+            text if text else f"{mode}-mode/{self.dates[0].strftime('%Y%m%d %H%M')} UT"
+        )
+        ax.text(
+            0.05,
+            0.9,
+            text,
+            ha="left",
+            va="center",
+            transform=ax.transAxes,
+            fontdict={"size": self.font_size},
+        )
+        return ax
+
     def _add_axis(self, del_ticks=True):
         ax = (
             self.axes[self._num_subplots_created]

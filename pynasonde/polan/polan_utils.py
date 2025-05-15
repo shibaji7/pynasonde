@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+from loguru import logger
 
 from pynasonde.model.absorption.constants import pconst
 
@@ -48,6 +49,7 @@ def chapman_ionosphere(
     h = np.arange(nbins) * h_step
     Nh = np.zeros(nbins)
     for region, Np, hp, scale_height in zip(regions, Nps, hps, scale_hs):
+        logger.info(f"Chapman Region {region}, Np:{Np}, hp:{hp}, Hs: {scale_height}")
         z = (h - hp) / scale_height
         Nh += Np * np.exp(0.5 * (1 - z - np.exp(-z)))  # Chapman function
     return (h, ne2f(Nh))
@@ -58,19 +60,26 @@ def parabolic_ionosphere(
     h_step: float,
     regions: List[str],
     ds: List[float],
-    fps: List[float],
+    Nps: List[float],
     hps: List[float],
 ):
     """
-    A method to create parabolic layers of ionosphere using defination
-    f(h) = fo(1-((h-ho)/d)**2) for |h-ho|<=d, else 0; where d is the thickness of
-    the ionospheric parabolic layer.
+    Creates parabolic layers of the ionosphere using the definition:
 
-    Final ionosphere is sum of regions described above.
+    f(h) = fp * (1 - ((h - hp) / d) ** 2) for |h - hp| <= d, else 0;
+
+    where:
+        - d is the thickness of the ionospheric parabolic layer,
+        - fp is the peak plasma frequency,
+        - hp is the height of the peak plasma frequency.
+
+    The final ionosphere is the sum of all regions described above.
     """
     h = np.arange(nbins) * h_step
     fh = np.zeros(nbins)
-    for region, d, fp, hp in zip(regions, ds, fps, hps):
+    for region, d, Np, hp in zip(regions, ds, Nps, hps):
+        logger.info(f"Parabolic Region {region}, Np:{Np}, hp:{hp}, Ds: {d}")
+        fp = ne2f(Np)
         f = np.zeros(nbins)
         mask = np.abs(h - hp) < d
         f[mask] = (fp * (1 - ((h - hp) / d) ** 2))[mask]
