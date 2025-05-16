@@ -317,10 +317,10 @@ class SctType:
     magic: np.int32 = (
         0x51495200  # Magic number 0x51495200 (/nullRIQ) {POSSIBLY BYTE REVERSED}
     )
-    sounding_table_size: np.int_ = (
+    sounding_table_size: np.int32 = (
         0  # Bytes in sounder configuration structure (this file)
     )
-    pulse_table_size: np.int_ = 0  # Bytes in pulse configuration structure
+    pulse_table_size: np.int32 = 0  # Bytes in pulse configuration structure
     raw_data_size: np.int32 = 0  # Bytes in raw data block (one PRI)
     struct_version: np.float64 = 1.20  # Format Version Number. Currently 1.2
     start_year: np.int32 = 1970  # Start Time Elements of the ionogram (Universal Time)
@@ -632,9 +632,3 @@ class SctType:
         else:
             logger.info(f"# SCT: \n {txt}")
         return
-
-    @classmethod
-    def create_from_file(cls, fname: str):
-        sct = cls()
-        sct.read_sct(fname)
-        return sct

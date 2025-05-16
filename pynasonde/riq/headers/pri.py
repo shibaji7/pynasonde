@@ -10,6 +10,7 @@ class PriType:
     frequency: np.float64 = 0.0
     ut_time: np.float64 = 0.0
     gate_start: np.float64 = 0.0
+    gate_end: np.float64 = 0.0
     gate_step: np.float64 = 0.0
     relative_time: np.float64 = 0.0
     tk: np.float64 = 0.0  # Magnitude of K vector |k|
@@ -17,6 +18,8 @@ class PriType:
     pulset_index: np.int32 = 0
     receiver_count: np.int32 = 0
     gate_count: np.int32 = 0
+    max_rx: np.int32 = 0
+    max_rg: np.int32 = 0
 
     # Control flags
     raw: bool = False
@@ -31,45 +34,49 @@ class PriType:
     rgt1: np.int32 = 0
     rgt2: np.int32 = 0
 
-    def __init__(self, MAXRX: np.int32 = 16, MAXRG: np.int32 = 64):
+    def __post_init__(self, max_rx: np.int32 = 16, max_rg: np.int32 = 64):
         # The raw I/Q values for each receiver/range
         self.a_scan: np.ndarray = field(
-            default_factory=lambda: np.zeros((MAXRX, MAXRG), dtype=np.complex128)
+            default_factory=lambda: np.zeros((max_rx, max_rg), dtype=np.complex128)
         )
         # Amplitude and phase values of I/Q
         self.amplitude: np.ndarray = field(
-            default_factory=lambda: np.zeros((MAXRX, MAXRG))
+            default_factory=lambda: np.zeros((max_rx, max_rg))
         )
-        self.phase: np.ndarray = field(default_factory=lambda: np.zeros((MAXRX, MAXRG)))
-        self.ampdB: np.ndarray = field(default_factory=lambda: np.zeros((MAXRX, MAXRG)))
+        self.phase: np.ndarray = field(
+            default_factory=lambda: np.zeros((max_rx, max_rg))
+        )
+        self.ampdB: np.ndarray = field(
+            default_factory=lambda: np.zeros((max_rx, max_rg))
+        )
 
         # Range Gate Time
-        self.rg_time: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
+        self.rg_time: List[float] = field(default_factory=lambda: [0.0] * max_rg)
         # Azimuth and Zenith in radian spherical coordinates, Doppler in Hz
-        self.zenith: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
-        self.azimuth: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
-        self.doppler: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
+        self.zenith: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.azimuth: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.doppler: List[float] = field(default_factory=lambda: [0.0] * max_rg)
 
         # Error Bars on Azimuth, Zenith, Doppler
-        self.zn_err: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
-        self.az_err: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
-        self.dop_err: List[float] = field(default_factory=lambda: [0.0] * MAXRG)
+        self.zn_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.az_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.dop_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
 
         # The K vector and it's Error
-        self.vk: np.ndarray = field(default_factory=lambda: np.zeros((MAXRG, 3)))
-        self.vk_err: np.ndarray = field(default_factory=lambda: np.zeros((MAXRG, 3)))
+        self.vk: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 3)))
+        self.vk_err: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 3)))
 
         # A bad data flag.  0 is good, -1 is bad, others TBD
         self.flag: List[int] = field(
-            default_factory=lambda: [0] * MAXRG
+            default_factory=lambda: [0] * max_rg
         )  # Bad data flag
 
         # Phase0 and Correlation Coefficents in the X and Y directions
-        self.phase0: np.ndarray = field(default_factory=lambda: np.zeros((MAXRG, 2)))
-        self.corrC: np.ndarray = field(default_factory=lambda: np.zeros((MAXRG, 2)))
+        self.phase0: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 2)))
+        self.corrC: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 2)))
 
-        self.noise: List[float] = field(default_factory=lambda: [0.0] * MAXRX)
-        self.peak: List[float] = field(default_factory=lambda: [0.0] * MAXRX)
+        self.noise: List[float] = field(default_factory=lambda: [0.0] * max_rx)
+        self.peak: List[float] = field(default_factory=lambda: [0.0] * max_rx)
 
-        self.peak_range_gate: List[int] = field(default_factory=lambda: [0] * MAXRX)
+        self.peak_range_gate: List[int] = field(default_factory=lambda: [0] * max_rx)
         return

@@ -29,51 +29,41 @@ class PctType:
     pa_temperature: np.float64 = 0.0  # Amplifier temperature
     proc_range_count: np.int32 = 0  # Number of range gates kept this PRI
     proc_noise_level: np.float64 = 0.0  # Estimated noise level for this PRI
-    user: str = ""  # Spare spa`ce for user-defined information (64-character string)
+    user: str = ""  # Spare space for user-defined information (64-character string)
 
     def fix_PCT_strings(self) -> None:
         logger.info("Fixing PCT strings...")
         self.user = trim_null("\x00")
         return
 
-    def load_sct(self, sct: SctType) -> None:
+    def load_sct(self, sct: SctType, vipir_version: dict) -> None:
         logger.info(f"Reading SCT {sct.user}")
-        self.start_year, self.start_day_number, self.start_month = (
-            sct.start_year,
-            sct.start_daynumber,
-            sct.start_month,
-        )
-        self.start_day, self.start_minute, self.start_second = (
-            sct.start_day,
-            sct.start_minute,
-            sct.start_second,
-        )
-        self.pct_offset = sct.sounding_table_size  # bytes
-        self.pct_count = sct.pulse_table_size  # bytes
+        self.vipir_version = vipir_version
+        self.sct_offset = sct.sounding_table_size  # bytes
+        self.pct_offset = sct.pulse_table_size  # bytes
         self.num_receivers = sct.receiver.rx_chan
         self.num_gates = sct.timing.gate_count
-        self.echo_count = self.num_receivers * self.num_gates  # per pulse, bytes
+        self.echo_count = (
+            sct.receiver.rx_chan * sct.timing.gate_count
+        )  # per pulse, bytes
         self.total_pulse_count = (
             sct.timing.pri_count
         )  # Total pulse count for integration
-        self.frequency_count = sct.frequency.base_steps
-        self.max_range = sct.timing.gate_end * 0.15
-        # to km
-        self.min_range = sct.timing.gate_start * 0.15
-        # to km
-        self.tune_type = (
-            sct.frequency.tune_type
-        )  # 1= log 2 = linear 3 = table 4 = shuffle mode
-        self.data_offset = self.pct_count + (
-            4 * self.echo_count
-        )  # total size of pulse table and data block in bytes
+        # total size of pulse table and data block in bytes
+        # IQ ~ 2, Value Size (2 or 4 or 8), n_echoes
+        self.data_offset = self.pct_offset + (
+            2 * vipir_version["value_Size"] * self.echo_count
+        )
         return
 
     def read_pct(
-        self, fname: str, pulse_num: np.int32 = 1, unicode: str = "latin-1"
+        self, fname: str, pulse_num: np.int32 = -1, unicode: str = "latin-1"
     ) -> None:
         logger.info(f"Reading PCT Pulse: {fname}")
-        byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
+        if pulse_num <= 0:
+            raise ValueError(f"Pulse number always >= 0. You provided {pulse_num}.")
+        byte_offset = self.sct_offset + ((pulse_num - 1) * self.data_offset)
+        logger.info(f"Reading Pulse: {pulse_num}")
         # Load all PCT Type parameters
         o = np.memmap(
             fname,
@@ -89,21 +79,28 @@ class PctType:
         self.read_pct_IQRxRG(fname, pulse_num)
         return
 
-    def read_pct_IQRxRG(self, fname: str, pulse_num: np.int32 = 1) -> None:
+    def read_pct_IQRxRG(self, fname: str, pulse_num: np.int32) -> None:
         logger.info(f"Reading IQRxRG Pulse: {pulse_num}")
-        byte_offset = self.pct_offset + ((pulse_num - 1) * self.data_offset)
-        factory = [("IQRxRG", "int16", (2, self.num_receivers, self.num_gates))]
+        byte_offset = self.sct_offset + ((pulse_num - 1) * self.data_offset)
+        factory = [
+            (
+                "IQRxRG",
+                self.vipir_version["np_format"],
+                (2, self.num_receivers, self.num_gates),
+            )
+        ]
         o = np.memmap(
             fname,
             dtype=np.dtype(factory),
             mode="r",
-            offset=byte_offset + self.pct_count,
+            offset=byte_offset + self.pct_offset,
             shape=(1,),
         )
         # Read the data into memory for faster access
         setattr(self, "IQRxRG", o[0][0])
         # Data in the RIQ file is Big Endian
-        self.IQRxRG = self.IQRxRG.byteswap()
+        if self.vipir_version["swap"]:
+            self.IQRxRG = self.IQRxRG.byteswap()
         logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 

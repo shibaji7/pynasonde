@@ -145,7 +145,8 @@ Monitor_default_factory: List[Tuple] = [
 
 PCT_default_factory: List[Tuple] = [
     ("record_id", "int32"),
-    ("invalid", "int32", (4,)),
+    ("pri_ut", "float64"),
+    ("pri_time_offset", "float64"),
     ("base_id", "int32"),
     ("pulse_id", "int32"),
     ("ramp_id", "int32"),
