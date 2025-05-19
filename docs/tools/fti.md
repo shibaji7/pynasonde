@@ -7,6 +7,20 @@ Disclaimer:
 # Range-Time Interval Plots
 This function provides a powerful mechanism for targeted analysis of ionospheric data by allowing users to isolate specific frequency and range windows of interest for a chosen propagation mode (O or X). The implications are significant for research and monitoring: scientists can efficiently extract and visualize relevant signal characteristics (power and noise) from large datasets, facilitating the study of specific ionospheric phenomena, tracking layer movements, or assessing radio communication conditions within defined parameters. By automating the data filtering, processing, and visualization steps, it streamlines the workflow for identifying trends, disturbances, or features like Sporadic E layers or F-region traces within the ionosphere.
 
+<figure markdown>
+![Figure 01](../figures/RTI-001.png)
+<figcaption>Figure 01: This RTI plot from station WI937 on August 21, 2022, displays O-mode power dynamics across a full day within the specific frequency range of 3.50-4.50 MHz.
+
+The F-region shows typical diurnal variations: during nighttime hours (approx. 00:00-06:00 UT and 19:00-23:58 UT), reflections are observed at virtual heights generally between 250-350 km, exhibiting a gradual descent post-midnight and ascent pre-dawn, with some undulations visible. During daytime, the selected low frequencies (3.50-4.50 MHz) are significantly affected by D and E region absorption; consequently, the F-region trace is either completely absorbed or the reflections are from the bottomside of the F-layer, appearing as a broad, strong signal band (intense reds and yellows) extending from lower E-region heights up to around 200-250 km. The upper edge of this daytime band likely represents the height at which these specific frequencies are reflected or completely absorbed, rather than the F2 peak itself.
+
+The E-region (~90-150 km) is evident during daytime, particularly between 10:00-20:00 UT, with strong echoes (reddish hues) around 100-125 km.
+
+Notably, distinct Sporadic E (Es) layers are clearly visible. A prominent Es event occurs around 12:00-13:00 UT, appearing as a thin, intense layer (indicated by dark blue/purple colors representing very high power, ~60-70 dB) at approximately 100-110 km. Another significant Es layer with similar characteristics emerges later, around 21:00-22:00 UT, at a similar virtual height. These Es layers are much stronger and more sharply defined than the regular E-region echoes. Fainter, more diffuse Es activity might also be present at other times, for example, patchy reflections around 100-120 km near 04:00 UT.
+
+Overall, the image effectively showcases the dynamic interplay of the ionospheric E and F regions and the transient nature of powerful Sporadic E layers, all viewed through the lens of a narrow frequency band which highlights absorption effects during the day and the structure of reflecting layers when conditions permit.
+</figcaption>
+</figure>
+
 # Method: `DataSource.extract_FTI_RTI`
 
 This method extracts Frequency-Time-Intensity (FTI) and Range-Time-Intensity (RTI) data from a collection of datasets (presumably ionosonde measurements). It filters the data based on specified frequency and range limits, processes it into a Pandas DataFrame, and generates a plot visualizing the selected data.
