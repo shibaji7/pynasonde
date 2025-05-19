@@ -281,8 +281,8 @@ class DataSource(object):
         fig_title += (
             r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"
         )
-        i = Ionogram(fig_title=fig_title)
-        i.add_interval_plots(rti, mode=mode)
+        i = Ionogram(fig_title=fig_title, nrows=1, ncols=1)
+        i.add_interval_plots(rti, mode=mode, ylim=rlim)
         i.save(os.path.join(folder, fname))
         i.close()
         return rti

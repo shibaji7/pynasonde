@@ -170,16 +170,17 @@ class Ionogram(object):
         cmap: str = "Spectral",
         prange: List[float] = [5, 70],
         noise_scale: float = 1.2,
+        del_ticks: bool = False,
     ) -> None:
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
-        ax = self._add_axis()
+        ax = self._add_axis(del_ticks=del_ticks)
         ax.set_xlim(xlim)
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
         hours = mdates.HourLocator(byhour=range(0, 24, 4))
         ax.xaxis.set_major_locator(hours)
-        ax.xaxis.set_major_formatter(DateFormatter(r"%H^{%M}"))
+        ax.xaxis.set_major_formatter(DateFormatter(r"$%H^{%M}$"))
         Zval, lims = (
             np.array(df[f"{mode}_mode_power"]),
             np.array(df[f"{mode}_mode_noise"]),
