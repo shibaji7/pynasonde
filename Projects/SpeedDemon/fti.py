@@ -7,10 +7,10 @@ from pynasonde.ngi.source import DataSource
 def generate_fti_profiles(folder, fig_file_name, fig_title="", stn="", flim=[3.5, 4.5]):
     import os
 
-    os.makedirs(f"tmp/fti/{flim[0]}", exist_ok=True)
+    os.makedirs(f"../../tmp/fti/{flim[0]}", exist_ok=True)
     ds = DataSource(source_folder=folder)
     ds.load_data_sets(0, -1)
-    ds.extract_FTI_RTI(folder=f"tmp/fti/{flim[0]}", rlim=[50, 400], flim=flim)
+    ds.extract_FTI_RTI(folder=f"../../tmp/fti/{flim[0]}", rlim=[50, 400], flim=flim)
     return
 
 
@@ -30,6 +30,6 @@ for doy in range(233, 234, 1):
         folder=f"/tmp/{doy}/ionogram/",
         fig_file_name=fig_file_name,
         fig_title=fig_title,
-        stn=stn,
+        stn=stn, flim=[2.5, 3.5]
     )
     shutil.rmtree(f"/tmp/{doy}/", ignore_errors=True)
