@@ -22,7 +22,7 @@ VIPIR_VERSION_MAP = SimpleNamespace(
             vipir_version=1,  # Version identifier
             value_Size=2,  # Size of values in bytes
             np_format="int16",  # NumPy data type format
-            swap=True,  # Whether to swap byte order
+            swap=False,  # Whether to swap byte order
         ),
     )
 )
@@ -63,6 +63,8 @@ class RiqDataset:
     pcts: List[PctType] = None
     pris: List[PriType] = None
     pulset: List[List] = None
+    swap_frequency: float = 0.0
+    swap_pulset: List = None
     unicode: str = None
 
     @classmethod
@@ -118,17 +120,44 @@ class RiqDataset:
             )
             riq.pris.append(pri)
 
-            # Add PRI and PCT data to the current pulse set
-            pset.append(dict(pri=pri, pct=pct))
-
-            # Group pulses into sets of 8
-            if np.mod(j, riq.sct.frequency.pulse_count) == 0:
-                riq.pulset.append(pset)
-                pset = []
-
+        # Create pubset based on FrequencyType.tune_type
+        logger.info(
+            f"FrequencyType.tune_type: {riq.sct.frequency.tune_type}, pulse_count: {riq.sct.frequency.pulse_count}"
+        )
+        # If tune_type is 1, group pulses into sets of pulse_count
+        if riq.sct.frequency.tune_type == 1:
+            for j, pri, pct in zip(
+                range(1, riq.sct.timing.pri_count + 1), riq.pris, riq.pcts
+            ):
+                # Add PRI and PCT data to the current pulse set
+                pset.append(dict(pri=pri, pct=pct))
+                # Group pulses into sets of pulse_count
+                if np.mod(j, riq.sct.frequency.pulse_count) == 0:
+                    riq.pulset.append(pset)
+                    pset = []
+        # If tune_type is >=4, group pulses based on special frequency and pulse_count
+        if riq.sct.frequency.tune_type >= 4:
+            riq.swap_pulset = []
+            riq.swap_frequency = riq.sct.frequency.base_table[1]
+            for j, pri, pct in zip(
+                range(1, riq.sct.timing.pri_count + 1), riq.pris, riq.pcts
+            ):
+                if pct.frequency == riq.swap_frequency:
+                    # Add PRI and PCT data to the current pulse set
+                    riq.swap_pulset.append(dict(pri=pri, pct=pct))
+                else:
+                    # Add PRI and PCT data to the current pulse set
+                    pset.append(dict(pri=pri, pct=pct))
+                # Group pulses into sets of pulse_count
+                if np.mod(j, riq.sct.frequency.pulse_count * 2) == 0:
+                    riq.pulset.append(pset)
+                    pset = []
+            logger.info(
+                f"Swap Frequency: {riq.swap_frequency}, Number of swap_pulset: {len(riq.swap_pulset)}"
+            )
         # Log the number of pulses and pulse sets
         logger.info(
-            f"Number of pulses: {riq.sct.timing.pri_count}, and Pulset: {riq.sct.timing.pri_count/8}, {len(riq.pulset)}"
+            f"Number of pulses: {riq.sct.timing.pri_count}, and PRI Count: {riq.sct.timing.pri_count}, Pset Count:{riq.sct.frequency.pulse_count}, Pulset: {len(riq.pulset)}"
         )
         return riq
 
@@ -148,13 +177,18 @@ class RiqDataset:
         frequencies = np.array(frequencies) / 1e3
         # Limit to only scaned frequencies
         frequencies = frequencies[: self.sct.frequency.base_steps]
+        if self.swap_frequency > 0:
+            # If swap_frequency is set, use the swapped frequency
+            frequencies = frequencies[::2]
+
         # Locate Range gates in km from us
         range_gates = np.arange(
             self.sct.timing.gate_start * 0.15,
             self.sct.timing.gate_end * 0.15,
             self.sct.timing.gate_step * 0.15,
         )  # Converted range gates to km
-        ionogram = np.zeros((len(frequencies), len(range_gates)), dtype=np.float64)
+        ionogram = np.zeros((len(frequencies), len(range_gates)), dtype=np.float128)
+
         # Integrate the amplitude for each frequency component
         for i, pset in enumerate(self.pulset):
             # Iterate through each pulse set
@@ -163,7 +197,7 @@ class RiqDataset:
                 pri = p["pri"]
                 # Calculate the integrated amplitude for all receivers
                 ionogram[i, :] += pri.read_dB_amplitude_for_ionogram()
-
+        ionogram /= self.sct.frequency.pulse_count
         id = IonogramDataset(
             frequencies=frequencies,
             range_gates=range_gates,

@@ -34,13 +34,13 @@ class PriType:
     rgt1: np.int32 = 0
     rgt2: np.int32 = 0
 
-    # I/Q data for receiver and range gate (2, max_rx, max_rg)
+    # I/Q data for receiver and range gate (2, max_rg, max_rx)
     a_scan: np.ndarray = None
-    # Amplitude of I/Q data (max_rx, max_rg)
+    # Amplitude of I/Q data (max_rg, max_rx)
     amplitude: np.ndarray = None
-    # Phase of I/Q data (max_rx, max_rg) in radians 0 to 2*pi
+    # Phase of I/Q data (max_rg, max_rx) in radians 0 to 2*pi
     phase: np.ndarray = None
-    # Amplitude in dB (max_rx, max_rg)
+    # Amplitude in dB (max_rg, max_rx)
     ampdB: np.ndarray = None
     # Range gate / time (max_rg)
     rg_time: List[float] = None
@@ -77,10 +77,10 @@ class PriType:
     def __post_init__(self):
         logger.debug(f"Initializing PriType with frequency: {self.frequency} kHz")
         # Amplitude and phase values of I/Q
-        self.amplitude = np.sqrt(self.a_scan[0, :, :] ** 2 + self.a_scan[1, :, :] ** 2)
-        self.phase = np.arctan2(self.a_scan[1, :, :], self.a_scan[0, :, :])
+        self.amplitude = np.sqrt(self.a_scan[:, :, 0] ** 2 + self.a_scan[:, :, 1] ** 2)
+        self.phase = np.arctan2(self.a_scan[:, :, 1], self.a_scan[:, :, 0])
         self.ampdB = 10 * np.log10(self.amplitude)
-        # Range gate time in seconds
+        # Range gate time in useconds
         self.rg_time = np.arange(self.gate_start, self.gate_end, self.gate_step)
 
         # Azimuth and Zenith in radian spherical coordinates, Doppler in Hz
@@ -125,7 +125,7 @@ class PriType:
         Read the amplitude data for the ionogram.
         """
         # Integrate the amplitude data over the receivers
-        amp_iono_db = np.nansum(self.ampdB, axis=0)
+        amp_iono_db = np.nansum(self.ampdB, axis=1) / self.receiver_count
         # Replace NaN values with 0.
-        amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
+        # amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
         return amp_iono_db

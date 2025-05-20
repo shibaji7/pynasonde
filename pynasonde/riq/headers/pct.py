@@ -86,7 +86,7 @@ class PctType:
             (
                 "IQRxRG",
                 self.vipir_version["np_format"],
-                (2, self.num_receivers, self.num_gates),
+                (self.num_gates, self.num_receivers, 2),
             )
         ]
         o = np.memmap(
@@ -96,7 +96,7 @@ class PctType:
             offset=byte_offset + self.pct_offset,
             shape=(1,),
         )
-        # Read the data into memory for faster access
+        # Read the data into memory for faster access)
         setattr(self, "IQRxRG", o[0][0])
         # Data in the RIQ file is Big Endian
         if self.vipir_version["swap"]:
