@@ -30,6 +30,7 @@ for doy in range(233, 234, 1):
         folder=f"/tmp/{doy}/ionogram/",
         fig_file_name=fig_file_name,
         fig_title=fig_title,
-        stn=stn, flim=[2.5, 3.5]
+        stn=stn,
+        flim=[2.5, 3.5],
     )
     shutil.rmtree(f"/tmp/{doy}/", ignore_errors=True)

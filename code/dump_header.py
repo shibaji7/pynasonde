@@ -1,22 +1,50 @@
 fname = (
     "/home/chakras4/Research/ERAUCodeBase/readriq-2.08/Justin/PL407_2024058061501.RIQ"
 )
+import numpy as np
+
+fname = "tmp/WI937_2022233235902.RIQ"
+from pynasonde.ngi.plotlib import Ionogram
 from pynasonde.riq.headers.pct import PctType
 from pynasonde.riq.headers.pri import PriType
 from pynasonde.riq.headers.sct import SctType
-from pynasonde.riq.load import RiqDataset
+from pynasonde.riq.load import VIPIR_VERSION_MAP, RiqDataset
 
 # x, y = SctType(), PctType()
 # x.read_sct(fname)
-# x.dump_sct("tmp/PL407_2024058061501_sct.txt")
+# x.dump_sct("tmp/WI937_2022233235902_sct.txt")
 # y.load_sct(x)
 # y.read_pct(fname)
 # y.dump_pct(to_file="tmp/PL407_2024058061501_pct.txt")
 
 # pri = PriType()
 # pri.load_data(fname)
-riq = RiqDataset.create_from_file(fname)
-
+riq = RiqDataset.create_from_file(
+    fname, unicode="latin-1", vipir_version=VIPIR_VERSION_MAP.Two
+)
+i = riq.ionogram()
+# print(i.frequencies.tolist())
+p = Ionogram(ncols=1, nrows=1)
+a = i.amplitude
+a[a <= 0] = np.nan
+a = np.ma.masked_invalid(a)
+p.add_ionogram(
+    frequency=i.frequencies,
+    height=i.range_gates,
+    value=a,
+    mode="O",
+    xlabel="Frequency, MHz",
+    ylabel="Virtual Height, km",
+    ylim=[0, 1000],
+    xlim=[1, 22],
+    add_cbar=True,
+    cbar_label="O-mode Power, dB",
+    cmap="Spectral",
+    prange=[10, 70],
+    del_ticks=False,
+)
+p.save("tmp/WI937_2022233235902.png")
+p.close()
 # from pynasonde.pynasonde.ngi.source import DataSource
 
 # ds = DataSource(source_folder="./tmp/20240408/")

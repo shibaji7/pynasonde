@@ -16,10 +16,32 @@ VIPIR_VERSION_MAP = SimpleNamespace(
             vipir_version=0,  # Version identifier
             value_Size=4,  # Size of values in bytes
             np_format="int32",  # NumPy data type format
-            swap=False,  # Whether to swap byte order
+            swap=True,  # Whether to swap byte order
+        ),
+        Two=dict(
+            vipir_version=1,  # Version identifier
+            value_Size=2,  # Size of values in bytes
+            np_format="int16",  # NumPy data type format
+            swap=True,  # Whether to swap byte order
         ),
     )
 )
+
+
+@dataclass
+class IonogramDataset:
+    """
+    Represents an ionogram with frequency, range gates, and amplitude data.
+
+    Attributes:
+        frequencies (np.ndarray): Frequencies in MHz.
+        range_gates (np.ndarray): Range gates in km.
+        amplitude (np.ndarray): Amplitude data.
+    """
+
+    frequencies: np.ndarray
+    range_gates: np.ndarray
+    amplitude: np.ndarray
 
 
 @dataclass
@@ -92,6 +114,7 @@ class RiqDataset:
                 gate_end=riq.sct.timing.gate_end * 0.15,  # End of the gate in km
                 gate_step=riq.sct.timing.gate_step
                 * 0.15,  # Step size of the gate in km
+                a_scan=pct.IQRxRG,  # I/Q data for each receiver and range gate
             )
             riq.pris.append(pri)
 
@@ -99,7 +122,7 @@ class RiqDataset:
             pset.append(dict(pri=pri, pct=pct))
 
             # Group pulses into sets of 8
-            if np.mod(j, 8) == 0:
+            if np.mod(j, riq.sct.frequency.pulse_count) == 0:
                 riq.pulset.append(pset)
                 pset = []
 
@@ -107,9 +130,43 @@ class RiqDataset:
         logger.info(
             f"Number of pulses: {riq.sct.timing.pri_count}, and Pulset: {riq.sct.timing.pri_count/8}, {len(riq.pulset)}"
         )
-
         return riq
 
     def ionogram(self):
+        """
+        Returns the ionogram data from the dataset.
+        """
+        # Check if the dataset is empty
+        if not self.pcts:
+            logger.warning("Empty dataset")
+            return None
+        logger.info(
+            f"This RIQ datasets will produce {self.sct.timing.ionogram_count} ionogram(s)"
+        )
+        frequencies = self.sct.frequency.base_table
+        # Convert frequencies to MHz
+        frequencies = np.array(frequencies) / 1e3
+        # Limit to only scaned frequencies
+        frequencies = frequencies[: self.sct.frequency.base_steps]
+        # Locate Range gates in km from us
+        range_gates = np.arange(
+            self.sct.timing.gate_start * 0.15,
+            self.sct.timing.gate_end * 0.15,
+            self.sct.timing.gate_step * 0.15,
+        )  # Converted range gates to km
+        ionogram = np.zeros((len(frequencies), len(range_gates)), dtype=np.float64)
+        # Integrate the amplitude for each frequency component
+        for i, pset in enumerate(self.pulset):
+            # Iterate through each pulse set
+            for _, p in enumerate(pset):
+                # Extract PRI and PCT data
+                pri = p["pri"]
+                # Calculate the integrated amplitude for all receivers
+                ionogram[i, :] += pri.read_dB_amplitude_for_ionogram()
 
-        return
+        id = IonogramDataset(
+            frequencies=frequencies,
+            range_gates=range_gates,
+            amplitude=ionogram,
+        )
+        return id

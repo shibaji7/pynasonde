@@ -34,49 +34,98 @@ class PriType:
     rgt1: np.int32 = 0
     rgt2: np.int32 = 0
 
-    def __post_init__(self, max_rx: np.int32 = 16, max_rg: np.int32 = 64):
-        # The raw I/Q values for each receiver/range
-        self.a_scan: np.ndarray = field(
-            default_factory=lambda: np.zeros((max_rx, max_rg), dtype=np.complex128)
-        )
-        # Amplitude and phase values of I/Q
-        self.amplitude: np.ndarray = field(
-            default_factory=lambda: np.zeros((max_rx, max_rg))
-        )
-        self.phase: np.ndarray = field(
-            default_factory=lambda: np.zeros((max_rx, max_rg))
-        )
-        self.ampdB: np.ndarray = field(
-            default_factory=lambda: np.zeros((max_rx, max_rg))
-        )
+    # I/Q data for receiver and range gate (2, max_rx, max_rg)
+    a_scan: np.ndarray = None
+    # Amplitude of I/Q data (max_rx, max_rg)
+    amplitude: np.ndarray = None
+    # Phase of I/Q data (max_rx, max_rg) in radians 0 to 2*pi
+    phase: np.ndarray = None
+    # Amplitude in dB (max_rx, max_rg)
+    ampdB: np.ndarray = None
+    # Range gate / time (max_rg)
+    rg_time: List[float] = None
+    # Zenith angle in radians (max_rg) 0 to 2*pi
+    zenith: List[float] = None
+    # Azimuth angle in radians (max_rg) 0 to 2*pi
+    azimuth: List[float] = None
+    # Doppler frequency in Hz (max_rg)
+    doppler: List[float] = None
+    # Zenith error in radians (max_rg)
+    zn_err: List[float] = None
+    # Azimuth error in radians (max_rg) 0 to 2*pi
+    az_err: List[float] = None
+    # Doppler error (max_rg)
+    dop_err: List[float] = None
+    # K vector (max_rg, 3)
+    vk: np.ndarray = None
+    # Error on K vector (max_rg, 3)
+    vk_err: np.ndarray = None
+    # Bad data flag (max_rg)
+    # 0 is good, -1 is bad, others TBD
+    flag: List[int] = None
+    # Phase0 (max_rg, 2)
+    phase0: np.ndarray = None
+    # Correlation coefficients in X and Y directions (max_rg, 2)
+    corrC: np.ndarray = None
+    # Noise level (max_rx)
+    noise: List[float] = None
+    # Peak amplitude (max_rx)
+    peak: List[float] = None
+    # Peak range gate (max_rx)
+    peak_range_gate: List[int] = None
 
-        # Range Gate Time
-        self.rg_time: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+    def __post_init__(self):
+        logger.debug(f"Initializing PriType with frequency: {self.frequency} kHz")
+        # Amplitude and phase values of I/Q
+        self.amplitude = np.sqrt(self.a_scan[0, :, :] ** 2 + self.a_scan[1, :, :] ** 2)
+        self.phase = np.arctan2(self.a_scan[1, :, :], self.a_scan[0, :, :])
+        self.ampdB = 10 * np.log10(self.amplitude)
+        # Range gate time in seconds
+        self.rg_time = np.arange(self.gate_start, self.gate_end, self.gate_step)
+
         # Azimuth and Zenith in radian spherical coordinates, Doppler in Hz
-        self.zenith: List[float] = field(default_factory=lambda: [0.0] * max_rg)
-        self.azimuth: List[float] = field(default_factory=lambda: [0.0] * max_rg)
-        self.doppler: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.zenith: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
+        self.azimuth: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
+        self.doppler: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
 
         # Error Bars on Azimuth, Zenith, Doppler
-        self.zn_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
-        self.az_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
-        self.dop_err: List[float] = field(default_factory=lambda: [0.0] * max_rg)
+        self.zn_err: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
+        self.az_err: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
+        self.dop_err: List[float] = field(default_factory=lambda: [0.0] * self.max_rg)
 
         # The K vector and it's Error
-        self.vk: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 3)))
-        self.vk_err: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 3)))
+        self.vk: np.ndarray = field(default_factory=lambda: np.zeros((self.max_rg, 3)))
+        self.vk_err: np.ndarray = field(
+            default_factory=lambda: np.zeros((self.max_rg, 3))
+        )
 
         # A bad data flag.  0 is good, -1 is bad, others TBD
         self.flag: List[int] = field(
-            default_factory=lambda: [0] * max_rg
+            default_factory=lambda: [0] * self.max_rg
         )  # Bad data flag
 
         # Phase0 and Correlation Coefficents in the X and Y directions
-        self.phase0: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 2)))
-        self.corrC: np.ndarray = field(default_factory=lambda: np.zeros((max_rg, 2)))
+        self.phase0: np.ndarray = field(
+            default_factory=lambda: np.zeros((self.max_rg, 2))
+        )
+        self.corrC: np.ndarray = field(
+            default_factory=lambda: np.zeros((self.max_rg, 2))
+        )
 
-        self.noise: List[float] = field(default_factory=lambda: [0.0] * max_rx)
-        self.peak: List[float] = field(default_factory=lambda: [0.0] * max_rx)
+        self.noise: List[float] = field(default_factory=lambda: [0.0] * self.max_rx)
+        self.peak: List[float] = field(default_factory=lambda: [0.0] * self.max_rx)
 
-        self.peak_range_gate: List[int] = field(default_factory=lambda: [0] * max_rx)
+        self.peak_range_gate: List[int] = field(
+            default_factory=lambda: [0] * self.max_rx
+        )
         return
+
+    def read_dB_amplitude_for_ionogram(self) -> np.array:
+        """
+        Read the amplitude data for the ionogram.
+        """
+        # Integrate the amplitude data over the receivers
+        amp_iono_db = np.nansum(self.ampdB, axis=0)
+        # Replace NaN values with 0.
+        amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
+        return amp_iono_db
