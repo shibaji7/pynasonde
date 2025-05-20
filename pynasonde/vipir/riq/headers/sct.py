@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-from pynasonde.riq.headers.default_factory import (
+from pynasonde.vipir.riq.headers.default_factory import (
     Exciter_default_factory,
     Frequency_default_factory,
     Monitor_default_factory,

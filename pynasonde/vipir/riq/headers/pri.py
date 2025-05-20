@@ -77,9 +77,10 @@ class PriType:
     def __post_init__(self):
         logger.debug(f"Initializing PriType with frequency: {self.frequency} kHz")
         # Amplitude and phase values of I/Q
+        # self.a_scan = 0.000167 * self.a_scan
         self.amplitude = np.sqrt(self.a_scan[:, :, 0] ** 2 + self.a_scan[:, :, 1] ** 2)
         self.phase = np.arctan2(self.a_scan[:, :, 1], self.a_scan[:, :, 0])
-        self.ampdB = 10 * np.log10(self.amplitude)
+        self.ampdB = 20 * np.log10(self.amplitude)
         # Range gate time in useconds
         self.rg_time = np.arange(self.gate_start, self.gate_end, self.gate_step)
 

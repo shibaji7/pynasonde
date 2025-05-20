@@ -6,8 +6,8 @@ from loguru import logger
 
 from pynasonde.digisonde.digi_plots import DigiPlots
 from pynasonde.model.absorption.constants import pconst
-from pynasonde.polan.datasets import ScaledEntries, ScaledEvent, SimulationOutputs
-from pynasonde.polan.polan_utils import chapman_ionosphere, ne2f, parabolic_ionosphere
+from pynasonde.model.polan.datasets import ScaledEntries, ScaledEvent, SimulationOutputs
+from pynasonde.model.polan.polan_utils import chapman_ionosphere, ne2f, parabolic_ionosphere
 
 
 class Polan(object):

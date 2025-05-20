@@ -4,11 +4,11 @@ fname = (
 import numpy as np
 
 # fname = "tmp/WI937_2022233235902.RIQ"
-from pynasonde.ngi.plotlib import Ionogram
-from pynasonde.riq.headers.pct import PctType
-from pynasonde.riq.headers.pri import PriType
-from pynasonde.riq.headers.sct import SctType
-from pynasonde.riq.load import VIPIR_VERSION_MAP, RiqDataset
+from pynasonde.vipir.ngi.plotlib import Ionogram
+from pynasonde.vipir.riq.headers.pct import PctType
+from pynasonde.vipir.riq.headers.pri import PriType
+from pynasonde.vipir.riq.headers.sct import SctType
+from pynasonde.vipir.riq.load import VIPIR_VERSION_MAP, RiqDataset
 
 # x, y = SctType(), PctType()
 # x.read_sct(fname)
@@ -26,8 +26,8 @@ i = riq.ionogram()
 # print(i.frequencies.tolist())
 p = Ionogram(ncols=1, nrows=1)
 a = i.amplitude
-a[a <= 0] = np.nan
-a = np.ma.masked_invalid(a)
+# a[a <= 0] = np.nan
+# a = np.ma.masked_invalid(a)
 p.add_ionogram(
     frequency=i.frequencies,
     height=i.range_gates,
@@ -35,12 +35,11 @@ p.add_ionogram(
     mode="O",
     xlabel="Frequency, MHz",
     ylabel="Virtual Height, km",
-    ylim=[0, 1000],
-    xlim=[1, 22],
+    ylim=[50, 600],
+    xlim=[1.8, 22],
     add_cbar=True,
     cbar_label="O-mode Power, dB",
-    cmap="Reds",
-    prange=[10, 40],
+    prange=[0, 100],
     del_ticks=False,
 )
 p.save("tmp/PL407_2024058061501.png")
@@ -55,8 +54,8 @@ i = riq.ionogram()
 # # print(i.frequencies.tolist())
 p = Ionogram(ncols=1, nrows=1)
 a = i.amplitude
-a[a <= 0] = np.nan
-a = np.ma.masked_invalid(a)
+# a[a <= 0] = np.nan
+# a = np.ma.masked_invalid(a)
 p.add_ionogram(
     frequency=i.frequencies,
     height=i.range_gates,
@@ -68,8 +67,7 @@ p.add_ionogram(
     xlim=[1, 22],
     add_cbar=True,
     cbar_label="O-mode Power, dB",
-    cmap="Reds",
-    prange=[5, 15],
+    prange=[5, 30],
     del_ticks=False,
 )
 p.save("tmp/WI937_2022233235902.png")

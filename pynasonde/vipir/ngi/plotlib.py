@@ -1,13 +1,31 @@
 import datetime as dt
-from typing import List
+from types import SimpleNamespace
+from typing import List, Union
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.dates import DateFormatter
 
 import pynasonde.vipir.ngi.utils as utils
+
+COLOR_MAPS = SimpleNamespace(
+    **dict(
+        Inferno=LinearSegmentedColormap.from_list(
+            "inferno",
+            [
+                (0.0, "#000000"),  # black
+                (0.2, "#55007F"),  # dark purple
+                (0.4, "#AA00FF"),  # magenta
+                (0.6, "#FF4500"),  # reddish orange
+                (0.8, "#FFFF00"),  # yellow
+                (1.0, "#FFFFAA"),  # pale yellow
+            ],
+        )
+    )
+)
 
 
 class Ionogram(object):
@@ -50,7 +68,7 @@ class Ionogram(object):
         xlim: List[float] = [1, 22],
         add_cbar: bool = False,
         cbar_label: str = "{}-mode Power, dB",
-        cmap: str = "Greens",
+        cmap: Union[str, LinearSegmentedColormap] = COLOR_MAPS.Inferno,
         prange: List[float] = [5, 70],
         xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
         text: str = None,

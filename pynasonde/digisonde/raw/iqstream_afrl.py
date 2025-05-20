@@ -16,12 +16,25 @@ from glob import glob
 import numpy as np
 import pyfftw
 import scipy.constants as C
+from dataclasses import dataclass
 from loguru import logger
 
 from pynasonde.digisonde.raw.raw_plots import AFRLPlots
 
+@dataclass
+class IQStream:
+    start_time: datetime = None
+    end_time: datetime = None
+    range: float = None
+    us: np.ndarray = None
+    center_freq: float = None
+    sample_freq: float = None
+    n_samples: int = None
+    max_n_samples: int = None
+    samples: np.ndarray = None
+    
 
-class IQStream(object):
+class IQStreamReader(object):
     """Class to read in the binary data created by SDL/AFRL radar.
     INPUT
     t0 - when to start reading data, should be start time of file
@@ -85,27 +98,27 @@ class IQStream(object):
         """
         t0 = self.t0
         f = f if f else self.files[index]
-        ds = dict()
-        ds["start_time"] = t0
+        iq = IQStream()
+        iq.start_time = t0
         # Get parameters from filename
         # Get the center frequency in Hz
-        ds["center_freq"] = float(f[f.find("fc") + 2 : f.find("kHz")]) * 1e3
+        iq.center_freq = float(f[f.find("fc") + 2 : f.find("kHz")]) * 1e3
 
         # Get the band width frequency in Hz
-        ds["sample_freq"] = (
+        iq.sample_freq = (
             float(f[f.find("bw") + 2 : f.find("kHz", f.find("kHz") + 1)]) * 1e3
         )
 
         # Max number of samples that can be read in
-        ds["max_n_samples"] = int(ds["sample_freq"] * (1000000 - t0.microsecond) * 1e-6)
+        iq.max_n_samples = int(iq.sample_freq * (1000000 - t0.microsecond) * 1e-6)
         # Calculate number of samples to read
-        ds["n_samples"] = int(1 * ds["sample_freq"])
+        iq.n_samples = int(1 * iq.sample_freq)
 
         # Create array to store samples in
-        ds["samples"] = np.empty(ds["n_samples"], dtype="complex64")
+        iq.samples = np.empty(iq.n_samples, dtype="complex64")
 
         i_collected = 0
-        n_to_collect = ds["n_samples"]
+        n_to_collect = iq.n_samples
         # Open the data file
         with open(f, "rb") as file:
 
@@ -113,13 +126,13 @@ class IQStream(object):
             while n_to_collect > 0:
 
                 # Where to find data in file
-                i_sample = int(round(t0.microsecond * 1e-6 * ds["sample_freq"]))
+                i_sample = int(round(t0.microsecond * 1e-6 * iq.sample_freq))
 
                 # Start file at this location, move forward in each loop
                 file.seek(4 * i_sample)
 
                 # Calculate number of subsamples to read in, capped by samples left in file
-                n_subsamples = min(n_to_collect, ds["max_n_samples"])
+                n_subsamples = min(n_to_collect, iq.max_n_samples)
 
                 # Read in data from file in int16 format
                 subsamples = np.fromfile(file, dtype="int16", count=2 * n_subsamples)
@@ -134,19 +147,20 @@ class IQStream(object):
                 n_subsamples = len(subsamples)
 
                 # Write subsamples to main array
-                ds["samples"][i_collected : (i_collected + n_subsamples)] = subsamples
+                iq.samples[i_collected : (i_collected + n_subsamples)] = subsamples
 
                 # Update variables and time
                 i_collected = i_collected + n_subsamples
                 n_to_collect = n_to_collect - n_subsamples
-                t0 = t0 + timedelta(microseconds=n_subsamples / ds["sample_freq"] * 1e6)
-        ds["end_time"] = t0
-        ds["us"] = np.linspace(
-            0, i_collected / ds["sample_freq"] * 1e6, int(ds["sample_freq"])
+                t0 = t0 + timedelta(microseconds=n_subsamples / iq.sample_freq * 1e6)
+        iq.end_time = t0
+        iq.us = np.linspace(
+            0, i_collected / iq.sample_freq * 1e6, int(iq.sample_freq)
         )  # in microseconds
-        ds["range"] = 0.5 * C.c * ds["us"] * 1e-6  # to seconds and range in meters
-        logger.info(f"Sample data types: {ds['samples'].dtype}")
-        return ds
+        iq.range = 0.5 * C.c * iq.us * 1e-6  # to seconds and range in meters
+        logger.info(f"Sample data types: {iq.samples.dtype}")
+        
+        return iq
 
     def to_pyfftw(
         self, ds: dict = None, f: str = None, index: int = 0, num_threads: int = 10
@@ -233,7 +247,7 @@ class IQStream(object):
 
 if __name__ == "__main__":
     d = datetime(2023, 10, 14, 15, 56)
-    r = IQStream(d)
+    r = IQStreamReader(d)
     r.read_file()
     # ds = r.to_pyfftw()
     # p = AFRLPlots("14 Oct 2023 / PSD", date=datetime(2023, 10, 14, 15, 56))
