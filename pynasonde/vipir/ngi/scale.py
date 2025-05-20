@@ -6,9 +6,9 @@ import numpy as np
 from loguru import logger
 from scipy.optimize import curve_fit
 
-import pynasonde.ngi.utils as utils
-from pynasonde.ngi.plotlib import Ionogram
-from pynasonde.ngi.source import Dataset
+import pynasonde.vipir.ngi.utils as utils
+from pynasonde.vipir.ngi.plotlib import Ionogram
+from pynasonde.vipir.ngi.source import Dataset
 
 
 # Define the parabola function

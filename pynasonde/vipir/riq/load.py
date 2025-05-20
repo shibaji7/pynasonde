@@ -5,9 +5,9 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-from pynasonde.riq.headers.pct import PctType
-from pynasonde.riq.headers.pri import PriType
-from pynasonde.riq.headers.sct import SctType
+from pynasonde.vipir.riq.headers.pct import PctType
+from pynasonde.vipir.riq.headers.pri import PriType
+from pynasonde.vipir.riq.headers.sct import SctType
 
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = SimpleNamespace(

@@ -3,10 +3,10 @@ from dataclasses import dataclass
 import numpy as np
 from loguru import logger
 
-from pynasonde.riq.headers.default_factory import PCT_default_factory
-from pynasonde.riq.headers.pri import PriType
-from pynasonde.riq.headers.sct import SctType
-from pynasonde.riq.utils import trim_null
+from pynasonde.vipir.riq.headers.default_factory import PCT_default_factory
+from pynasonde.vipir.riq.headers.pri import PriType
+from pynasonde.vipir.riq.headers.sct import SctType
+from pynasonde.vipir.riq.utils import trim_null
 
 
 @dataclass

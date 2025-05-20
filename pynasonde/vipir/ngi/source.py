@@ -12,8 +12,8 @@ import xarray as xr
 from loguru import logger
 from pysolar.solar import get_altitude
 
-from pynasonde.ngi.plotlib import Ionogram
-from pynasonde.ngi.utils import TimeZoneConversion
+from pynasonde.vipir.ngi.plotlib import Ionogram
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 @dataclass

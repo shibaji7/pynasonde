@@ -14,7 +14,7 @@ from pynasonde.riq.headers.default_factory import (
     Station_default_factory,
     Timing_default_factory,
 )
-from pynasonde.riq.utils import trim_null
+from pynasonde.vipir.riq.utils import trim_null
 
 
 @dataclass

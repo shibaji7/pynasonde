@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.dates import DateFormatter
 
-import pynasonde.ngi.utils as utils
+import pynasonde.vipir.ngi.utils as utils
 
 
 class Ionogram(object):

@@ -127,5 +127,80 @@ class PriType:
         # Integrate the amplitude data over the receivers
         amp_iono_db = np.nansum(self.ampdB, axis=1) / self.receiver_count
         # Replace NaN values with 0.
-        # amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
+        amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
         return amp_iono_db
+
+    def calculate_zenith(self) -> None:
+        """
+        Calculate the zenith angle in radians.
+        """
+        # Calculate the zenith angle in radians
+        self.zenith = np.arccos(self.vk[:, 2] / np.linalg.norm(self.vk, axis=1))
+        return
+
+    def calculate_azimuth(self) -> None:
+        """
+        Calculate the azimuth angle in radians.
+        """
+        # Calculate the azimuth angle in radians
+        self.azimuth = np.arctan2(self.vk[:, 1], self.vk[:, 0])
+        return
+
+    def calculate_doppler(self) -> None:
+        """
+        Calculate the doppler frequency in Hz.
+        """
+        # Calculate the doppler frequency in Hz
+        self.doppler = np.sqrt(
+            self.vk[:, 0] ** 2 + self.vk[:, 1] ** 2 + self.vk[:, 2] ** 2
+        )
+        return
+
+    def calculate_errors(self) -> None:
+        """
+        Calculate the errors in the zenith, azimuth, and doppler frequencies.
+        """
+        # Calculate the errors in the zenith, azimuth, and doppler frequencies
+        self.zn_err = np.abs(
+            self.zenith - np.arccos(self.vk[:, 2] / np.linalg.norm(self.vk, axis=1))
+        )
+        self.az_err = np.abs(self.azimuth - np.arctan2(self.vk[:, 1], self.vk[:, 0]))
+        self.dop_err = np.abs(
+            self.doppler
+            - np.sqrt(self.vk[:, 0] ** 2 + self.vk[:, 1] ** 2 + self.vk[:, 2] ** 2)
+        )
+        return
+
+    def calculate_phase0(self) -> None:
+        """
+        Calculate the phase0 in radians.
+        """
+        # Calculate the phase0 in radians
+        self.phase0 = np.arctan2(self.a_scan[:, :, 1], self.a_scan[:, :, 0])
+        return
+
+    def calculate_correlation(self) -> None:
+        """
+        Calculate the correlation coefficients in the X and Y directions.
+        """
+        # Calculate the correlation coefficients in the X and Y directions
+        self.corrC = np.corrcoef(self.a_scan[:, :, 0], self.a_scan[:, :, 1])
+        return
+
+    def calculate_noise(self) -> None:
+        """
+        Calculate the noise level in dB.
+        """
+        return
+
+    def calculate_peak(self) -> None:
+        """
+        Calculate the peak amplitude in dB.
+        """
+        return
+
+    def calculate_peak_range_gate(self) -> None:
+        """
+        Calculate the peak range gate in dB.
+        """
+        return
