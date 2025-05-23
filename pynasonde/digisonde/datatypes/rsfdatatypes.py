@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class RsfHeader:
     """
@@ -93,6 +94,7 @@ class RsfHeader:
     # spare: 2 bytes
     spare: bytes = b""
 
+
 @dataclass
 class RsfFreuencyGroup:
     """
@@ -106,6 +108,7 @@ class RsfFreuencyGroup:
     group_size: int = 0
     # Frequency in 100 Hz (010000 - 450000)
     frequency: float = 0.0
+
 
 @dataclass
 class RsfData:

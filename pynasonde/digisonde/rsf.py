@@ -5,10 +5,9 @@ from dataclasses import dataclass
 import numpy as np
 from loguru import logger
 
+from pynasonde.digisonde.datatypes.rsfdatatypes import RsfHeader
 from pynasonde.digisonde.digi_utils import get_digisonde_info
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
-from pynasonde.digisonde.datatypes.rsfdatatypes import RsfHeader
-
 
 RSF_IONOGRAM_SETTINGS = {
     "128": dict(
@@ -166,14 +165,16 @@ class RsfExtractor(object):
                 t_freq = self.unpack_bcd(file.read(1)[0]) * 1e3 + self.unpack_bcd(
                     file.read(1)[0]
                 )
-                print(pol, group_size, t_freq, self.unpack_bcd(file.read(1)[0], "tuple"))
+                print(
+                    pol, group_size, t_freq, self.unpack_bcd(file.read(1)[0], "tuple")
+                )
                 print(self.unpack_bcd(file.read(1)[0]))
                 print(self.unpack_bcd(file.read(1)[0]))
                 # datasets
                 print(self.unpack_5_3(file.read(1)[0]))
                 break
         return
-    
+
     def unpack_5_3(self, bcd_byte):
         """Unpacks a 1-byte packed BCD into 5 bit MSB and 3 bit LSB."""
         high_nibble = (bcd_byte >> 5) & 0x1F
