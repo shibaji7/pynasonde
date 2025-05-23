@@ -1,6 +1,7 @@
 import datetime as dt
 import struct
 
+import numpy as np
 from loguru import logger
 
 
@@ -11,6 +12,7 @@ class DftExtractor(object):
         filename: str,
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
+        DATA_BLOCK_SIZE: int = 4096,
     ):
         """
         Initialize the DftExtractor with the given file.
@@ -20,6 +22,9 @@ class DftExtractor(object):
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
+        self.DATA_BLOCK_SIZE = DATA_BLOCK_SIZE
+        with open(self.filename, "rb") as file:
+            self.BLOCKS = int(len(file.read()) / self.DATA_BLOCK_SIZE)
         if extract_time_from_name:
             date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
             self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
@@ -34,82 +39,6 @@ class DftExtractor(object):
             logger.info(f"Station code: {self.stn_code}")
         return
 
-    def interpret_binary_data(self, data):
-        """
-        Interpret binary data in different ways: hex, ASCII, and numerical.
-
-        Args:
-            data (bytes): Binary data to interpret.
-        """
-        print("Hexadecimal Representation:")
-        print(data.hex())  # Hex representation
-
-        print("\nASCII Representation (Printable Characters Only):")
-        ascii_data = "".join(chr(b) if 32 <= b <= 126 else "." for b in data)
-        print(ascii_data)  # Replace non-printable bytes with '.'
-
-        print("\nFirst 16 Integers (if applicable):")
-        integers = [int(b) for b in data[:16]]
-        print(integers)
-
-        print("\nFirst 4 Floats (if applicable):")
-        if len(data) >= 16:
-            floats = struct.unpack("4f", data[:16])
-            print(floats)
-
-    def fetch_data_by_block_case(self, block_size: int = 4096, case_size: int = 256):
-        """
-        Reads the file line by line into a list.
-
-        Returns:
-            list: A list of strings, each representing a line from the file.
-        """
-        parsed_data = []  # Store all cases parsed from the file
-        with open(self.filename, "rb") as file:
-            block_count = 0
-            while True:
-                # Read a 4096-byte block
-                block = file.read(block_size)
-                if not block:
-                    break  # End of file
-                block_count += 1
-                print(type(block), len(block))
-                print(type(block[0:8]), len(block[0:8]))
-                print(self.interpret_binary_data(block))
-                record_type = block[0:8]  # First byte is the Record Type
-                print(record_type)
-                if record_type != 0x0A:  # Verify the Record Type
-                    raise ValueError(
-                        f"Unexpected Record Type in block {block_count}: {record_type}"
-                    )
-                for i in range(16):  # Process 16 cases per block
-                    start = 1 + i * case_size
-                    end = start + case_size
-
-                    if end > len(block):
-                        break  # End of block
-
-                    case = block[start:end]
-
-                    # Extract amplitudes and phases
-                    amplitudes = list(case[:128])  # First 128 bytes
-                    phases = list(case[128:])  # Next 128 bytes
-
-                    parsed_data.append(
-                        {
-                            "block": block_count,
-                            "case": i + 1,
-                            "amplitudes": amplitudes,
-                            "phases": phases,
-                        }
-                    )
-
-            # Check for end markers (256 bytes of 0xEE at the end of the file)
-            footer = file.read()
-            if footer and all(byte == 0xEE for byte in footer[:256]):
-                print("End marker detected.")
-        return
-
     def extract(self):
         """
         Main method to extract data from the dft file and populate the sao_struct dictionary.
@@ -117,21 +46,16 @@ class DftExtractor(object):
         Returns:
             dict: The populated dft_struct dictionary containing all extracted data.
         """
-        self.fetch_data_by_block_case()
-        # print(dft_arch_list)
+        with open(self.filename, "rb") as file:
+            for n in range(self.BLOCKS):
+                logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
+                print(struct.unpack("B", file.read(1))[0])
+                break
         return
 
 
 if __name__ == "__main__":
-    # extractor = DftExtractor("tmp/KR835_2023286235715.DFT", True, True)
-    # extractor.extract()
-    with open("tmp/KR835_2023286235715.DFT", "rb") as file:
-        block = file.read(4096)  # Read the first 16 bytes
-        import chardet
-
-        encoding = chardet.detect(block)["encoding"]
-        # print("First 16 bytes:", block)
-        # print("Hexadecimal:", block.hex())
-        print(encoding)
-        # record_type = struct.unpack('>H', block[4:6])[0]
-        # print(record_type)
+    extractor = DftExtractor(
+        "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286235715.DFT", True, True
+    )
+    extractor.extract()

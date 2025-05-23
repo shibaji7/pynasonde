@@ -5,10 +5,22 @@ from loguru import logger
 
 from pynasonde.digisonde.digi_plots import SkySummaryPlots
 from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
-from pynasonde.ngi.utils import TimeZoneConversion
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
-def get_indent(line):
+def get_indent(line: str) -> int:
+    """
+    Get the indentation level of a line.
+    Args:
+        line (str): The line to check.
+    Returns:
+        int: The indentation level (number of leading spaces).
+    """
+    # Count the number of leading spaces in the line
+    # This assumes that the line is indented with spaces, not tabs
+    # and that the indentation level is consistent
+    # (e.g., 4 spaces per level)
+    # You can adjust the number of spaces per level as needed
     return len(line) - len(line.lstrip())
 
 
@@ -19,6 +31,8 @@ class SkyExtractor(object):
         filename: str,
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
+        n_fft: int = 256,
+        delta_freq: float = 50,  # in Hz
     ):
         """
         Initialize the SkyExtractor with the given file.
@@ -28,6 +42,9 @@ class SkyExtractor(object):
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
+        self.n_fft = n_fft
+        self.delta_freq = delta_freq
+        self.l0 = n_fft // 2
         if extract_time_from_name:
             date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
             self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
@@ -147,7 +164,7 @@ class SkyExtractor(object):
         _i = 0
         while _i < len(sky_arch_list):
             line_indent, sky_arch = self.parse_line(sky_arch_list, _i)
-            # print(">", _i, line_indent, sky_arch)
+            print(">", _i, line_indent, sky_arch)
             if line_indent in [1, 2]:  # Consider it first 'Data Header'
                 ds = dict(
                     data_header=self.parse_data_header(sky_arch),
@@ -202,6 +219,16 @@ class SkyExtractor(object):
         _i = _i + 5 if n_sources <= 26 else _i + (5 * (int(n_sources / 26) + 1))
         return data, _i
 
+    def get_doppler_freq(self, L: float) -> float:
+        """
+        Convert Doppler frequency to MHz.
+        Args:
+            L (float): The Doppler frequency in Hz.
+        Returns:
+            float: The Doppler frequency in MHz.
+        """
+        return L * self.delta_freq / self.n_fft
+
     def to_pandas(self) -> pd.DataFrame:
         """Convert dataset to pandas dataframe"""
         df = pd.DataFrame()
@@ -226,6 +253,9 @@ class SkyExtractor(object):
                                 y_coord=fh.sky_data.y_coords[i],
                                 spect_amp=fh.sky_data.spect_amp[i],
                                 spect_dop=fh.sky_data.spect_dop[i],
+                                spect_dop_freq=self.get_doppler_freq(
+                                    fh.sky_data.spect_dop[i]
+                                ),
                                 rms_error=fh.sky_data.rms_error[i],
                                 datetime=self.date if hasattr(self, "date") else None,
                                 local_datetime=(
@@ -253,6 +283,7 @@ if __name__ == "__main__":
     skyplot = SkySummaryPlots()
     skyplot.plot_skymap(
         df,
+        zparam="spect_dop_freq",
         text=f"Skymap:\n {extractor.stn_code} / {extractor.local_time.strftime('%H:%M LT, %d %b %Y')}",
     )
     skyplot.save("tmp/extract_sky.png")

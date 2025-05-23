@@ -8,6 +8,7 @@ DFARS 252.227-7014. All other rights reserved.
 """
 
 import os
+from dataclasses import dataclass
 
 # Needed libaries
 from datetime import datetime, timedelta
@@ -16,10 +17,10 @@ from glob import glob
 import numpy as np
 import pyfftw
 import scipy.constants as C
-from dataclasses import dataclass
 from loguru import logger
 
 from pynasonde.digisonde.raw.raw_plots import AFRLPlots
+
 
 @dataclass
 class IQStream:
@@ -32,7 +33,7 @@ class IQStream:
     n_samples: int = None
     max_n_samples: int = None
     samples: np.ndarray = None
-    
+
 
 class IQStreamReader(object):
     """Class to read in the binary data created by SDL/AFRL radar.
@@ -159,7 +160,7 @@ class IQStreamReader(object):
         )  # in microseconds
         iq.range = 0.5 * C.c * iq.us * 1e-6  # to seconds and range in meters
         logger.info(f"Sample data types: {iq.samples.dtype}")
-        
+
         return iq
 
     def to_pyfftw(
