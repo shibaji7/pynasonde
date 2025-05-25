@@ -49,8 +49,11 @@ class DftExtractor(object):
         with open(self.filename, "rb") as file:
             for n in range(self.BLOCKS):
                 logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
-                print(struct.unpack("B", file.read(1))[0])
-                break
+                print(hex(struct.unpack("B", file.read(1))[0]))
+                print([struct.unpack("B", file.read(1))[0] for i in range(127)])
+                print([struct.unpack("B", file.read(1))[0] for i in range(128)])
+                file.read(4095-127-128)
+                if n==1: break
         return
 
 

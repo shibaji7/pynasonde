@@ -5,7 +5,12 @@ from dataclasses import dataclass
 import numpy as np
 from loguru import logger
 
-from pynasonde.digisonde.datatypes.rsfdatatypes import RsfHeader
+from pynasonde.digisonde.datatypes.rsfdatatypes import (
+    RsfDataFile,
+    RsfDataUnit,
+    RsfFreuencyGroup,
+    RsfHeader,
+)
 from pynasonde.digisonde.digi_utils import get_digisonde_info
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
@@ -76,8 +81,10 @@ class RsfExtractor(object):
         Returns:
             dict: The populated rsf_struct dictionary containing all extracted data.
         """
+        rsf_data = RsfDataFile(rsf_data_units=[])
         with open(self.filename, "rb") as file:
             for n in range(self.BLOCKS):
+                rsf_data_unit = RsfDataUnit(frequency_groups=[])
                 blk_size = self.DATA_BLOCK_SIZE
                 logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
                 h = RsfHeader(
@@ -156,32 +163,58 @@ class RsfExtractor(object):
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                 )
+                freq_group_settings = RSF_IONOGRAM_SETTINGS[
+                    str(int(h.number_of_heights))
+                ]
+                h.number_of_frequency_groups = freq_group_settings["number_freq_blocks"]
                 blk_size -= 60
-                print(h)
-                # file.read()
-                pol, group_size = self.unpack_bcd(file.read(1)[0], "tuple")
-                pol = "O" if pol == 3 else "X"
-                group_size = RSF_IONOGRAM_SETTINGS[str(int(h.number_of_heights))]
-                t_freq = self.unpack_bcd(file.read(1)[0]) * 1e3 + self.unpack_bcd(
-                    file.read(1)[0]
-                )
-                print(
-                    pol, group_size, t_freq, self.unpack_bcd(file.read(1)[0], "tuple")
-                )
-                print(self.unpack_bcd(file.read(1)[0]))
-                print(self.unpack_bcd(file.read(1)[0]))
-                # datasets
-                print(self.unpack_5_3(file.read(1)[0]))
-                break
+
+                for _ in range(h.number_of_frequency_groups):
+                    pol, group_size = self.unpack_bcd(file.read(1)[0], "tuple")
+                    pol = "O" if pol == 3 else "X"
+                    fg = RsfFreuencyGroup(
+                        pol=pol,
+                        group_size=group_size,
+                        frequency_reading=(
+                            self.unpack_bcd(file.read(1)[0]) * 1e3
+                            + self.unpack_bcd(file.read(1)[0])
+                        ),
+                    )
+                    fg.offset, fg.additional_gain = self.unpack_bcd(
+                        file.read(1)[0], "tuple"
+                    )
+                    fg.seconds = self.unpack_bcd(file.read(1)[0])
+                    fg.mpa = self.unpack_bcd(file.read(1)[0])
+                    two_bytes = [
+                        [
+                            self.unpack_5_3(file.read(1)[0]),
+                            self.unpack_5_3(file.read(1)[0]),
+                        ]
+                        for _ in range(freq_group_settings["number_range_bins"])
+                    ]
+                    two_bytes = np.array(two_bytes)
+                    fg.amplitude = two_bytes[:, 0, 0]
+                    fg.dop_num = two_bytes[:, 0, 1]
+                    fg.phase = two_bytes[:, 1, 0]
+                    fg.azimuth = two_bytes[:, 1, 1]
+                    fg.setup()
+                    blk_size -= 2 * freq_group_settings["number_range_bins"] + 6
+                    rsf_data_unit.frequency_groups.append(fg)
+                rsf_data_unit.header = h
+                # Cleaning remaining bytes
+                if blk_size > 0:
+                    logger.debug(f"Cleaning remaining {blk_size} bytes")
+                    file.read(blk_size)
+                rsf_data.rsf_data_units.append(rsf_data_unit)
         return
 
-    def unpack_5_3(self, bcd_byte):
+    def unpack_5_3(self, bcd_byte: int):
         """Unpacks a 1-byte packed BCD into 5 bit MSB and 3 bit LSB."""
         high_nibble = (bcd_byte >> 5) & 0x1F
         low_nibble = bcd_byte & 0x07
-        return high_nibble, low_nibble
+        return [high_nibble, low_nibble]
 
-    def unpack_bcd(self, bcd_byte, format="int"):
+    def unpack_bcd(self, bcd_byte: int, format: str = "int"):
         """Unpacks a 1-byte packed BCD into two decimal digits."""
         high_nibble = (bcd_byte >> 4) & 0x0F
         low_nibble = bcd_byte & 0x0F

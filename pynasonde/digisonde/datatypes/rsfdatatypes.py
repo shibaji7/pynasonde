@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 
+import numpy as np
+
 
 @dataclass
 class RsfHeader:
@@ -93,6 +95,11 @@ class RsfHeader:
     number_of_heights_stored: int = 0
     # spare: 2 bytes
     spare: bytes = b""
+    # Number of frequency groups
+    number_of_frequency_groups: int = 0
+
+    def setup(self):
+        return
 
 
 @dataclass
@@ -104,17 +111,83 @@ class RsfFreuencyGroup:
     # Frequency group fields
     # 0 (no) 1 (yes)
     pol: str = ""
-    # Units; 1-512
+    # Units; encoded 2 (262), 3 (504), 4 (1008)
     group_size: int = 0
-    # Frequency in 100 Hz (010000 - 450000)
-    frequency: float = 0.0
+    # within the ionogram frequency range; 10 kHz
+    frequency_reading: float = 0.0
+    # Offset, 0 (-20 kHz) 1 (-10 kHz) 2 (no offset) 3 (+10 kHz) 4 (+20 kHz) 5 (search failure) E (forced) F (no transmission)
+    offset: int = 0
+    # 3 dB; Range 0-15
+    additional_gain: float = 0.0
+    # 00-59
+    seconds: int = 0
+    # Most Probable Amplitude; 0-31
+    mpa: float = 0.0
+    # amplitude, 3 dB * 0-31
+    amplitude: np.array = None
+    # Dopler num, 0-7
+    dop_num: np.array = None
+    # Phase, 0-31; Units 11.25 deg or 1 km
+    phase: np.array = None
+    # Units 60 deg; Range 0-7
+    azimuth: np.array = None
+
+    def setup(self):
+        """
+        Configures and converts the instance attributes to their appropriate units.
+
+        This method performs the following conversions:
+        - Converts `azimuth` from minutes to degrees by multiplying by 60.
+        - Converts `phase` from units to degrees by multiplying by 11.25.
+        - Converts `amplitude` from units to decibels (dB) by multiplying by 3.
+        - Converts `offset` to a string representation.
+        - Converts `mpa` from units to decibels (dB) by multiplying by 3.
+        - Converts `additional_gain` from units to decibels (dB) by multiplying by 3.
+        - Converts `frequency_reading` from kHz to Hz by multiplying by 10,000.
+
+        Returns:
+            None
+        """
+        self.azimuth *= 60  # Convert to degrees
+        self.phase = self.phase.astype(np.float64) * 11.25  # Convert to degrees
+        self.amplitude *= 3  # Convert to dB
+        self.offset = str(self.offset)
+        if self.offset == "0":
+            self.offset = -20e3  # in Hz
+        if self.offset == "1":
+            self.offset = -10e3  # in Hz
+        if self.offset == "2":
+            self.offset = 0  # in Hz
+        if self.offset == "3":
+            self.offset = 10e3  # in Hz
+        if self.offset == "4":
+            self.offset = 20e3  # in Hz
+        if self.offset == "5":
+            self.offset = "Search Failed"
+        if self.offset == "E":
+            self.offset = "Forced"
+        if self.offset == "F":
+            self.offset = "No Tx"
+        self.mpa *= 3  # convert to dB
+        self.additional_gain *= 3  # convert to dB
+        self.frequency_reading *= 10e3  # Convert to Hz
+        return
 
 
 @dataclass
-class RsfData:
+class RsfDataUnit:
     """
-    Class to represent the data of an RSF file.
+    Class to represent the data of an RSF Block 4096 bytes.
     """
 
     header: RsfHeader = None
     frequency_groups: List[RsfFreuencyGroup] = None
+
+
+@dataclass
+class RsfDataFile:
+    """
+    Class to represent the data of an RSF file.
+    """
+
+    rsf_data_units: List[RsfDataUnit] = None
