@@ -31,7 +31,7 @@ class SkyExtractor(object):
         filename: str,
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
-        n_fft: int = 256,
+        n_fft: int = 2048,
         delta_freq: float = 50,  # in Hz
     ):
         """
@@ -285,6 +285,8 @@ if __name__ == "__main__":
         df,
         zparam="spect_dop_freq",
         text=f"Skymap:\n {extractor.stn_code} / {extractor.local_time.strftime('%H:%M LT, %d %b %Y')}",
+        cmap="jet",
+        clim=[-3.1, 3.1],
     )
     skyplot.save("tmp/extract_sky.png")
     skyplot.close()

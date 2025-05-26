@@ -104,23 +104,23 @@ class RsfExtractor(object):
                     schedule=self.unpack_bcd(file.read(1)[0]),
                     program=self.unpack_bcd(file.read(1)[0]),
                     start_frequency=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e5
-                        + self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        + self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
-                    coarse_frequency_step=self.unpack_bcd(file.read(1)[0]) * 1e3
+                    coarse_frequency_step=self.unpack_bcd(file.read(1)[0]) * 1e2
                     + self.unpack_bcd(file.read(1)[0]),
                     stop_frequency=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e5
-                        + self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        + self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     fine_frequency_step=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     num_small_steps_in_scan=struct.unpack("b", file.read(1))[0],
-                    phase_code=struct.unpack("b", file.read(1))[0],
+                    phase_code=self.unpack_bcd(file.read(1)[0]),
                     option_code=struct.unpack("b", file.read(1))[0],
                     number_of_samples=self.unpack_bcd(file.read(1)[0]),
                     pulse_repetition_rate=(
@@ -128,7 +128,7 @@ class RsfExtractor(object):
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     range_start=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     range_increment=self.unpack_bcd(file.read(1)[0]),
@@ -137,7 +137,7 @@ class RsfExtractor(object):
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     delay=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     base_gain=self.unpack_bcd(file.read(1)[0]),
@@ -151,11 +151,11 @@ class RsfExtractor(object):
                     cit_length=struct.unpack("H", file.read(2))[0],
                     journal=struct.unpack("B", file.read(1))[0],
                     bottom_height_window=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     top_height_window=(
-                        self.unpack_bcd(file.read(1)[0]) * 1e3
+                        self.unpack_bcd(file.read(1)[0]) * 1e2
                         + self.unpack_bcd(file.read(1)[0])
                     ),
                     number_of_heights_stored=(
@@ -176,7 +176,7 @@ class RsfExtractor(object):
                         pol=pol,
                         group_size=group_size,
                         frequency_reading=(
-                            self.unpack_bcd(file.read(1)[0]) * 1e3
+                            self.unpack_bcd(file.read(1)[0]) * 1e2
                             + self.unpack_bcd(file.read(1)[0])
                         ),
                     )

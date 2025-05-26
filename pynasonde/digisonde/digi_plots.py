@@ -418,7 +418,7 @@ class SkySummaryPlots(DigiPlots):
 
         row["r"], row["theta"] = (
             np.sqrt(row[xparam] ** 2 + row[yparam] ** 2),
-            np.arctan2(row[yparam], row[xparam]),
+            np.arctan2(row[yparam], row[xparam]) + np.pi / 2,
         )
         row["marker"] = "+" if row[zparam] > 0 else "o"
         return row
@@ -622,3 +622,31 @@ class SkySummaryPlots(DigiPlots):
             return
         else:
             return dvlplot
+
+
+class RsfIonogram(DigiPlots):
+
+    def __init__(
+        self,
+        fig_title: str = "",
+        nrows: int = 1,
+        ncols: int = 1,
+        font_size: float = 10,
+        figsize: tuple = (3, 3),
+        date: dt.datetime = None,
+        date_lims: List[dt.datetime] = [],
+        subplot_kw: dict = None,
+        draw_local_time: bool = False,
+    ):
+        super().__init__(
+            fig_title,
+            nrows,
+            ncols,
+            font_size,
+            figsize,
+            date,
+            date_lims,
+            subplot_kw,
+            draw_local_time,
+        )
+        return

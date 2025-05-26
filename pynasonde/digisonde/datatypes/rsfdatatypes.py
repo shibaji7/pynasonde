@@ -98,7 +98,18 @@ class RsfHeader:
     # Number of frequency groups
     number_of_frequency_groups: int = 0
 
-    def setup(self):
+    def __post_init__(self):
+        self.start_frequency *= 1e2  # to Hz
+        self.coarse_frequency_step *= 1e3  # to Hz
+        self.stop_frequency *= 1e2  # to Hz
+        self.fine_frequency_step *= 1e3  # to Hz
+        if self.range_increment == 2:
+            self.range_increment = 2.5
+        elif self.range_increment == 5:
+            self.range_increment = 5
+        elif self.range_increment == 10:
+            self.range_increment = 10
+        self.threshold = 3 * (self.threshold - 10) if self.threshold else np.nan
         return
 
 
