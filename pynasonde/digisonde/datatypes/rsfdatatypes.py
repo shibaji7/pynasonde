@@ -1,3 +1,4 @@
+import datetime as dt
 from dataclasses import dataclass
 from typing import List
 
@@ -110,6 +111,9 @@ class RsfHeader:
         elif self.range_increment == 10:
             self.range_increment = 10
         self.threshold = 3 * (self.threshold - 10) if self.threshold else np.nan
+        self.date = dt.datetime(
+            self.year, self.month, self.dom, self.hour, self.minute, self.second
+        )
         return
 
 
@@ -142,6 +146,8 @@ class RsfFreuencyGroup:
     phase: np.array = None
     # Units 60 deg; Range 0-7
     azimuth: np.array = None
+    # Height, Dynamic range; Units km
+    height: np.array = None
 
     def setup(self):
         """
@@ -182,6 +188,7 @@ class RsfFreuencyGroup:
         self.mpa *= 3  # convert to dB
         self.additional_gain *= 3  # convert to dB
         self.frequency_reading *= 10e3  # Convert to Hz
+        self.height = np.zeros_like(self.amplitude, dtype=np.float64)
         return
 
 
@@ -193,6 +200,22 @@ class RsfDataUnit:
 
     header: RsfHeader = None
     frequency_groups: List[RsfFreuencyGroup] = None
+
+    def setup(self):
+        """
+        Configures the RSF data unit by setting up each frequency group.
+
+        This method iterates through each frequency group in the `frequency_groups` list
+        and calls the `setup` method on each group to perform necessary conversions and configurations.
+
+        Returns:
+            None
+        """
+        for group in self.frequency_groups:
+            group.height = self.header.range_start + (
+                np.arange(len(group.height)) * self.header.range_increment
+            )
+        return
 
 
 @dataclass

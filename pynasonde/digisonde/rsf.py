@@ -1,8 +1,10 @@
+import copy
 import datetime as dt
 import struct
-from dataclasses import dataclass
+from typing import List
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.datatypes.rsfdatatypes import (
@@ -81,7 +83,7 @@ class RsfExtractor(object):
         Returns:
             dict: The populated rsf_struct dictionary containing all extracted data.
         """
-        rsf_data = RsfDataFile(rsf_data_units=[])
+        self.rsf_data = RsfDataFile(rsf_data_units=[])
         with open(self.filename, "rb") as file:
             for n in range(self.BLOCKS):
                 rsf_data_unit = RsfDataUnit(frequency_groups=[])
@@ -205,16 +207,64 @@ class RsfExtractor(object):
                 if blk_size > 0:
                     logger.debug(f"Cleaning remaining {blk_size} bytes")
                     file.read(blk_size)
-                rsf_data.rsf_data_units.append(rsf_data_unit)
+                rsf_data_unit.setup()
+                self.rsf_data.rsf_data_units.append(rsf_data_unit)
         return
 
-    def unpack_5_3(self, bcd_byte: int):
+    def add_dicts_selected_keys(self, d0, du, keys=None) -> dict:
+        if keys is None:
+            return d0 | du
+        else:
+            return d0 | {k: du[k] for k in keys}
+
+    def to_pandas(self) -> pd.DataFrame:
+        """Converts the extracted RSF data to a pandas DataFrame."""
+        self.records = []
+        for du in self.rsf_data.rsf_data_units:
+            for fg in du.frequency_groups:
+                recs = []
+                d0 = self.add_dicts_selected_keys(dict(), du.header.__dict__)
+                d0 = self.add_dicts_selected_keys(
+                    d0,
+                    fg.__dict__,
+                    keys=[
+                        "pol",
+                        "group_size",
+                        "frequency_reading",
+                        "offset",
+                        "additional_gain",
+                        "seconds",
+                        "mpa",
+                    ],
+                )
+                for am, dn, p, az, h in zip(
+                    fg.amplitude,
+                    fg.dop_num,
+                    fg.phase,
+                    fg.azimuth,
+                    fg.height,
+                ):
+                    d = copy.copy(d0)
+                    d["amplitude"] = am
+                    d["dop_num"] = dn
+                    d["phase"] = p
+                    d["azimuth"] = az
+                    d["height"] = h
+                    recs.append(d)
+                self.records.extend(recs)
+        if len(self.records):
+            logger.info(f"Extracted {len(self.records)} records from RSF file.")
+            self.records = pd.DataFrame.from_dict(self.records)
+            self.records["date"] = pd.to_datetime(self.records["date"], utc=True)
+        return self.records
+
+    def unpack_5_3(self, bcd_byte: int) -> List[int]:
         """Unpacks a 1-byte packed BCD into 5 bit MSB and 3 bit LSB."""
         high_nibble = (bcd_byte >> 5) & 0x1F
         low_nibble = bcd_byte & 0x07
         return [high_nibble, low_nibble]
 
-    def unpack_bcd(self, bcd_byte: int, format: str = "int"):
+    def unpack_bcd(self, bcd_byte: int, format: str = "int") -> int | tuple:
         """Unpacks a 1-byte packed BCD into two decimal digits."""
         high_nibble = (bcd_byte >> 4) & 0x0F
         low_nibble = bcd_byte & 0x0F
@@ -231,3 +281,16 @@ if __name__ == "__main__":
         "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286235456.RSF", True, True
     )
     extractor.extract()
+    df = extractor.to_pandas()
+    from pynasonde.digisonde.digi_plots import RsfIonogram
+
+    print(df.head())
+    r = RsfIonogram()
+    r.add_ionogram(
+        df[df.pol=="X"],
+        xparam="frequency_reading",
+        yparam="height",
+        zparam="amplitude",
+    )
+    r.save("tmp/extract_rsf.png")
+    r.close()

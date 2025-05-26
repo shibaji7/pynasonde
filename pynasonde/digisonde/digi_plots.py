@@ -650,3 +650,63 @@ class RsfIonogram(DigiPlots):
             draw_local_time,
         )
         return
+
+    def add_ionogram(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_reading",
+        yparam: str = "height",
+        zparam: str = "amplitude",
+        cbar_label: str = "Amplitude, dB",
+        cmap: str = "Spectral",
+        prange: List[float] = [5, 20],
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        ylim: List[float] = [80, 600],
+        xlim: List[float] = [1, 22],
+        xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
+        text: str = None,
+        del_ticks: bool = False,
+        ms: float = 0.5,
+        marker: str = "s",
+        zorder: int = 2,
+        lower_plimit: float = 5,
+    ):
+        utils.setsize(self.font_size)
+        ax = self.get_axes(del_ticks)
+        ax.set_xlim(np.log10(xlim))
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
+        ax.set_ylim(ylim)
+        ax.set_ylabel(
+            ylabel,
+            fontdict={"size": self.font_size},
+        )
+        df[xparam] = df[xparam].astype(float) / 1e6  # Convert to MHz
+        df = df[df[xparam] != 0.0]
+        df[zparam] = df[zparam].replace(0, np.nan)  # Convert to nans
+        df = df[df[zparam] >= lower_plimit]
+        ax.scatter(
+            np.log10(df[xparam]),
+            df[yparam],
+            c=df[zparam],
+            zorder=zorder,
+            s=ms,
+            marker=marker,
+            cmap=cmap,
+            vmax=prange[1],
+            vmin=prange[0],
+        )
+        if np.logical_not(del_ticks):
+            ax.set_xticks(np.log10(xticks))
+            ax.set_xticklabels(xticks)
+        if text:
+            ax.text(
+                0.05,
+                0.9,
+                text,
+                ha="left",
+                va="center",
+                transform=ax.transAxes,
+                fontdict={"size": self.font_size},
+            )
+        return
