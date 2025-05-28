@@ -190,6 +190,8 @@ class RsfFreuencyGroup:
         self.frequency_reading *= 10e3  # Convert to Hz
         self.height = np.zeros_like(self.amplitude, dtype=np.float64)
         # Need to filter out values below threshold
+        # May need to modify some logic
+        self.amplitude[self.amplitude < self.mpa] = 0
         return
 
 

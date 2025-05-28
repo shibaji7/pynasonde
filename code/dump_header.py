@@ -46,32 +46,32 @@ p.save("tmp/PL407_2024058061501.png")
 p.close()
 # from pynasonde.pynasonde.ngi.source import DataSource
 
-fname = "tmp/WI937_2022233235902.RIQ"
-riq = RiqDataset.create_from_file(
-    fname, unicode="latin-1", vipir_version=VIPIR_VERSION_MAP.Two
-)
-i = riq.ionogram()
-# # print(i.frequencies.tolist())
-p = Ionogram(ncols=1, nrows=1)
-a = i.amplitude
-# a[a <= 0] = np.nan
-# a = np.ma.masked_invalid(a)
-p.add_ionogram(
-    frequency=i.frequencies,
-    height=i.range_gates,
-    value=a,
-    mode="O",
-    xlabel="Frequency, MHz",
-    ylabel="Virtual Height, km",
-    ylim=[0, 1000],
-    xlim=[1, 22],
-    add_cbar=True,
-    cbar_label="O-mode Power, dB",
-    prange=[5, 30],
-    del_ticks=False,
-)
-p.save("tmp/WI937_2022233235902.png")
-p.close()
+# fname = "tmp/WI937_2022233235902.RIQ"
+# riq = RiqDataset.create_from_file(
+#     fname, unicode="latin-1", vipir_version=VIPIR_VERSION_MAP.Two
+# )
+# i = riq.ionogram()
+# # # print(i.frequencies.tolist())
+# p = Ionogram(ncols=1, nrows=1)
+# a = i.amplitude
+# # a[a <= 0] = np.nan
+# # a = np.ma.masked_invalid(a)
+# p.add_ionogram(
+#     frequency=i.frequencies,
+#     height=i.range_gates,
+#     value=a,
+#     mode="O",
+#     xlabel="Frequency, MHz",
+#     ylabel="Virtual Height, km",
+#     ylim=[0, 1000],
+#     xlim=[1, 22],
+#     add_cbar=True,
+#     cbar_label="O-mode Power, dB",
+#     prange=[5, 30],
+#     del_ticks=False,
+# )
+# p.save("tmp/WI937_2022233235902.png")
+# p.close()
 
 # ds = DataSource(source_folder="./tmp/20240408/")
 # # # print(ds.file_paths)

@@ -123,7 +123,7 @@ class MultiplexExtractor(object):
                 # print(struct.unpack("B", file.read(1))[0])
                 # print(struct.unpack("B", file.read(1))[0])
                 # print(struct.unpack("B", file.read(1))[0])
-                file.read(self.DATA_BLOCK_SIZE-14)
+                file.read(self.DATA_BLOCK_SIZE - 14)
                 # break
                 # h = RsfHeader(
                 #     record_type=struct.unpack("B", file.read(1))[0],
