@@ -9,6 +9,7 @@ from pynasonde.digisonde.datatypes.dftdatatypes import (
     DftHeader,
     DopplerSpectra,
     DopplerSpectralBlock,
+    SubCaseHeader,
 )
 
 
@@ -58,18 +59,12 @@ class DftExtractor(object):
         with open(self.filename, "rb") as file:
             for block_index in range(self.BLOCKS):
                 logger.debug(f"Reading block {block_index+1} of {self.BLOCKS}")
-                dsb = DopplerSpectralBlock(header=DftHeader(), spectra_line=[])
+                dsb = DopplerSpectralBlock(spectra_line=[])
                 header_bits_ampl_bytes = []
-                for sub_case_index in range(self.SUB_CASE_NUMBER):
+                for _ in range(self.SUB_CASE_NUMBER):
                     amplitude_bytes = [file.read(1) for _ in range(128)]
                     phase_bytes = [file.read(1) for _ in range(128)]
                     header_bits_ampl_bytes.extend(copy.copy(amplitude_bytes))
-
-                    if sub_case_index == 0:
-                        dsb.header.record_type = hex(
-                            struct.unpack("B", amplitude_bytes[0])[0]
-                        )
-                        logger.debug(f"Record type:{dsb.header.record_type}")
                     ds = DopplerSpectra(
                         amplitude=np.array(
                             [self.unpack_7_1(a[0], False) for a in amplitude_bytes]
@@ -77,38 +72,140 @@ class DftExtractor(object):
                         phase=np.array([struct.unpack("B", p)[0] for p in phase_bytes]),
                     )
                     dsb.spectra_line.append(ds)
-
-                    # header_bits.extend(lsb_hb)
-                self.extract_header_from_amplitudes(header_bits_ampl_bytes)
-                # header_bits = "".join(map(str, header_bits))
-                # print(header_bits)
-                # print(
-                #     self.to_int(header_bits[:8]),
-                #     dsb.header,
-                #     # self.to_int(header_bits[8:24]),
-                #     # hex(self.to_int(header_bits[24:32])),
-                # )
-                # print(header_bits)
+                dsb.header = self.extract_header_from_amplitudes(header_bits_ampl_bytes)
                 if block_index == 1:
                     break
-
         return
 
-    def extract_header_from_amplitudes(self, amplitude_bytes: list):
+    def extract_header_from_amplitudes(self, amplitude_bytes: list) -> DftHeader:
+        """
+        Extracts the header information from the amplitude bytes.
+        Args:
+            amplitude_bytes (list): List of bytes containing amplitude data.
+        Returns:
+            DftHeader: An instance of DftHeader populated with the extracted information.
+        """
+
         header_bits = [(b[0] & 0x01) for b in amplitude_bytes]
         # Convert bit list to string of bits
         header_bitstring = "".join(str(b) for b in header_bits)
-        # Convert to integers
-        record_type = hex(int(header_bitstring[0:4], 2))
-        # header_length = int(header_bitstring[8:24], 2)
-        # version = hex(int(header_bitstring[24:32], 2))
-        print(
-            self.to_int(header_bitstring[0:4]),
-            self.to_int(header_bitstring[4:8]),
-            self.to_int(header_bitstring[8:12]),
+        # Extracting header information from the bitstring
+        header = DftHeader(
+            record_type=hex(int(header_bitstring[:4][::-1], 2)),
+            year=(
+                int(header_bitstring[4:8][::-1], 2) * 10
+                + int(header_bitstring[8:12][::-1], 2)
+            ),
+            doy=(
+                int(header_bitstring[12:16][::-1], 2) * 1e2
+                + int(header_bitstring[16:20][::-1], 2) * 1e1
+                + int(header_bitstring[20:24][::-1], 2)
+            ),
+            hour=(
+                int(header_bitstring[24:28][::-1], 2) * 10
+                + int(header_bitstring[28:32][::-1], 2)
+            ),
+            minute=(
+                int(header_bitstring[32:36][::-1], 2) * 10
+                + int(header_bitstring[36:40][::-1], 2)
+            ),
+            second=(
+                int(header_bitstring[40:44][::-1], 2) * 10
+                + int(header_bitstring[44:48][::-1], 2)
+            ),
+            schdule=int(header_bitstring[48:52][::-1], 2),
+            program=int(header_bitstring[52:56][::-1], 2),
+            drift_data_flag=(hex(int(header_bitstring[56:64][::-1], 2))),
+            journal=hex(int(header_bitstring[64:68][::-1], 2)),
+            first_height_sampling_winodw=int(header_bitstring[68:72][::-1], 2),
+            height_resolution=int(header_bitstring[72:76][::-1], 2),
+            number_of_heights=int(header_bitstring[76:80][::-1], 2),
+            start_frequency=(
+                int(header_bitstring[80:84][::-1], 2) * 1e5
+                + int(header_bitstring[84:88][::-1], 2) * 1e4
+                + int(header_bitstring[88:92][::-1], 2) * 1e3
+                + int(header_bitstring[92:96][::-1], 2) * 1e2
+                + int(header_bitstring[96:100][::-1], 2) * 1e1
+                + int(header_bitstring[100:104][::-1], 2)
+            ),
+            disk_io=hex(int(header_bitstring[104:108][::-1], 2)),
+            freq_search_enabled=bool(int(header_bitstring[108:112][::-1], 2)),
+            fine_frequency_step=(
+                int(
+                    header_bitstring[116:120][::-1] + header_bitstring[112:116][::-1], 2
+                )
+            ),
+            number_small_steps_scan_abs=int(header_bitstring[120:124][::-1], 2),
+            number_small_steps_scan=(
+                np.mod(
+                    int(
+                        header_bitstring[128:132][::-1]
+                        + header_bitstring[124:128][::-1],
+                        2,
+                    )
+                    + 16,
+                    32,
+                )
+                - 16
+            ),  # Adjusting for signed byte
+            start_frequency_case=(
+                int(header_bitstring[132:136][::-1], 2) * 10
+                + int(header_bitstring[136:140][::-1], 2)
+            ),
+            coarse_frequency_step=int(header_bitstring[140:144][::-1], 2),
+            end_frequency=(
+                int(header_bitstring[148:152][::-1], 2) * 10
+                + int(header_bitstring[144:148][::-1], 2)
+            ),
+            bottom_height=(int(header_bitstring[152:156][::-1], 2)),
+            top_height=(int(header_bitstring[156:160][::-1], 2)),
+            unused=int(header_bitstring[160:164][::-1], 2),
+            stn_id=(
+                int(header_bitstring[164:168][::-1], 2) * 1e2
+                + int(header_bitstring[168:172][::-1], 2) * 10
+                + int(header_bitstring[172:176][::-1], 2)
+            ),
+            phase_code=int(header_bitstring[176:180][::-1], 2),
+            multi_antenna_sequence=int(header_bitstring[180:184][::-1], 2),
+            cit_length=int(header_bitstring[184:192][::-1], 2),
+            num_doppler_lines=int(header_bitstring[192:196][::-1], 2),
+            pulse_repeat_rate=int(header_bitstring[196:200][::-1], 2),
+            waveform_type=hex(int(header_bitstring[200:204][::-1], 2)),
+            delay=int(header_bitstring[204:208][::-1], 2),
+            frequency_search_offset=int(header_bitstring[208:212][::-1], 2),
+            auto_gain=int(header_bitstring[212:216][::-1], 2),
+            heights_to_output=int(
+                header_bitstring[220:224][::-1] + header_bitstring[216:220][::-1], 2
+            ),
+            num_of_polarizations=int(header_bitstring[224:228][::-1], 2),
+            start_gain=int(header_bitstring[228:232][::-1], 2),
+            subcases=[],
         )
-        # print(self.to_int(header_bitstring[32:36][::-1]), self.to_int(header_bitstring[36:40][::-1]))
-        return
+        print(header)
+        logger.debug(f"Record type:{header.record_type}")
+        sub = SubCaseHeader(
+            frequency=(
+                int(header_bitstring[232:240][::-1], 2) * 1e4
+                + int(header_bitstring[240:248][::-1], 2) * 1e3
+                + int(header_bitstring[248:256][::-1], 2) * 1e2
+                + int(header_bitstring[256:264][::-1], 2) * 1e1
+                + int(header_bitstring[264:272][::-1], 2)
+            ),
+            height_mpa=(
+                int(header_bitstring[272:280][::-1], 2) * 1e3
+                + int(header_bitstring[280:288][::-1], 2) * 1e2
+                + int(header_bitstring[288:296][::-1], 2) * 1e1
+                + int(header_bitstring[296:304][::-1], 2)
+            ),
+            height_bin=(
+                int(header_bitstring[288:296][::-1], 2) * 1e1
+                + int(header_bitstring[296:304][::-1], 2)
+            ),
+            agc_offset=int(header_bitstring[304:312][::-1], 2),
+            polarization=int(header_bitstring[312:316][::-1], 2),
+        )
+        print(sub, header_bitstring[312:316][::-1])
+        return header
 
     def to_int(self, bin_strs: str, base: int = 2):
         """

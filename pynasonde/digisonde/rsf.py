@@ -199,7 +199,7 @@ class RsfExtractor(object):
                     fg.dop_num = two_bytes[:, 0, 1]
                     fg.phase = two_bytes[:, 1, 0]
                     fg.azimuth = two_bytes[:, 1, 1]
-                    fg.setup()
+                    fg.setup(h.threshold)
                     blk_size -= 2 * freq_group_settings["number_range_bins"] + 6
                     rsf_data_unit.frequency_groups.append(fg)
                 rsf_data_unit.header = h
@@ -260,8 +260,8 @@ class RsfExtractor(object):
 
     def unpack_5_3(self, bcd_byte: int) -> List[int]:
         """Unpacks a 1-byte packed BCD into 5 bit MSB and 3 bit LSB."""
-        high_nibble = (bcd_byte >> 5) & 0x1F
-        low_nibble = bcd_byte & 0x07
+        high_nibble = (bcd_byte >> 3) & 0b00011111
+        low_nibble = bcd_byte & 0b00000111
         return [high_nibble, low_nibble]
 
     def unpack_bcd(self, bcd_byte: int, format: str = "int") -> int | tuple:
@@ -281,16 +281,16 @@ if __name__ == "__main__":
         "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286235456.RSF", True, True
     )
     extractor.extract()
-    df = extractor.to_pandas()
-    from pynasonde.digisonde.digi_plots import RsfIonogram
+    # df = extractor.to_pandas()
+    # from pynasonde.digisonde.digi_plots import RsfIonogram
 
-    print(df.head())
-    r = RsfIonogram()
-    r.add_ionogram(
-        df[df.pol=="X"],
-        xparam="frequency_reading",
-        yparam="height",
-        zparam="amplitude",
-    )
-    r.save("tmp/extract_rsf.png")
-    r.close()
+    # print(df.head())
+    # r = RsfIonogram()
+    # r.add_ionogram(
+    #     df[df.pol == "X"],
+    #     xparam="frequency_reading",
+    #     yparam="height",
+    #     zparam="amplitude",
+    # )
+    # r.save("tmp/extract_rsf.png")
+    # r.close()

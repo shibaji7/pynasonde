@@ -6,9 +6,9 @@ import numpy as np
 
 
 @dataclass
-class RsfHeader:
+class SbfHeader:
     """
-    Class to represent the header of an RSF file.
+    Class to represent the header of an SBF file.
     """
 
     # Header fields
@@ -118,9 +118,9 @@ class RsfHeader:
 
 
 @dataclass
-class RsfFreuencyGroup:
+class SbfFreuencyGroup:
     """
-    Class to represent the frequency group of an RSF file.
+    Class to represent the frequency group of an SBF file.
     """
 
     # Frequency group fields
@@ -194,17 +194,17 @@ class RsfFreuencyGroup:
 
 
 @dataclass
-class RsfDataUnit:
+class SbfDataUnit:
     """
-    Class to represent the data of an RSF Block 4096 bytes.
+    Class to represent the data of an SBF Block 4096 bytes.
     """
 
-    header: RsfHeader = None
-    frequency_groups: List[RsfFreuencyGroup] = None
+    header: SbfHeader = None
+    frequency_groups: List[SbfFreuencyGroup] = None
 
     def setup(self):
         """
-        Configures the RSF data unit by setting up each frequency group.
+        Configures the SBF data unit by setting up each frequency group.
 
         This method iterates through each frequency group in the `frequency_groups` list
         and calls the `setup` method on each group to perform necessary conversions and configurations.
@@ -220,9 +220,9 @@ class RsfDataUnit:
 
 
 @dataclass
-class RsfDataFile:
+class SbfDataFile:
     """
-    Class to represent the data of an RSF file.
+    Class to represent the data of an SBF file.
     """
 
-    rsf_data_units: List[RsfDataUnit] = None
+    sbf_data_units: List[SbfDataUnit] = None
