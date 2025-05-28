@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import List
+from typing import List, Optional, Sequence
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -418,7 +418,7 @@ class SkySummaryPlots(DigiPlots):
 
         row["r"], row["theta"] = (
             np.sqrt(row[xparam] ** 2 + row[yparam] ** 2),
-            np.arctan2(row[yparam], row[xparam]) + np.pi / 2,
+            -np.arctan2(row[yparam], row[xparam]),  # + np.pi / 2,
         )
         row["marker"] = "+" if row[zparam] > 0 else "o"
         return row
@@ -430,7 +430,7 @@ class SkySummaryPlots(DigiPlots):
         yparam: str = "y_coord",
         zparam: str = "spect_dop",
         theta_lim: List[float] = [0, 360],
-        rlim: float = 5,
+        rlim: float = 21,
         text: str = None,
         del_ticks: bool = True,
         cmap: str = "Spectral",
@@ -439,11 +439,14 @@ class SkySummaryPlots(DigiPlots):
         cbar_label: str = "Doppler, Hz",
         ms: float = 1.5,
         zorder: int = 2,
+        nrticks: int = 5,
     ):
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_thetamin(theta_lim[0])
         ax.set_thetamax(theta_lim[1])
+        ax.set_theta_direction(-1)
+        ax.set_theta_zero_location("N")
         ax.set_rmax(rlim)
         df = df.apply(self.convert_to_rt, args=(xparam, yparam, zparam), axis=1)
         im = ax.scatter(
@@ -457,10 +460,11 @@ class SkySummaryPlots(DigiPlots):
             vmax=clim[1],
             vmin=clim[0],
         )
-        for xtick in np.linspace(0, rlim, 5):
+        for xtick in np.linspace(0, rlim - 1, nrticks):
             ax.axhline(xtick, ls="--", lw=0.4, alpha=0.6, color="k")
         for ytick in [0, np.pi / 2, np.pi, 1.5 * np.pi]:
             ax.axvline(ytick, ls="-", lw=0.4, alpha=0.6, color="k")
+
         ax.text(
             1.01,
             0.5,
