@@ -9,11 +9,17 @@ from typing import List
 import numpy as np
 import pandas as pd
 from loguru import logger
+from lxml import etree
 from tqdm import tqdm
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
-from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
-from pynasonde.ngi.utils import TimeZoneConversion
+from pynasonde.digisonde.digi_utils import (
+    get_digisonde_info,
+    is_valid_xml_data_string,
+    load_dtd_file,
+    to_namespace,
+)
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 class SaoExtractor(object):
@@ -30,6 +36,7 @@ class SaoExtractor(object):
         filename: str,
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
+        dtd_file: str = None,
     ):
         """
         Initialize the SaoExtractor with the given file.
@@ -39,9 +46,16 @@ class SaoExtractor(object):
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
+        self.xml_file = True if filename.split(".")[-1].lower() == "xml" else False
+        self.dtd_file = dtd_file
         self.sao_struct = {}
-        if extract_time_from_name:
+        if self.xml_file:
+            date = self.filename.split("_")[-2]
+            self.stn_code = self.filename.split("/")[-1].split("_")[0]
+        else:
             date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
+            self.stn_code = self.filename.split("/")[-1].split("_")[0]
+        if extract_time_from_name:
             self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
                 int(date[4:7]) - 1
             )
@@ -50,8 +64,6 @@ class SaoExtractor(object):
             )
             logger.info(f"Date: {self.date}")
         if extract_stn_from_name:
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
-            logger.info(f"Station code: {self.stn_code}")
             self.stn_info = get_digisonde_info(self.stn_code)
             self.local_timezone_converter = TimeZoneConversion(
                 lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
@@ -116,6 +128,104 @@ class SaoExtractor(object):
             else:
                 values.append(chunk)
         return values
+
+    @staticmethod
+    def element_to_dict(element):
+        from collections import defaultdict
+
+        """Recursively convert an lxml element into a Python dictionary."""
+        node = {}
+
+        # Add element attributes
+        if element.attrib:
+            node.update({f"{k}": v for k, v in element.attrib.items()})
+
+        # Process child elements
+        children = list(element)
+        if children:
+            child_dict = defaultdict(list)
+            for child in children:
+                parsed = SaoExtractor.element_to_dict(child)
+                child_dict[child.tag].append(parsed[child.tag])
+            # Flatten single-element lists
+            for k, v in child_dict.items():
+                node[k] = [v[0]] if len(v) == 1 else v
+        else:
+            # Add element text if present
+            text = element.text.strip() if element.text else None
+            if text:
+                node["values"] = (
+                    np.array(
+                        list(filter(None, text.strip().split(" "))),
+                        dtype="float64",
+                    )
+                    if is_valid_xml_data_string(text.strip())
+                    else text.strip()
+                )
+
+        return {element.tag: node}
+
+    def extract_xml(self):
+        """
+        Extracts XML data from the specified file and populates the `sao` attribute with the parsed data.
+
+        This method uses the provided DTD file to validate the XML structure and parses the XML file to extract
+        relevant data into a structured format. The parsed data is stored in the `sao` attribute.
+
+        Returns:
+            None
+        """
+        parser = load_dtd_file(self.dtd_file)
+        with open(self.filename, "r") as f:
+            tree = etree.parse(f)
+        self.sao = to_namespace(SaoExtractor.element_to_dict(tree.getroot()))
+        return
+
+    def get_height_profile_xml(self, plot_ionogram=None):
+        profile, trace = pd.DataFrame(), pd.DataFrame()
+        if hasattr(self.sao.SAORecordList.SAORecord[0], "ProfileList"):
+            profile["th"], profile["pf"] = (
+                self.sao.SAORecordList.SAORecord[0]
+                .ProfileList[0]
+                .Profile[0]
+                .Tabulated[0]
+                .AltitudeList[0]
+                .values,
+                self.sao.SAORecordList.SAORecord[0]
+                .ProfileList[0]
+                .Profile[0]
+                .Tabulated[0]
+                .ProfileValueList[0]
+                .values,
+            )
+            profile["datetime"] = self.date
+            profile["local_datetime"] = self.local_time
+            profile["lat"], profile["lon"] = (
+                self.stn_info["LAT"],
+                self.stn_info["LONG"],
+            )
+        if hasattr(self.sao.SAORecordList.SAORecord[0], "TraceList"):
+            trace_th, trace_pf = [], []
+            for j in range(int(self.sao.SAORecordList.SAORecord[0].TraceList[0].Num)):
+                # print(self.sao.SAORecordList.SAORecord.TraceList)
+                tr = self.sao.SAORecordList.SAORecord[0].TraceList[0].Trace[j]
+                trace_pf.extend(tr.FrequencyList[0].values.tolist())
+                trace_th.extend(tr.RangeList[0].values.tolist())
+            trace["th"], trace["pf"] = trace_th, trace_pf
+            trace["datetime"] = self.date
+            trace["datetime"] = self.local_time
+            trace["lat"], trace["lon"] = (self.stn_info["LAT"], self.stn_info["LONG"])
+        if plot_ionogram:
+            logger.info("Save figures...")
+            sao_plot = SaoSummaryPlots()
+            ax = sao_plot.plot_ionogram(
+                profile,
+                text=f"{self.stn_code}/{self.date.strftime('%Y-%m-%d %H:%M:%S')}",
+            )
+            sao_plot.plot_ionogram(trace, ax=ax, lw=2, kind="trace", lcolor="b")
+            sao_plot.save(plot_ionogram)
+            sao_plot.close()
+        return profile, trace
 
     def extract(self):
         """
@@ -472,9 +582,15 @@ class SaoExtractor(object):
         func_name: str = "height_profile",
     ):
         extractor = SaoExtractor(file, extract_time_from_name, extract_stn_from_name)
-        extractor.extract()
+        if extractor.xml_file:
+            extractor.extract_xml()
+        else:
+            extractor.extract()
         if func_name == "height_profile":
-            df = extractor.get_height_profile()
+            if extractor.xml_file:
+                df, _ = extractor.get_height_profile_xml()
+            else:
+                df = extractor.get_height_profile()
         elif func_name == "scaled":
             df = extractor.get_scaled_datasets()
         else:
@@ -515,12 +631,46 @@ class SaoExtractor(object):
         collections = pd.concat(collections)
         return collections
 
+    @staticmethod
+    def load_XML_files(
+        folders: List[str] = [],
+        ext: str = "*.XML",
+        n_procs: int = 4,
+        extract_time_from_name: bool = True,
+        extract_stn_from_name: bool = True,
+        func_name: str = "height_profile",
+    ):
+        collections = []
+        for folder in folders:
+            logger.info(f"Searching for files under: {os.path.join(folder, ext)}")
+            files = glob.glob(os.path.join(folder, ext))
+            files.sort()
+            logger.info(f"N files: {len(files)}")
+            with Pool(n_procs) as pool:
+                df_collection = list(
+                    tqdm(
+                        pool.imap(
+                            partial(
+                                SaoExtractor.extract_SAO,
+                                extract_time_from_name=extract_time_from_name,
+                                extract_stn_from_name=extract_stn_from_name,
+                                func_name=func_name,
+                            ),
+                            files,
+                        ),
+                        total=len(files),
+                    )
+                )
+            collections.extend(df_collection)
+        collections = pd.concat(collections)
+        return collections
+
 
 # Example Usage
 if __name__ == "__main__":
-    extractor = SaoExtractor("tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000437.SAO")
-    extractor.extract()
-    print(extractor.sao)
+    # extractor = SaoExtractor("tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000437.SAO")
+    # extractor.extract()
+    # print(extractor.sao)
     # coll1 = SaoExtractor.load_SAO_files(
     #     folders=["tmp/SKYWAVE_DPS4D_2023_10_14"],
     #     func_name="height_profile",
@@ -552,3 +702,28 @@ if __name__ == "__main__":
     #     xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
     #     fname="tmp/example_id.png",
     # )
+    extractor = SaoExtractor("tmp/20250527/KW009_2025147055000_SAO.XML", True, True)
+    extractor.extract_xml()
+    extractor.get_height_profile_xml(None)
+    # sao_plot = SaoSummaryPlots(
+    #     figsize=(3, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
+    # )
+    # sao_plot.save("tmp/kw_ion.png")
+    # sao_plot.close()
+    col = SaoExtractor.load_XML_files(["tmp/20250527/"])
+    sao_plot = SaoSummaryPlots(
+        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
+    )
+    print(col.head())
+    sao_plot.add_TS(
+        col,
+        zparam="pf",
+        prange=[2, 5],
+        zparam_lim=np.nan,
+        cbar_label=r"$f_0$, MHz",
+        scatter_ms=40,
+        plot_type="scatter",
+        ylim=[90, 150],
+    )
+    sao_plot.save("tmp/example_pf.png")
+    sao_plot.close()

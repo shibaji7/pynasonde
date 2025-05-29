@@ -273,10 +273,11 @@ class SkyExtractor(object):
 
 
 if __name__ == "__main__":
-    pass
-
     extractor = SkyExtractor(
-        "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000915.SKY", True, True
+        # "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000915.SKY",
+        "tmp/20250527/KW009_2025147000426.SKY",
+        True,
+        True,
     )
     extractor.extract().dataset[-1].freq_headers
     df = extractor.to_pandas()
@@ -284,9 +285,10 @@ if __name__ == "__main__":
     skyplot.plot_skymap(
         df,
         zparam="spect_dop_freq",
-        text=f"Skymap:\n {extractor.stn_code} / {extractor.local_time.strftime('%H:%M LT, %d %b %Y')}",
-        cmap="jet",
-        clim=[-3.1, 3.1],
+        text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M:%S UT, %d %b %Y')}",
+        # cmap="jet",
+        clim=[-1, 1],
+        rlim=6,
     )
     skyplot.save("tmp/extract_sky.png")
     skyplot.close()

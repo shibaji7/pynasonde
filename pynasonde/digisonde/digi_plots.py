@@ -1,15 +1,41 @@
 import datetime as dt
+from types import SimpleNamespace
 from typing import List, Optional, Sequence
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.dates import DateFormatter
 
 import pynasonde.digisonde.digi_utils as utils
 
 DATE_FORMAT: str = r"$%H^{%M}$"
+
+COLOR_MAPS = SimpleNamespace(
+    **dict(
+        RedBlackBlue=LinearSegmentedColormap.from_list(
+            "RedBlackBlue",
+            [
+                (0.0, "#FF0000"),  # reddish
+                (0.5, "#000000"),  # black
+                (1.0, "#131DE3E8"),  # black
+            ],
+        ),
+        Inferno=LinearSegmentedColormap.from_list(
+            "inferno",
+            [
+                (0.0, "#000000"),  # black
+                (0.2, "#55007F"),  # dark purple
+                (0.4, "#AA00FF"),  # magenta
+                (0.6, "#FF4500"),  # reddish orange
+                (0.8, "#FFFF00"),  # yellow
+                (1.0, "#FFFFAA"),  # pale yellow
+            ],
+        ),
+    )
+)
 
 
 class DigiPlots(object):
@@ -141,7 +167,7 @@ class SaoSummaryPlots(DigiPlots):
         yparam: str = "th",
         zparam: str = "pf",
         cbar_label: str = r"$f_0$, MHz",
-        cmap: str = "Spectral",
+        cmap: str | LinearSegmentedColormap = COLOR_MAPS.Inferno,
         prange: List[float] = [1, 15],
         ylabel: str = "Height, km",
         xlabel: str = "Time, UT",
@@ -153,7 +179,7 @@ class SaoSummaryPlots(DigiPlots):
         xlim: List[dt.datetime] = None,
         title: str = None,
         add_cbar: bool = True,
-        zparam_lim: float = 15.0,
+        zparam_lim: float = np.nan,
         plot_type: str = "pcolor",
         scatter_ms: float = 4,
     ):
@@ -169,7 +195,8 @@ class SaoSummaryPlots(DigiPlots):
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
         ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
-        df = df[df[zparam] <= zparam_lim]
+        if not np.isnan(zparam_lim):
+            df = df[df[zparam] <= zparam_lim]
         if plot_type == "pcolor":
             X, Y, Z = utils.get_gridded_parameters(
                 df,
@@ -292,6 +319,8 @@ class SaoSummaryPlots(DigiPlots):
         lcolor: str = "k",
         lw: float = 0.7,
         zorder: int = 2,
+        ax: plt.axes = None,
+        kind: str = "ionogram",
     ):
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
@@ -302,9 +331,24 @@ class SaoSummaryPlots(DigiPlots):
             ylabel,
             fontdict={"size": self.font_size},
         )
-        ax.plot(
-            np.log10(df[xparam]), df[yparam], ls=ls, zorder=zorder, lw=lw, color=lcolor
-        )
+        if kind == "ionogram":
+            ax.plot(
+                np.log10(df[xparam]),
+                df[yparam],
+                ls=ls,
+                zorder=zorder,
+                lw=lw,
+                color=lcolor,
+            )
+        else:
+            ax.scatter(
+                np.log10(df[xparam]),
+                df[yparam],
+                marker="s",
+                zorder=zorder,
+                s=lw,
+                color=lcolor,
+            )
         if np.logical_not(del_ticks):
             ax.set_xticks(np.log10(xticks))
             ax.set_xticklabels(xticks)
@@ -433,7 +477,7 @@ class SkySummaryPlots(DigiPlots):
         rlim: float = 21,
         text: str = None,
         del_ticks: bool = True,
-        cmap: str = "Spectral",
+        cmap: str | LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
         cbar: bool = True,
         clim: List[float] = [-5, 5],
         cbar_label: str = "Doppler, Hz",

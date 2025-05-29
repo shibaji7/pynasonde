@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from loguru import logger
+from lxml import etree
 
 
 def to_namespace(d: object) -> SimpleNamespace:
@@ -84,3 +85,26 @@ def load_station_csv(fpath: str = None) -> SimpleNamespace:
             logger.info(f"Loading from {fpath}")
             stations = pd.read_csv(fpath)
     return stations
+
+
+def load_dtd_file(fpath: str = None) -> etree.XMLParser:
+    if fpath is None:
+        fpath = importlib.resources.path("pynasonde", "saoxml.dtd")
+    logger.info(f"Loading from {str(fpath)}")
+    parser = etree.XMLParser(dtd_validation=bool(fpath))
+    return parser
+
+
+def is_valid_xml_data_string(text):
+    """Checks if a string contains only numbers, periods, and spaces.
+
+    Args:
+    text: The string to check.
+
+    Returns:
+    True if the string is valid, False otherwise.
+    """
+    for char in text:
+        if not (char.isdigit() or char == "." or char == " "):
+            return False
+    return True
