@@ -1,0 +1,477 @@
+<!--
+     ######################################################################
+
+
+               I O N O S O N D E    D A T A    E X C H A N G E
+
+
+     SAOXML Version 5.0 ...................................................
+     ......................................................................
+     DTD Release 5.0.1g ...................................................
+
+     December 14, 2018
+
+     Contributors:
+
+          University of Massachusetts Lowell (UML)
+                Bodo Reinisch
+                Ivan Galkin
+                Grigori Khmyrov
+		Jonathan McElroy
+
+          NOAA National Geophysical Data Center (NGDC)
+                Terry Bullett
+                Rob Redmon
+                Ray Conkright
+
+          United Kingdom Space Science Data Center (UKSSDC)
+                Richard Stamper
+
+          Space Research Centre, Polish Academy of Sciences
+                Iwona Stanislawska
+
+          Pushkov Institute of Terrestrial Magnetism, Ionosphere and Radio Wave Propagation
+                Konstantin Tsybulya
+
+     ......................................................................
+     ......................................................................
+-->
+
+
+<!-- ###################    D   T   D    ################################## -->
+
+  <!ELEMENT SAORecordList (SAORecord+)>
+
+<!-- ###################  S A O R e c o r d   ############################# -->
+
+  <!ELEMENT SAORecord (
+    SystemInfo?,
+    CharacteristicList,
+    TraceList?,
+    ProfileList?)
+  >
+
+  <!ATTLIST SAORecord
+    FormatVersion CDATA #FIXED    "5.0"
+    StartTimeUTC  CDATA #REQUIRED
+    URSICode      CDATA #REQUIRED
+    StationName   CDATA #REQUIRED
+    GeoLatitude   CDATA #REQUIRED
+    GeoLongitude  CDATA #REQUIRED
+    Source        (Ionosonde|Model|ISR) "Ionosonde"
+    SourceType    CDATA #REQUIRED
+    ScalerType    (manual|auto) #REQUIRED
+  >
+
+<!-- ###################  S y s t e m I n f o    ########################## -->
+
+  <!ELEMENT SystemInfo (
+    FrequencyStepping?,
+    RestrictedFrequencyList?,
+    RangeStepping?,
+    (AutoScaler?,
+    ManualScaler?),
+    Comments?,
+    ContactPerson?,
+    StartTime?,
+    SolarTerrestrialData?,
+    DigisondePreface?)
+  >
+  <!ATTLIST SystemInfo
+    UMLStationID  CDATA #IMPLIED
+    IUWDSCode     CDATA #IMPLIED
+  >
+
+<!-- ===================  F r e q u e n c y S t e p p i n g  ============== -->
+
+  <!ELEMENT FrequencyStepping (
+    LinearStepping?,
+    LogStepping?,
+    TabulatedStepping?)
+  >
+  <!ATTLIST FrequencyStepping
+    StartFrequency CDATA #REQUIRED
+    StopFrequency  CDATA #REQUIRED
+  >
+  <!ELEMENT LinearStepping EMPTY>
+  <!ATTLIST LinearStepping
+    Step         CDATA #REQUIRED
+    Units        (MHz|km) #REQUIRED
+  >
+  <!ELEMENT LogStepping EMPTY>
+  <!ATTLIST LogStepping
+    Step         CDATA #REQUIRED
+  >
+  <!ELEMENT TabulatedStepping (#PCDATA) >
+  <!ATTLIST TabulatedStepping
+    Num          CDATA #REQUIRED
+    Units        (MHz|km) #REQUIRED
+  >
+
+
+<!-- ===================  R e s t r i c t e d F r e q u e n c y L i s t === -->
+
+  <!ELEMENT RestrictedFrequencyList (
+    LowerLimitList+,
+    UpperLimitList+)
+  >
+  <!ATTLIST RestrictedFrequencyList
+    Num          CDATA #REQUIRED
+    Units        CDATA #FIXED "MHz"
+  >
+  <!ELEMENT LowerLimitList (#PCDATA) >
+  <!ELEMENT UpperLimitList (#PCDATA) >
+
+
+<!-- ===================  R a n g e S t e p p i n g  ====================== -->
+
+  <!ELEMENT RangeStepping (
+    LinearStepping?,
+    LogStepping?,
+    TabulatedStepping?)
+  >
+  <!ATTLIST RangeStepping
+    StartRange CDATA #REQUIRED
+    StopRange  CDATA #REQUIRED
+  >
+
+<!-- ===================  S c a l e r s  ================================== -->
+
+  <!ELEMENT AutoScaler EMPTY >
+  <!ATTLIST AutoScaler
+    Name         CDATA #REQUIRED
+    Version      CDATA #REQUIRED
+    ArtistFlags  CDATA #IMPLIED
+  >
+
+  <!ELEMENT ManualScaler EMPTY >
+  <!ATTLIST ManualScaler
+    Name         CDATA #REQUIRED
+  >
+
+<!-- ===================  C o m m e n t s   =============================== -->
+
+  <!ELEMENT Comments (#PCDATA) >
+
+<!-- ===================  C o n t a c t P e r s o n   ===================== -->
+
+  <!ELEMENT ContactPerson (
+    Name,
+    Affiliation?,
+    Address?,
+    Email)
+  >
+  <!ELEMENT Name (#PCDATA) >
+  <!ELEMENT Affiliation (#PCDATA) >
+  <!ELEMENT Address (#PCDATA) >
+  <!ELEMENT Email (#PCDATA) >
+
+<!-- ===================  S t a r t T i m e    ============================ -->
+
+  <!ELEMENT StartTime (#PCDATA) >
+  <!ATTLIST StartTime
+    Format       CDATA #REQUIRED
+    TimeZone     CDATA #REQUIRED
+  >
+
+
+<!-- ===================  S o l a r T e r r e s t r i a l D a t a   ======= -->
+
+
+  <!ELEMENT SolarTerrestrialData (
+    GyroFrequency?,
+    DipAngle?,
+    DeclinationAngle?,
+    SunSpotNumber?,
+    Kp?,
+    F107?  )
+  >
+  <!ELEMENT GyroFrequency EMPTY >
+  <!ATTLIST GyroFrequency
+    Val          CDATA #REQUIRED
+    Model        CDATA #IMPLIED
+    Altitude     CDATA #IMPLIED
+  >
+  <!ELEMENT DipAngle EMPTY >
+  <!ATTLIST DipAngle
+    Val          CDATA #REQUIRED
+    Model        CDATA #IMPLIED
+    Altitude     CDATA #IMPLIED
+  >
+  <!ELEMENT SunSpotNumber EMPTY >
+  <!ATTLIST SunSpotNumber
+    Val          CDATA #REQUIRED
+    Status       (predicted|actual) #IMPLIED
+  >
+  <!ELEMENT Kp EMPTY >
+  <!ATTLIST Kp
+    Val          CDATA #REQUIRED
+  >
+  <!ELEMENT F107 EMPTY >
+  <!ATTLIST F107
+    Val          CDATA #REQUIRED
+  >
+
+
+<!-- ===================  M i s c .  ====================================== -->
+
+  <!ELEMENT DigisondePreface (#PCDATA) >
+  <!ATTLIST DigisondePreface
+    Format       CDATA #REQUIRED
+  >
+
+<!-- #############  C h a r a c t e r i s t i c L i s t   ################# -->
+
+  <!ELEMENT CharacteristicList (
+    URSI*,
+    Modeled*,
+    Custom*)
+  >
+  <!ATTLIST CharacteristicList
+    Num CDATA #IMPLIED
+  >
+
+  <!ELEMENT URSI EMPTY>
+  <!ATTLIST URSI
+    ID            CDATA #REQUIRED
+    Val           CDATA #REQUIRED
+    Name          CDATA #IMPLIED
+    Units         CDATA #IMPLIED
+    QL            CDATA #IMPLIED
+    DL            CDATA #IMPLIED
+    SigFig        CDATA #IMPLIED
+    UpperBound    CDATA #IMPLIED
+    LowerBound    CDATA #IMPLIED
+    Bound         CDATA #IMPLIED
+    BoundaryType  CDATA #IMPLIED
+    Flag          (edited|validated) #IMPLIED
+  >
+
+  <!ELEMENT Modeled EMPTY>
+  <!ATTLIST Modeled
+    Name          CDATA #REQUIRED
+    Val           CDATA #REQUIRED
+    Units         CDATA #REQUIRED
+    ModelName     CDATA #IMPLIED
+    ModelOptions  CDATA #IMPLIED
+  >
+
+  <!ELEMENT Custom EMPTY>
+  <!ATTLIST Custom
+    Name          CDATA #REQUIRED
+    Val           CDATA #REQUIRED
+    Units         CDATA #REQUIRED
+    Description   CDATA #REQUIRED
+    SigFig        CDATA #IMPLIED
+    UpperBound    CDATA #IMPLIED
+    LowerBound    CDATA #IMPLIED
+    Bound         CDATA #IMPLIED
+    BoundaryType  CDATA #IMPLIED
+    Flag          (edited|validated) #IMPLIED
+  >
+
+<!-- ######################  T r a c e L i s t   ########################## -->
+
+  <!ELEMENT TraceList (Trace+)>
+  <!ATTLIST TraceList
+    Num CDATA #IMPLIED
+  >
+
+  <!ELEMENT Trace (
+      FrequencyList,
+      RangeList,
+      TraceValueList*)
+  >
+
+  <!ATTLIST Trace
+    Type          (standard|non-standard) "standard"
+    Layer         (E|Es|F|F1|F2|F3|Ea|Ep|E2) #REQUIRED
+    Multiple      CDATA #IMPLIED
+    Polarization  (O|X) #REQUIRED
+    Num           CDATA #REQUIRED
+  >
+
+
+<!-- ===================  T r a c e E l e m e n t s  ====================== -->
+
+
+  <!ELEMENT FrequencyList (#PCDATA) >
+  <!ATTLIST FrequencyList
+    Type          (float|integer) #IMPLIED
+    SigFig        CDATA #IMPLIED
+    Units         (Hz|kHz|MHz) "MHz"
+    Description   CDATA #IMPLIED
+  >
+
+  <!ELEMENT RangeList (#PCDATA) >
+  <!ATTLIST RangeList
+    Type          (float|integer) #IMPLIED
+    SigFig        CDATA #IMPLIED
+    Units         (m|km|Mm) "km"
+    Description   CDATA #IMPLIED
+  >
+
+  <!ELEMENT TraceValueList (#PCDATA) >
+  <!ATTLIST TraceValueList
+    Name          (Amplitude|NoiseLevel|DopplerShift|
+                    DopplerVelocity|Chirality|PhaseError|EastwardLocation|
+                    NorthwardLocation) #REQUIRED
+    Type          (float|integer) #IMPLIED
+    SigFig        CDATA #IMPLIED
+    Units         CDATA #IMPLIED
+    NoValue       CDATA #IMPLIED
+    Description   CDATA #IMPLIED
+  >
+
+
+<!-- ######################  P r o f i l e L i s t   ###################### -->
+
+  <!ELEMENT ProfileList (Profile+)>
+  <!ATTLIST ProfileList
+    Num           CDATA #IMPLIED
+  >
+
+  <!ELEMENT Profile (
+    (Tabulated | ShiftedChebyshevList | QuasiParabolicList | POLANList )+,
+    ProfileValley*, 
+    (TopsideChapman|TopsideVaryChap)?, 
+    AlgorithmOptions?)
+  >
+  <!ATTLIST Profile
+    Algorithm     CDATA #REQUIRED
+    AlgorithmVersion CDATA #REQUIRED
+    Type          (vertical|off-vertical|average|auroral|
+                   internal-bound|external-bound) "vertical"
+    Description   CDATA #IMPLIED
+  >
+
+
+<!-- ===================  T a b u l a t e d   ============================= -->
+
+  <!ELEMENT Tabulated (
+    AltitudeList,
+    ProfileValueList+)
+  >
+  <!ATTLIST Tabulated
+    Num           CDATA #REQUIRED
+  >
+
+  <!ELEMENT AltitudeList (
+    #PCDATA|
+    BoundList|
+    LowerBoundList|
+    UpperBoundList)*
+  >
+  <!ATTLIST AltitudeList
+    Type          (float|integer) #IMPLIED
+    SigFig        CDATA #IMPLIED
+    Units         (m|km|Mm|Re) "km"
+    Description   CDATA #IMPLIED
+  >
+
+  <!ELEMENT ProfileValueList (
+    #PCDATA|
+    BoundList|
+    LowerBoundList|
+    UpperBoundList)*
+   >
+  <!ATTLIST ProfileValueList
+    Name          (PlasmaDensity|PlasmaFrequency|TiltZenith|TiltAzimuth|
+                    VelocityNorthward|VelocitySouthward|
+                    VelocityVertical) #REQUIRED
+    Type          (float|integer) #IMPLIED
+    SigFig        CDATA #IMPLIED
+    Units         CDATA #IMPLIED
+    NoValue       CDATA #IMPLIED
+    Description   CDATA #IMPLIED
+  >
+  <!ELEMENT BoundList (#PCDATA) >
+  <!ELEMENT LowerBoundList (#PCDATA) >
+  <!ELEMENT UpperBoundList (#PCDATA) >
+
+<!-- ===================  C h e b y s h e v L i s t  ====================== -->
+
+  <!ELEMENT ShiftedChebyshevList (ShiftedChebyshev+) >
+  <!ATTLIST ShiftedChebyshevList
+    Num           CDATA #IMPLIED
+  >
+
+  <!ELEMENT ShiftedChebyshev (#PCDATA) >
+  <!ATTLIST ShiftedChebyshev
+    Region        (E|F|F1|F2|Ea) #REQUIRED
+    StartFrequency CDATA #REQUIRED
+    EndFrequency  CDATA #REQUIRED
+    PeakHeight    CDATA #REQUIRED
+    Num           CDATA #REQUIRED
+    zHalfNm       CDATA #IMPLIED
+    Error         CDATA #IMPLIED
+  >
+
+<!-- ===================  Q u a s i P a r a b o l i c L i s t  ============ -->
+
+  <!ELEMENT QuasiParabolicList (QuasiParabolic+) >
+  <!ATTLIST QuasiParabolicList
+    Num           CDATA #REQUIRED
+    EarthRadius   CDATA #REQUIRED
+  >
+
+  <!ELEMENT QuasiParabolic EMPTY >
+  <!ATTLIST QuasiParabolic
+    ID            CDATA #REQUIRED
+    StartDistance CDATA #REQUIRED
+    EndDistance   CDATA #REQUIRED
+    A             CDATA #REQUIRED
+    B             CDATA #REQUIRED
+    C             CDATA #REQUIRED
+    Error         CDATA #IMPLIED
+  >
+
+
+<!-- ===================  P O L A N L i s t  ============================= -->
+
+  <!ELEMENT POLANList (POLAN+) >
+  <!ATTLIST POLANList
+    Num           CDATA #IMPLIED
+  >
+
+  <!ELEMENT POLAN (#PCDATA) >
+  <!ATTLIST POLAN
+    Region        (E|F|F1|F2|Ea) #REQUIRED
+    Num           CDATA #REQUIRED
+    Error         CDATA #IMPLIED
+  >
+
+<!-- ===================  P r o f i l e V a l l e y   ===================== -->
+
+  <!ELEMENT ProfileValley EMPTY >
+  <!ATTLIST ProfileValley
+    Model         CDATA #IMPLIED
+    Width         CDATA #IMPLIED
+    Depth         CDATA #IMPLIED
+    StartHeight   CDATA #IMPLIED
+    StartFrequency CDATA #IMPLIED
+  >
+
+<!-- ===================  T o p s i d e C h a p m a n   =================== -->
+
+  <!ELEMENT TopsideChapman EMPTY >
+  <!ATTLIST TopsideChapman
+    PeakHeight      CDATA #IMPLIED
+    PeakDensity     CDATA #IMPLIED
+    PeakScaleHeight CDATA #IMPLIED
+  >
+
+<!-- ===================  T o p s i d e V a r y C h a p  ================== -->
+
+  <!ELEMENT TopsideVaryChap EMPTY >
+  <!ATTLIST TopsideVaryChap
+    PeakHeight            CDATA #IMPLIED
+    PeakDensity           CDATA #IMPLIED
+    PeakScaleHeight       CDATA #IMPLIED
+    TransitionHeight      CDATA #IMPLIED
+    TransitionScaleHeight CDATA #IMPLIED
+    ShapeFactor           CDATA #IMPLIED
+    
+  >
+
+  <!ELEMENT AlgorithmOptions (#PCDATA) >

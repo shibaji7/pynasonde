@@ -12,12 +12,16 @@ setup(
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
-        "pynasonde": ["config.toml", "digisonde_station_codes.csv"],
+        "pynasonde": ["config.toml", "digisonde_station_codes.csv", "saoxml.dtd"],
     },
     data_files=[
         (
             "pynasonde",
-            ["pynasonde/config.toml", "pynasonde/digisonde_station_codes.csv"],
+            [
+                "pynasonde/config.toml",
+                "pynasonde/digisonde_station_codes.csv",
+                "pynasonde/saoxml.dtd",
+            ],
         )
     ],
     install_requires=[
