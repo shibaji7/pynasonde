@@ -240,10 +240,9 @@ class SaoSummaryPlots(DigiPlots):
         xparam: str = "datetime",
         right_yparams: List[str] = ["hmF1"],
         left_yparams: List[str] = ["foF1", "foF1p", "foEs"],
-        colors: List[str] = ["r", "b", "k"],
         ylabels: List[str] = ["Frequencies, MHz", "Height, km"],
         xlabel: str = "Time, UT",
-        marker: str = ".",
+        marker: str = "s",
         major_locator: mdates.RRuleLocator = mdates.HourLocator(
             byhour=range(0, 24, 12)
         ),
@@ -251,9 +250,12 @@ class SaoSummaryPlots(DigiPlots):
         right_ylim: List = [100, 400],
         left_ylim: List = [1, 15],
         xlim: List[dt.datetime] = None,
-        ms: float = 0.6,
-        alpha: float = 0.7,
+        ms: float = 1,
+        alpha: float = 1.0,
         title: str = None,
+        right_axis_color: str = None,
+        left_axis_color: str = None,
+        color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
     ):
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
@@ -262,11 +264,14 @@ class SaoSummaryPlots(DigiPlots):
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
         ax.set_xlim(xlim)
         ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabels[0])
         ax.set_ylim(left_ylim)
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_locator(minor_locator)
         ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
+        colors = [color_map(np.random.rand()) for _ in range(len(left_yparams))]
+        left_axis_color = colors[0] if left_axis_color is None else left_axis_color
+        ax.set_ylabel(ylabels[0], color=left_axis_color)
+        ax.tick_params(axis="y", colors=left_axis_color)
         for y, col in zip(left_yparams, colors):
             ax.plot(
                 df[xparam],
@@ -284,9 +289,13 @@ class SaoSummaryPlots(DigiPlots):
         tax = None
         if len(right_yparams) > 0:
             tax = ax.twinx()
-            tax.set_ylabel(ylabels[1])
             tax.set_ylim(right_ylim)
-            colors.reverse()
+            colors = [color_map(np.random.rand()) for _ in range(len(left_yparams))]
+            right_axis_color = (
+                colors[0] if right_axis_color is None else right_axis_color
+            )
+            tax.set_ylabel(ylabels[1], color=right_axis_color)
+            tax.tick_params(axis="y", colors=right_axis_color)
             for y, col in zip(right_yparams, colors):
                 tax.plot(
                     df[xparam],

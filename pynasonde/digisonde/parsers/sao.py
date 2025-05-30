@@ -227,6 +227,23 @@ class SaoExtractor(object):
             sao_plot.close()
         return profile, trace
 
+    def get_scaled_datasets_xml(self):
+        df = pd.DataFrame()
+        if hasattr(self.sao.SAORecordList.SAORecord[0], "CharacteristicList"):
+            if hasattr(
+                self.sao.SAORecordList.SAORecord[0].CharacteristicList[0], "URSI"
+            ):
+                for u in self.sao.SAORecordList.SAORecord[0].CharacteristicList[0].URSI:
+                    df[u.Name] = [float(u.Val)]
+        if len(df):
+            df["datetime"] = self.date
+            df["local_datetime"] = self.local_time
+            df["lat"], df["lon"] = (
+                self.stn_info["LAT"],
+                self.stn_info["LONG"],
+            )
+        return df
+
     def extract(self):
         """
         Main method to extract data from the SAO file and populate the sao_struct dictionary.
@@ -592,7 +609,10 @@ class SaoExtractor(object):
             else:
                 df = extractor.get_height_profile()
         elif func_name == "scaled":
-            df = extractor.get_scaled_datasets()
+            if extractor.xml_file:
+                df = extractor.get_scaled_datasets_xml()
+            else:
+                df = extractor.get_scaled_datasets()
         else:
             df = pd.DataFrame()
         return df
@@ -702,28 +722,37 @@ if __name__ == "__main__":
     #     xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
     #     fname="tmp/example_id.png",
     # )
-    extractor = SaoExtractor("tmp/20250527/KW009_2025147055000_SAO.XML", True, True)
+    extractor = SaoExtractor("tmp/20250527/KW009_2025147120000_SAO.XML", True, True)
     extractor.extract_xml()
-    extractor.get_height_profile_xml(None)
+    extractor.get_scaled_datasets_xml()
     # sao_plot = SaoSummaryPlots(
     #     figsize=(3, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     # )
     # sao_plot.save("tmp/kw_ion.png")
     # sao_plot.close()
-    col = SaoExtractor.load_XML_files(["tmp/20250527/"])
+    col = SaoExtractor.load_XML_files(["tmp/20250519/"], func_name="scaled")
     sao_plot = SaoSummaryPlots(
-        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
+        figsize=(6, 3), fig_title="kw009/19 May, 2025", draw_local_time=False
     )
-    print(col.head())
-    sao_plot.add_TS(
+    sao_plot.plot_TS(
         col,
-        zparam="pf",
-        prange=[2, 5],
-        zparam_lim=np.nan,
-        cbar_label=r"$f_0$, MHz",
-        scatter_ms=40,
-        plot_type="scatter",
-        ylim=[90, 150],
+        left_yparams=["foEs"],
+        right_yparams=["h`Es"],
+        right_ylim=[80, 150],
+        left_ylim=[0, 6],
     )
-    sao_plot.save("tmp/example_pf.png")
+    sao_plot.save("tmp/example_ts.png")
+    #
+    # print(col.head())
+    # sao_plot.add_TS(
+    #     col,
+    #     zparam="pf",
+    #     prange=[2, 5],
+    #     zparam_lim=np.nan,
+    #     cbar_label=r"$f_0$, MHz",
+    #     scatter_ms=40,
+    #     plot_type="scatter",
+    #     ylim=[90, 150],
+    # )
+    # sao_plot.save("tmp/example_pf.png")
     sao_plot.close()

@@ -155,3 +155,4 @@ if __name__ == "__main__":
     file_path = "tmp/polan/ionogram_data.json"
     e = ScaledEntries.load_file(file_path)
     p = Polan(e)
+    p.polan()
