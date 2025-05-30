@@ -256,7 +256,9 @@ class SaoSummaryPlots(DigiPlots):
         right_axis_color: str = None,
         left_axis_color: str = None,
         color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
+        seed: int = 5,
     ):
+        np.random.seed(seed)
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)

@@ -730,9 +730,9 @@ if __name__ == "__main__":
     # )
     # sao_plot.save("tmp/kw_ion.png")
     # sao_plot.close()
-    col = SaoExtractor.load_XML_files(["tmp/20250519/"], func_name="scaled")
+    col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
     sao_plot = SaoSummaryPlots(
-        figsize=(6, 3), fig_title="kw009/19 May, 2025", draw_local_time=False
+        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     )
     sao_plot.plot_TS(
         col,
@@ -740,6 +740,7 @@ if __name__ == "__main__":
         right_yparams=["h`Es"],
         right_ylim=[80, 150],
         left_ylim=[0, 6],
+        seed=6,
     )
     sao_plot.save("tmp/example_ts.png")
     #
