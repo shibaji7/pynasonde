@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from pynasonde.digisonde.datatypes.mmmdatatypes import MultiplexHeader
+from pynasonde.digisonde.datatypes.mmmdatatypes import ModMaxFreuencyGroup, ModMaxHeader
 from pynasonde.digisonde.digi_utils import get_digisonde_info
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
@@ -30,7 +30,7 @@ MMM_IONOGRAM_SETTINGS = {
 }
 
 
-class MultiplexExtractor(object):
+class ModMaxExtractor(object):
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class MultiplexExtractor(object):
         DATA_BLOCK_SIZE: int = 4096,
     ):
         """
-        Initialize the MultiplexExtractor with the given file.
+        Initialize the ModMaxExtractor with the given file.
 
         Args:
             filename (str): Path to the sky file to be processed.
@@ -84,167 +84,77 @@ class MultiplexExtractor(object):
                 # mmm_data_unit = RsfDataUnit(frequency_groups=[])
                 blk_size = self.DATA_BLOCK_SIZE
                 logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
-                h = MultiplexHeader(
-                    record_type=struct.unpack("B", file.read(1))[0],
-                    header_length=struct.unpack("B", file.read(1))[0],
-                    version_maker=hex(struct.unpack("B", file.read(1))[0]),
-                    year=(
-                        2000
-                        + (10 * struct.unpack("B", file.read(1))[0])
-                        + struct.unpack("B", file.read(1))[0]
-                    ),
-                    doy=(
-                        struct.unpack("B", file.read(1))[0] * 1e2
-                        + struct.unpack("B", file.read(1))[0] * 1e1
-                        + struct.unpack("B", file.read(1))[0]
-                    ),
-                    hour=(
-                        struct.unpack("B", file.read(1))[0] * 1e1
-                        + struct.unpack("B", file.read(1))[0]
-                    ),
-                    minute=(
-                        struct.unpack("B", file.read(1))[0] * 1e1
-                        + struct.unpack("B", file.read(1))[0]
-                    ),
-                    second=(
-                        struct.unpack("B", file.read(1))[0] * 1e1
-                        + struct.unpack("B", file.read(1))[0]
-                    ),
-                )
-                print(h)
-                # print(file.read(30))
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                # print(struct.unpack("B", file.read(1))[0])
-                file.read(self.DATA_BLOCK_SIZE - 14)
-                # break
-                # h = RsfHeader(
-                #     record_type=struct.unpack("B", file.read(1))[0],
-                #     header_length=struct.unpack("B", file.read(1))[0],
-                #     version_maker=hex(struct.unpack("B", file.read(1))[0]),
-                #     year=self.unpack_bcd(file.read(1)[0]) + 2000,
-                #     doy=self.unpack_bcd(file.read(1)[0]) * 100
-                #     + self.unpack_bcd(file.read(1)[0]),
-                #     month=self.unpack_bcd(file.read(1)[0]),
-                #     dom=self.unpack_bcd(file.read(1)[0]),
-                #     hour=self.unpack_bcd(file.read(1)[0]),
-                #     minute=self.unpack_bcd(file.read(1)[0]),
-                #     second=self.unpack_bcd(file.read(1)[0]),
-                #     stn_code_rx=file.read(3).decode("ascii"),
-                #     stn_code_tx=file.read(3).decode("ascii"),
-                #     schedule=self.unpack_bcd(file.read(1)[0]),
-                #     program=self.unpack_bcd(file.read(1)[0]),
-                #     start_frequency=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e3
-                #         + self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     coarse_frequency_step=self.unpack_bcd(file.read(1)[0]) * 1e2
-                #     + self.unpack_bcd(file.read(1)[0]),
-                #     stop_frequency=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e3
-                #         + self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     fine_frequency_step=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     num_small_steps_in_scan=struct.unpack("b", file.read(1))[0],
-                #     phase_code=self.unpack_bcd(file.read(1)[0]),
-                #     option_code=struct.unpack("b", file.read(1))[0],
-                #     number_of_samples=self.unpack_bcd(file.read(1)[0]),
-                #     pulse_repetition_rate=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     range_start=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     range_increment=self.unpack_bcd(file.read(1)[0]),
-                #     number_of_heights=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     delay=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     base_gain=self.unpack_bcd(file.read(1)[0]),
-                #     frequency_search=self.unpack_bcd(file.read(1)[0]),
-                #     operating_mode=self.unpack_bcd(file.read(1)[0]),
-                #     data_format=self.unpack_bcd(file.read(1)[0]),
-                #     printer_output=self.unpack_bcd(file.read(1)[0]),
-                #     threshold=self.unpack_bcd(file.read(1)[0]),
-                #     constant_gain=self.unpack_bcd(file.read(1)[0]),
-                #     spare=file.read(2),
-                #     cit_length=struct.unpack("H", file.read(2))[0],
-                #     journal=struct.unpack("B", file.read(1))[0],
-                #     bottom_height_window=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     top_height_window=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                #     number_of_heights_stored=(
-                #         self.unpack_bcd(file.read(1)[0]) * 1e2
-                #         + self.unpack_bcd(file.read(1)[0])
-                #     ),
-                # )
-                # freq_group_settings = _IONOGRAM_SETTINGS[
-                #     str(int(h.number_of_heights))
-                # ]
-                # h.number_of_frequency_groups = freq_group_settings["number_freq_blocks"]
-                # blk_size -= 60
+                # Helper to read and unpack a byte
+                ub = lambda: struct.unpack("B", file.read(1))[0]
 
-                # for _ in range(h.number_of_frequency_groups):
-                #     pol, group_size = self.unpack_bcd(file.read(1)[0], "tuple")
-                #     pol = "O" if pol == 3 else "X"
-                #     fg = RsfFreuencyGroup(
-                #         pol=pol,
-                #         group_size=group_size,
-                #         frequency_reading=(
-                #             self.unpack_bcd(file.read(1)[0]) * 1e2
-                #             + self.unpack_bcd(file.read(1)[0])
-                #         ),
-                #     )
-                #     fg.offset, fg.additional_gain = self.unpack_bcd(
-                #         file.read(1)[0], "tuple"
-                #     )
-                #     fg.seconds = self.unpack_bcd(file.read(1)[0])
-                #     fg.mpa = self.unpack_bcd(file.read(1)[0])
-                #     two_bytes = [
-                #         [
-                #             self.unpack_5_3(file.read(1)[0]),
-                #             self.unpack_5_3(file.read(1)[0]),
-                #         ]
-                #         for _ in range(freq_group_settings["number_range_bins"])
-                #     ]
-                #     two_bytes = np.array(two_bytes)
-                #     fg.amplitude = two_bytes[:, 0, 0]
-                #     fg.dop_num = two_bytes[:, 0, 1]
-                #     fg.phase = two_bytes[:, 1, 0]
-                #     fg.azimuth = two_bytes[:, 1, 1]
-                #     fg.setup(h.threshold)
-                #     blk_size -= 2 * freq_group_settings["number_range_bins"] + 6
-                #     mmm_data_unit.frequency_groups.append(fg)
-                # mmm_data_unit.header = h
-                # # Cleaning remaining bytes
-                # if blk_size > 0:
-                #     logger.debug(f"Cleaning remaining {blk_size} bytes")
-                #     file.read(blk_size)
-                # mmm_data_unit.setup()
-                # self.mmm_data.mmm_data_units.append(mmm_data_unit)
+                h = ModMaxHeader(
+                    record_type=ub(),
+                    header_length=ub(),
+                    version_maker=hex(ub()),
+                    year=(2000 + (10 * ub()) + ub()),
+                    doy=(ub() * 1e2 + ub() * 1e1 + ub()),
+                    hour=(ub() * 1e1 + ub()),
+                    minute=(ub() * 1e1 + ub()),
+                    second=(ub() * 1e1 + ub()),
+                    program_set=hex(ub()),
+                    program_type=hex(ub()),
+                    journal=[ub(), ub(), ub(), ub(), ub(), ub()],
+                    nom_frequency=(
+                        ub() * 1e5
+                        + ub() * 1e4
+                        + ub() * 1e3
+                        + ub() * 1e2
+                        + ub() * 1e1
+                        + ub()
+                    ),
+                    tape_ctrl=hex(ub()),
+                    print_ctrl=hex(ub()),
+                    mmm_opt=hex(ub()),
+                    print_clean_ctrl=hex(ub()),
+                    print_gain_lev=hex(ub()),
+                    ctrl_intm_tx=hex(ub()),
+                    drft_use=hex(ub()),
+                    start_frequency=(ub() * 1e1 + ub()),
+                    freq_step=ub(),
+                    stop_frequency=(ub() * 1e1 + ub()),
+                    trg=hex(ub()),
+                    ch_a=hex(ub()),
+                    ch_b=hex(ub()),
+                    sta_id=f"{ub()}{ub()}{ub()}",
+                    phase_code=ub(),
+                    ant_azm=ub(),
+                    ant_scan=ub(),
+                    ant_opt=ub(),
+                    num_samples=ub(),
+                    rep_rate=ub(),
+                    pwd_code=ub(),
+                    time_ctrl=ub(),
+                    freq_cor=ub(),
+                    gain_cor=ub(),
+                    range_inc=ub(),
+                    range_start=ub(),
+                    f_search=ub(),
+                    nom_gain=ub(),
+                )
+                print(h, blk_size)
+                blk_size -= 60
+                fg = ModMaxFreuencyGroup(
+                    blk_type=ub(),
+                    frequency=self.unpack_bcd(ub(), format="int"),
+                    frequency_k=self.unpack_bcd(ub(), format="int") * 10,
+                )
+                fg.frequency_search, fg.gain_param = self.unpack_bcd(
+                    ub(), format="tuple"
+                )
+                fg.sec = self.unpack_bcd(ub(), format="int")
+                fg.mpa = ub()
+                # if fg.blk_type == 1:
+                #     for blk in range(30):
+
+                print(fg)
+                file.read(blk_size)
+                if n == 0:
+                    break
         return
 
     def add_dicts_selected_keys(self, d0, du, keys=None) -> dict:
@@ -313,7 +223,7 @@ class MultiplexExtractor(object):
 
 
 if __name__ == "__main__":
-    extractor = MultiplexExtractor(
+    extractor = ModMaxExtractor(
         "/media/chakras4/ERAU/SpeedDemon/WP937/individual/2022/233/ionogram/WP937_2022233235510.MMM",
         True,
         True,

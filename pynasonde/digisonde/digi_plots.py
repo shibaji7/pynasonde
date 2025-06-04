@@ -38,6 +38,27 @@ COLOR_MAPS = SimpleNamespace(
 )
 
 
+def search_color_schemes(
+    num_colors: int,
+    bounds: List[dict],
+    search_length: int = 10000,
+    color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
+) -> List:
+    cmap = []
+    for se in range(search_length):
+        np.random.seed(se)
+        rands = [np.random.rand() for _ in range(num_colors)]
+        check_count = 0
+        for r, b in zip(rands, bounds):
+            if r >= b["gt"] and r <= b["lt"]:
+                check_count += 1
+        if check_count == num_colors:
+            cmap.append(
+                dict(seed=se, decimals=rands, color=[color_map(r) for r in rands])
+            )
+    return cmap
+
+
 class DigiPlots(object):
     """
     A class to plot a summary stack plots using the data obtained from SAO
@@ -66,7 +87,7 @@ class DigiPlots(object):
         self.n_sub_plots = 0
         self.draw_local_time = draw_local_time
         self.fig, self.axes = plt.subplots(
-            figsize=(figsize[0] * nrows, figsize[1] * ncols),
+            figsize=(figsize[0] * ncols, figsize[1] * nrows),
             dpi=300,
             nrows=nrows,
             ncols=ncols,
