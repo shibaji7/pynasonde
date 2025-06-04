@@ -12,6 +12,7 @@ from loguru import logger
 from lxml import etree
 from tqdm import tqdm
 
+from pynasonde.digisonde.datatypes.saodatatypes import SAORecordList
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import (
     get_digisonde_info,
@@ -175,10 +176,9 @@ class SaoExtractor(object):
         Returns:
             None
         """
-        parser = load_dtd_file(self.dtd_file)
-        with open(self.filename, "r") as f:
-            tree = etree.parse(f)
-        self.sao = to_namespace(SaoExtractor.element_to_dict(tree.getroot()))
+        self.sao = SAORecordList.load_from_xml(
+            xml_path=self.filename, dtd_path=self.dtd_file
+        )
         return
 
     def get_height_profile_xml(self, plot_ionogram=None):
@@ -724,36 +724,36 @@ if __name__ == "__main__":
     # )
     extractor = SaoExtractor("tmp/20250527/KW009_2025147120000_SAO.XML", True, True)
     extractor.extract_xml()
-    extractor.get_scaled_datasets_xml()
+    # extractor.get_scaled_datasets_xml()
     # sao_plot = SaoSummaryPlots(
     #     figsize=(3, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     # )
     # sao_plot.save("tmp/kw_ion.png")
     # sao_plot.close()
-    col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
-    sao_plot = SaoSummaryPlots(
-        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
-    )
-    sao_plot.plot_TS(
-        col,
-        left_yparams=["foEs"],
-        right_yparams=["h`Es"],
-        right_ylim=[80, 150],
-        left_ylim=[0, 6],
-        seed=6,
-    )
-    sao_plot.save("tmp/example_ts.png")
-    #
-    # print(col.head())
-    # sao_plot.add_TS(
-    #     col,
-    #     zparam="pf",
-    #     prange=[2, 5],
-    #     zparam_lim=np.nan,
-    #     cbar_label=r"$f_0$, MHz",
-    #     scatter_ms=40,
-    #     plot_type="scatter",
-    #     ylim=[90, 150],
+    # col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
+    # sao_plot = SaoSummaryPlots(
+    #     figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     # )
-    # sao_plot.save("tmp/example_pf.png")
-    sao_plot.close()
+    # sao_plot.plot_TS(
+    #     col,
+    #     left_yparams=["foEs"],
+    #     right_yparams=["h`Es"],
+    #     right_ylim=[80, 150],
+    #     left_ylim=[0, 6],
+    #     seed=6,
+    # )
+    # sao_plot.save("tmp/example_ts.png")
+    # #
+    # # print(col.head())
+    # # sao_plot.add_TS(
+    # #     col,
+    # #     zparam="pf",
+    # #     prange=[2, 5],
+    # #     zparam_lim=np.nan,
+    # #     cbar_label=r"$f_0$, MHz",
+    # #     scatter_ms=40,
+    # #     plot_type="scatter",
+    # #     ylim=[90, 150],
+    # # )
+    # # sao_plot.save("tmp/example_pf.png")
+    # sao_plot.close()

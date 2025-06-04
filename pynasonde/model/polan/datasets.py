@@ -63,8 +63,21 @@ class ScaledEntries:
             ]
         return e
 
+    @staticmethod
+    def load_xml_sao_file(fin: str):
+        from pynasonde.digisonde.parsers.sao import SaoExtractor
+
+        ext = SaoExtractor(fin, True, True)
+        ext.extract_xml()
+        e = ScaledEntries(filename=fin)
+        if hasattr(ext.sao.SAORecordList.SAORecord[0], "TraceList"):
+            # for _ in range(ext.sao.SAORecordList.SAORecord[0].TraceList[0].Num):
+
+            print(ext.sao.SAORecordList.SAORecord[0].TraceList)
+        return e
+
 
 if __name__ == "__main__":
-    file_path = "tmp/polan/ionogram_data.json"
-    e = ScaledEntries.load_file(file_path)
+    file_path = "tmp/20250527/KW009_2025147120000_SAO.XML"
+    e = ScaledEntries.load_xml_sao_file(file_path)
     print(e)
