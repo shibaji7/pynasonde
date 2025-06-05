@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class URSI:
-    ID: str
-    Val: str
+    ID: Any
+    Val: Any
     Name: Optional[str] = None
     Units: Optional[str] = None
     QL: Optional[str] = None
@@ -16,6 +16,10 @@ class URSI:
     Bound: Optional[str] = None
     BoundaryType: Optional[str] = None
     Flag: Optional[str] = None
+
+    def __post_init__(self):
+        self.Val = float(self.Val)
+        return
 
 
 @dataclass
@@ -46,7 +50,11 @@ class CharacteristicList:
     URSI: List["URSI"] = field(default_factory=list)
     Modeled: List["Modeled"] = field(default_factory=list)
     Custom: List["Custom"] = field(default_factory=list)
-    Num: Optional[str] = None
+    Num: Optional[Any] = None
+
+    def __post_init__(self):
+        self.Num = int(self.Num)
+        return
 
 
 @dataclass
@@ -93,7 +101,7 @@ class ProfileValueList:
 class Tabulated:
     Num: str
     AltitudeList: List[float]
-    ProfileValueList: List[ProfileValueList] = field(default_factory=list)
+    ProfileValueList: List["ProfileValueList"] = field(default_factory=list)
 
 
 @dataclass
@@ -151,7 +159,7 @@ class SAORecordList:
         from pynasonde.digisonde.digi_utils import load_dtd_file
 
         parser = load_dtd_file(dtd_path)
-        tree = etree.parse(xml_path, parser)
+        tree = etree.parse(xml_path)
         root = tree.getroot()
 
         # --- Recursive mapping ---

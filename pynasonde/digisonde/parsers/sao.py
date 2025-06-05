@@ -130,42 +130,6 @@ class SaoExtractor(object):
                 values.append(chunk)
         return values
 
-    @staticmethod
-    def element_to_dict(element):
-        from collections import defaultdict
-
-        """Recursively convert an lxml element into a Python dictionary."""
-        node = {}
-
-        # Add element attributes
-        if element.attrib:
-            node.update({f"{k}": v for k, v in element.attrib.items()})
-
-        # Process child elements
-        children = list(element)
-        if children:
-            child_dict = defaultdict(list)
-            for child in children:
-                parsed = SaoExtractor.element_to_dict(child)
-                child_dict[child.tag].append(parsed[child.tag])
-            # Flatten single-element lists
-            for k, v in child_dict.items():
-                node[k] = [v[0]] if len(v) == 1 else v
-        else:
-            # Add element text if present
-            text = element.text.strip() if element.text else None
-            if text:
-                node["values"] = (
-                    np.array(
-                        list(filter(None, text.strip().split(" "))),
-                        dtype="float64",
-                    )
-                    if is_valid_xml_data_string(text.strip())
-                    else text.strip()
-                )
-
-        return {element.tag: node}
-
     def extract_xml(self):
         """
         Extracts XML data from the specified file and populates the `sao` attribute with the parsed data.
@@ -181,45 +145,47 @@ class SaoExtractor(object):
         )
         return
 
-    def get_height_profile_xml(self, plot_ionogram=None):
-        profile, trace = pd.DataFrame(), pd.DataFrame()
-        if hasattr(self.sao.SAORecordList.SAORecord[0], "ProfileList"):
-            profile["th"], profile["pf"] = (
-                self.sao.SAORecordList.SAORecord[0]
-                .ProfileList[0]
-                .Profile[0]
-                .Tabulated[0]
-                .AltitudeList[0]
-                .values,
-                self.sao.SAORecordList.SAORecord[0]
-                .ProfileList[0]
-                .Profile[0]
-                .Tabulated[0]
-                .ProfileValueList[0]
-                .values,
-            )
-            profile["datetime"] = self.date
-            profile["local_datetime"] = self.local_time
-            profile["lat"], profile["lon"] = (
-                self.stn_info["LAT"],
-                self.stn_info["LONG"],
-            )
-        if hasattr(self.sao.SAORecordList.SAORecord[0], "TraceList"):
-            trace_th, trace_pf = [], []
-            for j in range(int(self.sao.SAORecordList.SAORecord[0].TraceList[0].Num)):
-                # print(self.sao.SAORecordList.SAORecord.TraceList)
-                tr = self.sao.SAORecordList.SAORecord[0].TraceList[0].Trace[j]
-                trace_pf.extend(tr.FrequencyList[0].values.tolist())
-                trace_th.extend(tr.RangeList[0].values.tolist())
-            trace["th"], trace["pf"] = trace_th, trace_pf
-            trace["datetime"] = self.date
-            trace["datetime"] = self.local_time
-            trace["lat"], trace["lon"] = (self.stn_info["LAT"], self.stn_info["LONG"])
+    def get_height_profile_xml(self, plot_ionogram=None) -> tuple:
+        profile, trace = pd.DataFrame(), dict(RangeList=[], FrequencyList=[])
+        for sao_record in self.sao.SAORecord:
+            for prof in sao_record.ProfileList.Profile:
+                for profVal in prof.Tabulated.ProfileValueList:
+                    profile[profVal.Name] = profVal.values
+                profile["AltitudeList"] = prof.Tabulated.AltitudeList
+            for trc in sao_record.TraceList.Trace:
+                trace["RangeList"].extend(trc.RangeList)
+                trace["FrequencyList"].extend(trc.FrequencyList)
+        trace = pd.DataFrame.from_records(trace)
+        (
+            profile["datetime"],
+            profile["local_datetime"],
+            profile["lat"],
+            profile["lon"],
+        ) = (
+            self.date,
+            self.local_time,
+            self.stn_info["LAT"],
+            self.stn_info["LONG"],
+        )
+        (trace["datetime"], trace["local_datetime"], trace["lat"], trace["lon"]) = (
+            self.date,
+            self.local_time,
+            self.stn_info["LAT"],
+            self.stn_info["LONG"],
+        )
+        trace["datetime"] = self.date
+        trace["local_datetime"] = self.local_time
+        trace["lat"], trace["lon"] = (
+            self.stn_info["LAT"],
+            self.stn_info["LONG"],
+        )
         if plot_ionogram:
             logger.info("Save figures...")
             sao_plot = SaoSummaryPlots()
             ax = sao_plot.plot_ionogram(
                 profile,
+                xparam="PlasmaFrequency",
+                yparam="AltitudeList",
                 text=f"{self.stn_code}/{self.date.strftime('%Y-%m-%d %H:%M:%S')}",
             )
             sao_plot.plot_ionogram(trace, ax=ax, lw=2, kind="trace", lcolor="b")
@@ -227,14 +193,19 @@ class SaoExtractor(object):
             sao_plot.close()
         return profile, trace
 
-    def get_scaled_datasets_xml(self):
-        df = pd.DataFrame()
-        if hasattr(self.sao.SAORecordList.SAORecord[0], "CharacteristicList"):
-            if hasattr(
-                self.sao.SAORecordList.SAORecord[0].CharacteristicList[0], "URSI"
-            ):
-                for u in self.sao.SAORecordList.SAORecord[0].CharacteristicList[0].URSI:
-                    df[u.Name] = [float(u.Val)]
+    def get_scaled_datasets_xml(
+        self, params=["foEs", "foF1", "foF2", "h`Es", "hmF1", "hmF2"]
+    ) -> pd.DataFrame:
+        df = []
+        for sao_record in self.sao.SAORecord:
+            d = dict()
+            for cid, ursi in enumerate(sao_record.CharacteristicList.URSI):
+                if ursi.Name in params:
+                    d.update({ursi.Name: ursi.Val})
+            if len(d) == 0:
+                d.update(zip(params, [np.nan] * len(params)))
+            df.append(d)
+        df = pd.DataFrame.from_records(df)
         if len(df):
             df["datetime"] = self.date
             df["local_datetime"] = self.local_time
@@ -724,25 +695,31 @@ if __name__ == "__main__":
     # )
     extractor = SaoExtractor("tmp/20250527/KW009_2025147120000_SAO.XML", True, True)
     extractor.extract_xml()
-    # extractor.get_scaled_datasets_xml()
+    print(extractor.get_scaled_datasets_xml())
+    print(extractor.get_height_profile_xml())
     # sao_plot = SaoSummaryPlots(
     #     figsize=(3, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     # )
     # sao_plot.save("tmp/kw_ion.png")
     # sao_plot.close()
-    # col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
-    # sao_plot = SaoSummaryPlots(
-    #     figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
-    # )
-    # sao_plot.plot_TS(
-    #     col,
-    #     left_yparams=["foEs"],
-    #     right_yparams=["h`Es"],
-    #     right_ylim=[80, 150],
-    #     left_ylim=[0, 6],
-    #     seed=6,
-    # )
-    # sao_plot.save("tmp/example_ts.png")
+    col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
+    sao_plot = SaoSummaryPlots(
+        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
+    )
+    col["foFs"], col["hmFs"] = (
+        np.nanmax([col.foF1.tolist(), col.foF2.tolist()],axis=0),
+        np.nanmax([col.hmF1.tolist(), col.hmF2.tolist()],axis=0)
+    )
+    print(col.head())
+    sao_plot.plot_TS(
+        col,
+        left_yparams=["foEs"],
+        right_yparams=["h`Es"],
+        right_ylim=[80, 150],
+        left_ylim=[0, 6],
+        seed=6,
+    )
+    sao_plot.save("tmp/example_ts.png")
     # #
     # # print(col.head())
     # # sao_plot.add_TS(
