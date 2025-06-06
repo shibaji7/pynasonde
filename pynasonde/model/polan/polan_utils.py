@@ -99,3 +99,7 @@ def generate_random_samples(hp_bounds, np_bounds, hd_bounds, n_samples=100):
     hd_samples = np.random.uniform(hd_bounds[0], hd_bounds[1], n_samples)
 
     return np.vstack((hp_samples, np_samples, hd_samples)).T
+
+
+def get_Np_bounds_from_fv(trace_fv: np.array, df: float = 0.2):
+    return [f2ne(np.max(trace_fv) - df), f2ne(np.max(trace_fv) + df)]

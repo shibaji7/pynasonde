@@ -3,6 +3,7 @@ import datetime as dt
 from typing import List, Union
 
 import numpy as np
+from joblib import Parallel, delayed
 from loguru import logger
 
 from pynasonde.digisonde.digi_plots import DigiPlots
@@ -10,9 +11,8 @@ from pynasonde.model.absorption.constants import pconst
 from pynasonde.model.polan.datasets import SimulationOutputs, Trace
 from pynasonde.model.polan.polan_utils import (
     chapman_ionosphere,
-    f2ne,
     generate_random_samples,
-    ne2f,
+    get_Np_bounds_from_fv,
     parabolic_ionosphere,
 )
 
@@ -65,12 +65,18 @@ class Polan(object):
         ],
         plot: bool = False,
         run_Es_only: bool = False,
+        n_jobs: int = 8,
     ):
         trace = trace if trace else self.trace
         logger.info(f"Running POLAN for {date} on {self.trace.filename}")
         if self.optimize:
             sd = self.run_optimizer(
-                trace, h_base, model_ionospheres, optimzer_n_samples, run_Es_only
+                trace,
+                h_base,
+                model_ionospheres,
+                optimzer_n_samples,
+                run_Es_only,
+                n_jobs,
             )
         else:
             sd = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
@@ -130,6 +136,7 @@ class Polan(object):
         ],
         optimzer_n_samples: int = 100,
         run_Es_only: bool = False,
+        n_jobs: int = 8,
     ):
         logger.info(f"Running optimizer....")
         [
@@ -146,20 +153,27 @@ class Polan(object):
             for mi in model_ionospheres
         ]
         self.sol_ionospheres, self.hv_errs = [], []
-        for j in range(optimzer_n_samples):
-            ionospheres = [
-                dict(
-                    model=mi["model"],
-                    layer=mi["layer"],
-                    hp=mi["samples"][j, 0],
-                    Np=mi["samples"][j, 1],
-                    scale_h=mi["samples"][j, 2],
-                )
-                for mi in model_ionospheres
-            ]
-            sd = self.run_solver(trace, h_base, run_Es_only, ionospheres)
-            self.sol_ionospheres.append(sd)
-            self.hv_errs.append(np.sum([s.hv_err for s in sd]))
+        self.sol_ionospheres = Parallel(n_jobs=n_jobs)(
+            delayed(self.run_solver)(
+                trace,
+                h_base,
+                run_Es_only,
+                [
+                    dict(
+                        model=mi["model"],
+                        layer=mi["layer"],
+                        hp=mi["samples"][j, 0],
+                        Np=mi["samples"][j, 1],
+                        scale_h=mi["samples"][j, 2],
+                    )
+                    for mi in model_ionospheres
+                ],
+            )
+            for j in range(optimzer_n_samples)
+        )
+        self.hv_errs = [
+            np.nansum([s.hv_err for s in sd]) for sd in self.sol_ionospheres
+        ]
         sd_min = self.sol_ionospheres[np.nanargmin(self.hv_errs)]
         return sd_min
 
@@ -276,20 +290,26 @@ if __name__ == "__main__":
             dict(
                 model="Chapman",
                 layer="F",
-                np_bound=[f2ne(7), f2ne(9)],
+                np_bound=get_Np_bounds_from_fv(
+                    [x for ex in e.events for x in ex.fv], df=0.3
+                ),
                 hp_bound=[300, 400],
                 hd_bound=[30, 60],
             ),
             dict(
                 model="Parabolic",
                 layer="Es",
-                np_bound=[f2ne(2), f2ne(2.5)],
+                np_bound=get_Np_bounds_from_fv(
+                    [x for ex in e.events for x in ex.fv if "Es" in ex.description],
+                    df=0.3,
+                ),
                 hp_bound=[100, 110],
                 hd_bound=[3, 8],
             ),
         ],
         plot=True,
         run_Es_only=True,
+        n_jobs=24,
     )
 
     # p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700)
