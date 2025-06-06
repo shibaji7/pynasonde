@@ -1,4 +1,5 @@
 import datetime as dt
+
 import numpy as np
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots, search_color_schemes
@@ -11,8 +12,8 @@ if __name__ == "__main__":
             [f"tmp/Digisonde/{date.strftime('%Y%m%d')}"], func_name="scaled"
         )
         col["foFs"], col["hmFs"] = (
-            np.nanmax([col.foF1.tolist(), col.foF2.tolist()],axis=0),
-            np.nanmin([col.hmF1.tolist(), col.hmF2.tolist()],axis=0)
+            np.nanmax([col.foF1.tolist(), col.foF2.tolist()], axis=0),
+            np.nanmin([col.hmF1.tolist(), col.hmF2.tolist()], axis=0),
         )
         sao_plot = SaoSummaryPlots(
             figsize=(6, 3),

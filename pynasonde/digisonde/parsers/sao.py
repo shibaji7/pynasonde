@@ -12,7 +12,7 @@ from loguru import logger
 from lxml import etree
 from tqdm import tqdm
 
-from pynasonde.digisonde.datatypes.saodatatypes import SAORecordList
+from pynasonde.digisonde.datatypes.saoxmldatatypes import SAORecordList
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import (
     get_digisonde_info,
@@ -707,8 +707,8 @@ if __name__ == "__main__":
         figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
     )
     col["foFs"], col["hmFs"] = (
-        np.nanmax([col.foF1.tolist(), col.foF2.tolist()],axis=0),
-        np.nanmax([col.hmF1.tolist(), col.hmF2.tolist()],axis=0)
+        np.nanmax([col.foF1.tolist(), col.foF2.tolist()], axis=0),
+        np.nanmax([col.hmF1.tolist(), col.hmF2.tolist()], axis=0),
     )
     print(col.head())
     sao_plot.plot_TS(

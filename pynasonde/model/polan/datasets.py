@@ -70,7 +70,7 @@ class ScaledEntries:
         ext = SaoExtractor(fin, True, True)
         ext.extract_xml()
         e = ScaledEntries(filename=fin)
-        if hasattr(ext.sao.SAORecordList.SAORecord[0], "TraceList"):
+        if hasattr(ext.sao.SAORecord, "TraceList"):
             # for _ in range(ext.sao.SAORecordList.SAORecord[0].TraceList[0].Num):
 
             print(ext.sao.SAORecordList.SAORecord[0].TraceList)
