@@ -13,15 +13,16 @@ class SimulationOutputs:
     fh: np.array = None
     tf_sweeps: np.array = None
     h_virtual: np.array = None
+    h_virtual_e_model: np.array = None
+    h_virtual_e_obs: np.array = None
+    tf_sweeps_e: np.array = None
+    hv_err: float = np.nan
 
-
-@dataclass
-class SimulationDataset:
-    fv: np.array = None
-    ht: np.array = None
-    description: str = ""
-    qq: np.array = None
-    ndim: int = None
+    def compute_rMdse(self):
+        self.hv_err = np.sqrt(
+            np.nanmedian((self.h_virtual_e_model - self.h_virtual_e_obs) ** 2)
+        )
+        return self.hv_err
 
 
 @dataclass

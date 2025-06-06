@@ -4,6 +4,7 @@ import numpy as np
 from loguru import logger
 
 from pynasonde.model.absorption.constants import pconst
+from pynasonde.model.polan.datasets import SimulationOutputs, Trace
 
 
 def ne2f(ne: np.array, in_mhz=True):
@@ -85,3 +86,16 @@ def parabolic_ionosphere(
         f[mask] = (fp * (1 - ((h - hp) / d) ** 2))[mask]
         fh += f
     return (h, fh)
+
+
+def generate_random_samples(hp_bounds, np_bounds, hd_bounds, n_samples=100):
+    """
+    Generate random 3D samples within the specified bounds.
+    Returns:
+        np.ndarray: Array of shape (n_samples, 3)
+    """
+    hp_samples = np.random.uniform(hp_bounds[0], hp_bounds[1], n_samples)
+    np_samples = np.random.uniform(np_bounds[0], np_bounds[1], n_samples)
+    hd_samples = np.random.uniform(hd_bounds[0], hd_bounds[1], n_samples)
+
+    return np.vstack((hp_samples, np_samples, hd_samples)).T
