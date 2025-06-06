@@ -6,7 +6,7 @@ from loguru import logger
 
 from pynasonde.digisonde.digi_plots import DigiPlots
 from pynasonde.model.absorption.constants import pconst
-from pynasonde.model.polan.datasets import ScaledEntries, ScaledEvent, SimulationOutputs
+from pynasonde.model.polan.datasets import SimulationOutputs, Trace
 from pynasonde.model.polan.polan_utils import (
     chapman_ionosphere,
     ne2f,
@@ -30,12 +30,12 @@ class Polan(object):
 
     def __init__(
         self,
-        entries: ScaledEntries,
+        trace: Trace,
         h_max_simulation: float = 500,
         h_steps: Union[float, str] = 1e-3,
         fig_file_name: str = None,
     ):
-        self.entries = entries
+        self.trace = trace
         self.h_max_simulation = h_max_simulation
         self.h_steps = h_steps
         if type(h_steps) == float:
@@ -45,8 +45,8 @@ class Polan(object):
 
     def polan(
         self,
-        se: ScaledEvent,
         date: dt.datetime,
+        trace: Trace = None,
         h_base: float = 70,
         model_ionospheres: List[dict] = [
             dict(
@@ -57,20 +57,18 @@ class Polan(object):
                 scale_h=45,
             ),
         ],
-        index: int = 0,
         plot: bool = False,
     ):
-        se = se if se else self.entries.events[index]
-        logger.info(f"Running POLAN for {date} on {se.description}")
-        sd = self.solving_integral(se, h_base, model_ionospheres)
-
+        trace = trace if trace else self.trace
+        logger.info(f"Running POLAN for {date} on {self.trace.filename}")
+        sd = self.solving_integral(self.trace, h_base, model_ionospheres)
         if plot:
-            self.draw_traces(se, date, h, fh, h_virtual, freqs)
+            self.draw_traces(self.trace, date, sd)
         return sd
 
     def solving_integral(
         self,
-        se: ScaledEvent,
+        se: Trace,
         h_base: float = 70,
         model_ionospheres: List[dict] = [
             dict(
@@ -82,7 +80,11 @@ class Polan(object):
             ),
         ],
     ):
-        freqs = np.linspace(se.fv.min(), se.fv.max(), 101)
+        fmin, fmax = (
+            np.min([e.fv.min() for e in se.events]),
+            np.min([e.fv.max() for e in se.events]),
+        )
+        freqs = np.linspace(fmin, fmax, 101)
         fhs, hs = None, None
         for model_ionosphere in model_ionospheres:
             if "Parabolic" == model_ionosphere["model"]:
@@ -121,12 +123,9 @@ class Polan(object):
 
     def draw_traces(
         self,
-        se: ScaledEvent,
+        se: Trace,
         date: dt.datetime,
-        h: np.array,
-        fh: np.array,
-        h_virtual: np.array,
-        freqs: np.array,
+        sd: SimulationOutputs,
     ):
         dp = DigiPlots(
             fig_title="",
@@ -141,10 +140,10 @@ class Polan(object):
         )
         ax = dp.get_axes(False)
         se.draw_trace(ax)
-        ax.plot(fh, h, ls="-", lw=0.5, color="k")
-        ax.plot(freqs, h_virtual, "g.", ms=0.7, alpha=0.8)
-        ax.set_xlim(2, 8)
-        ax.set_ylim(80, 400)
+        ax.plot(sd.fh, sd.h, ls="-", lw=0.5, color="k")
+        ax.scatter(sd.tf_sweeps, sd.h_virtual, color="g", marker="s", s=0.5, alpha=0.8)
+        ax.set_xlim(1, 10)
+        ax.set_ylim(80, 600)
         if self.fig_file_name:
             dp.save(self.fig_file_name)
         dp.close()
@@ -152,7 +151,19 @@ class Polan(object):
 
 
 if __name__ == "__main__":
-    file_path = "tmp/polan/ionogram_data.json"
-    e = ScaledEntries.load_file(file_path)
-    p = Polan(e)
-    p.polan(None, dt.datetime(2025, 5, 27))
+    file_path = "tmp/20250527/KW009_2025147120000_SAO.XML"
+    e = Trace.load_xml_sao_file(file_path)[0]
+    p = Polan(e, fig_file_name="tmp/polan/sample.png")
+    p.polan(
+        dt.datetime(2025, 5, 27),
+        model_ionospheres=[
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=6.1e11,
+                hp=250,
+                scale_h=45,
+            ),
+        ],
+        plot=True,
+    )
