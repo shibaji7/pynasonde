@@ -24,6 +24,13 @@ class SimulationOutputs:
         )
         return self.hv_err
 
+    @staticmethod
+    def merge_results(Obj1, Obj2):
+        SimulationOutputs(
+            h=Obj1.h, fh=Obj1.fh + Obj1.fh, hv_err=Obj1.hv_err + Obj2.hv_err
+        )
+        return
+
 
 @dataclass
 class TraceEvent:

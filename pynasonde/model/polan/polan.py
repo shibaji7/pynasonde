@@ -1,3 +1,4 @@
+import copy
 import datetime as dt
 from typing import List, Union
 
@@ -63,17 +64,55 @@ class Polan(object):
             ),
         ],
         plot: bool = False,
+        run_Es_only: bool = False,
     ):
         trace = trace if trace else self.trace
         logger.info(f"Running POLAN for {date} on {self.trace.filename}")
         if self.optimize:
             sd = self.run_optimizer(
-                trace, h_base, model_ionospheres, optimzer_n_samples
+                trace, h_base, model_ionospheres, optimzer_n_samples, run_Es_only
             )
         else:
-            sd = self.solving_integral(trace, h_base, model_ionospheres)
+            sd = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
         if plot:
             self.draw_traces(self.trace, date, sd)
+        return sd
+
+    def run_solver(
+        self,
+        trace: Trace,
+        h_base: float = 70,
+        run_Es_only: bool = False,
+        model_ionospheres: List[dict] = [
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=6.1e11,
+                hp=250,
+                scale_h=45,
+            ),
+        ],
+    ):
+        if run_Es_only and "Es" in [mi["layer"] for mi in model_ionospheres]:
+            trace_Es, trace_no_Es = copy.copy(trace), copy.copy(trace)
+            trace_Es.events, trace_no_Es.events = (
+                [te for te in trace_Es.events if "Es" in te.description],
+                [te for te in trace_no_Es.events if "Es" not in te.description],
+            )
+            sd = [
+                self.__integral__(
+                    trace_Es,
+                    h_base,
+                    [mi for mi in model_ionospheres if mi.get("layer") == "Es"],
+                ),
+                self.__integral__(
+                    trace_no_Es,
+                    h_base,
+                    [mi for mi in model_ionospheres if mi.get("layer") != "Es"],
+                ),
+            ]
+        else:
+            sd = [self.__integral__(trace, h_base, model_ionospheres)]
         return sd
 
     def run_optimizer(
@@ -90,6 +129,7 @@ class Polan(object):
             ),
         ],
         optimzer_n_samples: int = 100,
+        run_Es_only: bool = False,
     ):
         logger.info(f"Running optimizer....")
         [
@@ -117,13 +157,13 @@ class Polan(object):
                 )
                 for mi in model_ionospheres
             ]
-            sd = self.solving_integral(trace, h_base, ionospheres)
+            sd = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
             self.sol_ionospheres.append(sd)
-            self.hv_errs.append(sd.hv_err)
+            self.hv_errs.append(np.sum([s.hv_err for s in sd]))
         sd_min = self.sol_ionospheres[np.nanargmin(self.hv_errs)]
         return sd_min
 
-    def solving_integral(
+    def __integral__(
         self,
         se: Trace,
         h_base: float = 70,
@@ -196,7 +236,7 @@ class Polan(object):
         self,
         se: Trace,
         date: dt.datetime,
-        sd: SimulationOutputs,
+        sd_list: List[SimulationOutputs],
     ):
         dp = DigiPlots(
             fig_title="",
@@ -211,8 +251,11 @@ class Polan(object):
         )
         ax = dp.get_axes(False)
         se.draw_trace(ax)
-        ax.plot(sd.fh, sd.h, ls="-", lw=0.5, color="k")
-        ax.scatter(sd.tf_sweeps, sd.h_virtual, color="g", marker="s", s=0.5, alpha=0.8)
+        for sd in sd_list:
+            ax.plot(sd.fh, sd.h, ls="-", lw=0.5, color="k")
+            ax.scatter(
+                sd.tf_sweeps, sd.h_virtual, color="g", marker="s", s=0.5, alpha=0.8
+            )
         ax.set_xlim(1, 10)
         ax.set_ylim(80, 600)
         if self.fig_file_name:
@@ -224,26 +267,29 @@ class Polan(object):
 if __name__ == "__main__":
     file_path = "tmp/20250527/KW009_2025147120000_SAO.XML"
     e = Trace.load_xml_sao_file(file_path)[0]
-    p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700, optimize=True)
+    p = Polan(
+        e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700, optimize=True
+    )
     p.polan(
         dt.datetime(2025, 5, 27),
         model_ionospheres=[
             dict(
                 model="Chapman",
                 layer="F",
-                np_bound=[f2ne(7),f2ne(9)],
+                np_bound=[f2ne(7), f2ne(9)],
                 hp_bound=[300, 400],
                 hd_bound=[30, 60],
             ),
             dict(
                 model="Parabolic",
                 layer="Es",
-                np_bound=[f2ne(2),f2ne(2.5)],
+                np_bound=[f2ne(2), f2ne(2.5)],
                 hp_bound=[100, 110],
                 hd_bound=[3, 8],
             ),
         ],
         plot=True,
+        run_Es_only=True,
     )
 
     # p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700)
@@ -266,4 +312,5 @@ if __name__ == "__main__":
     #         ),
     #     ],
     #     plot=True,
+    #     run_Es_only=True,
     # )
