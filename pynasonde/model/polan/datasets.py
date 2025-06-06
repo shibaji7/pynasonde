@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 
@@ -29,6 +30,12 @@ class SimulationOutputs:
         SimulationOutputs(
             h=Obj1.h, fh=Obj1.fh + Obj1.fh, hv_err=Obj1.hv_err + Obj2.hv_err
         )
+        return
+
+    def to_csv(self, fname: str):
+        o = pd.DataFrame()
+        o["plasma_freq"], o["heights"] = self.fh, self.h
+        o.to_csv(fname, float_format="%g", index=False, header=True)
         return
 
 
