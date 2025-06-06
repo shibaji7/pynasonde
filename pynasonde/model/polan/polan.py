@@ -310,6 +310,7 @@ if __name__ == "__main__":
         plot=True,
         run_Es_only=True,
         n_jobs=24,
+        optimzer_n_samples=200,
     )
 
     # p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700)
