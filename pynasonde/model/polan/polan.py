@@ -102,8 +102,8 @@ class Polan(object):
         if run_Es_only and "Es" in [mi["layer"] for mi in model_ionospheres]:
             trace_Es, trace_no_Es = copy.copy(trace), copy.copy(trace)
             trace_Es.events, trace_no_Es.events = (
-                [te for te in trace_Es.events if "Es" in te.description],
-                [te for te in trace_no_Es.events if "Es" not in te.description],
+                [te for te in trace_Es.events if "Es" in te.layer],
+                [te for te in trace_no_Es.events if "Es" not in te.layer],
             )
             sd = [
                 self.__integral__(
@@ -300,7 +300,7 @@ if __name__ == "__main__":
                 model="Parabolic",
                 layer="Es",
                 np_bound=get_Np_bounds_from_fv(
-                    [x for ex in e.events for x in ex.fv if "Es" in ex.description],
+                    [x for ex in e.events for x in ex.fv if "Es" in ex.layer],
                     df=0.3,
                 ),
                 hp_bound=[100, 110],

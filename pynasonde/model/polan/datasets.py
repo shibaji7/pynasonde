@@ -42,6 +42,7 @@ class SimulationOutputs:
 @dataclass
 class TraceEvent:
     description: str = ""
+    layer: str = ""
     fv: np.array = None
     ht: np.array = None
     qq: np.array = None
@@ -84,6 +85,7 @@ class Trace:
                 e.events.append(
                     TraceEvent(
                         description=trace.Layer + "/" + trace.Polarization,
+                        layer=trace.Layer,
                         fv=np.array(trace.FrequencyList),  # in MHz
                         ht=np.array(trace.RangeList),  # in km
                         qq=np.empty(50) * 0,
