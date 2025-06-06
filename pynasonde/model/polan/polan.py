@@ -157,7 +157,7 @@ class Polan(object):
                 )
                 for mi in model_ionospheres
             ]
-            sd = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
+            sd = self.run_solver(trace, h_base, run_Es_only, ionospheres)
             self.sol_ionospheres.append(sd)
             self.hv_errs.append(np.sum([s.hv_err for s in sd]))
         sd_min = self.sol_ionospheres[np.nanargmin(self.hv_errs)]
