@@ -101,5 +101,18 @@ def generate_random_samples(hp_bounds, np_bounds, hd_bounds, n_samples=100):
     return np.vstack((hp_samples, np_samples, hd_samples)).T
 
 
-def get_Np_bounds_from_fv(trace_fv: np.array, df: float = 0.2):
-    return [f2ne(np.max(trace_fv) - df), f2ne(np.max(trace_fv) + df)]
+def get_Np_bounds_from_fv(trace_fv: np.array, up: float = 0.0, down: float = 0.0):
+    return [f2ne(np.max(trace_fv) - down), f2ne(np.max(trace_fv) + up)]
+
+
+def get_hp_bounds_from_ht(trace_ht: np.array, up: float = 0.0, down: float = 0.0):
+    print("<<<<<<<<<", np.max(trace_ht), np.min(trace_ht))
+    return [np.mean(trace_ht) - down, np.mean(trace_ht) + up]
+
+
+def get_hp_bounds_from_scale_h(trace_ht: np.array, up: float = 0.0, down: float = 0.0):
+    print(">>>>>>>>>>>>>", np.max(trace_ht), np.min(trace_ht))
+    return [
+        ((np.max(trace_ht) - np.min(trace_ht)) / 2) - down,
+        ((np.max(trace_ht) - np.min(trace_ht)) / 2) + up,
+    ]

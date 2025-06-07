@@ -70,7 +70,7 @@ class Polan(object):
         trace = trace if trace else self.trace
         logger.info(f"Running POLAN for {date} on {self.trace.filename}")
         if self.optimize:
-            sd = self.run_optimizer(
+            so = self.run_optimizer(
                 trace,
                 h_base,
                 model_ionospheres,
@@ -79,10 +79,10 @@ class Polan(object):
                 n_jobs,
             )
         else:
-            sd = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
+            so = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
         if plot:
-            self.draw_traces(self.trace, date, sd)
-        return sd
+            self.draw_traces(self.trace, date, so)
+        return so
 
     def run_solver(
         self,
@@ -105,7 +105,7 @@ class Polan(object):
                 [te for te in trace_Es.events if "Es" in te.layer],
                 [te for te in trace_no_Es.events if "Es" not in te.layer],
             )
-            sd = [
+            so = [
                 self.__integral__(
                     trace_Es,
                     h_base,
@@ -118,8 +118,8 @@ class Polan(object):
                 ),
             ]
         else:
-            sd = [self.__integral__(trace, h_base, model_ionospheres)]
-        return sd
+            so = [self.__integral__(trace, h_base, model_ionospheres)]
+        return so
 
     def run_optimizer(
         self,
@@ -223,7 +223,7 @@ class Polan(object):
                 fhs += fh
         hvs = self.compute_O_mode_ref(freqs, hs, fhs, h_base)
         hvs_e = self.compute_O_mode_ref(tfreq, hs, fhs, h_base)
-        sd = SimulationOutputs(
+        so = SimulationOutputs(
             h=hs,
             fh=fhs,
             tf_sweeps=freqs,
@@ -232,8 +232,8 @@ class Polan(object):
             h_virtual_e_model=hvs_e,
             h_virtual_e_obs=np.array([x for e in se.events for x in e.ht]),
         )
-        logger.info(f"RMdSE: {sd.compute_rMdse()}")
-        return sd
+        logger.info(f"RMdSE: {so.compute_rMdse()}")
+        return so
 
     def compute_O_mode_ref(self, freqs, hs, fhs, h_base):
         hvs = np.zeros_like(freqs) * np.nan
@@ -270,8 +270,8 @@ class Polan(object):
             ax.scatter(
                 sd.tf_sweeps, sd.h_virtual, color="g", marker="s", s=0.5, alpha=0.8
             )
-        ax.set_xlim(1, 10)
-        ax.set_ylim(80, 600)
+        ax.set_xlim(1, 20)
+        ax.set_ylim(80, 800)
         if self.fig_file_name:
             dp.save(self.fig_file_name)
         dp.close()
@@ -309,8 +309,8 @@ if __name__ == "__main__":
         ],
         plot=True,
         run_Es_only=True,
-        n_jobs=24,
-        optimzer_n_samples=200,
+        n_jobs=48,
+        optimzer_n_samples=500,
     )
 
     # p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700)
