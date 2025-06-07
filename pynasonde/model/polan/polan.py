@@ -3,6 +3,7 @@ import datetime as dt
 from typing import List, Union
 
 import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
 from loguru import logger
 
@@ -13,6 +14,7 @@ from pynasonde.model.polan.polan_utils import (
     chapman_ionosphere,
     generate_random_samples,
     get_Np_bounds_from_fv,
+    ne2f,
     parabolic_ionosphere,
 )
 
@@ -66,23 +68,73 @@ class Polan(object):
         plot: bool = False,
         run_Es_only: bool = False,
         n_jobs: int = 8,
+        iri_core: bool = False,
+        scale: pd.DataFrame = pd.DataFrame(),
     ):
         trace = trace if trace else self.trace
         logger.info(f"Running POLAN for {date} on {self.trace.filename}")
-        if self.optimize:
-            so = self.run_optimizer(
-                trace,
-                h_base,
-                model_ionospheres,
-                optimzer_n_samples,
-                run_Es_only,
-                n_jobs,
-            )
+        if iri_core:
+            so = self.run_iri_solver(date, scale, trace, h_base)
         else:
-            so = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
+            if self.optimize:
+                so = self.run_optimizer(
+                    trace,
+                    h_base,
+                    model_ionospheres,
+                    optimzer_n_samples,
+                    run_Es_only,
+                    n_jobs,
+                )
+            else:
+                so = self.run_solver(trace, h_base, run_Es_only, model_ionospheres)
         if plot:
             self.draw_traces(self.trace, date, so)
         return so
+
+    def run_iri_solver(
+        self,
+        date: dt.datetime,
+        scale: pd.DataFrame,
+        se: Trace,
+        h_base: float = 70,
+    ):
+        from pynasonde.model.iri import IRI
+
+        ir, hs = IRI(date), np.arange(self.nbins) * self.h_steps
+        density = ir.iri_1D(
+            scale.lat,
+            scale.lon,
+            hs,
+            oarr0=scale.foF2 if "foF2" in scale.columns else None,
+            oarr1=scale.hmF2 if "hmF2" in scale.columns else None,
+            oarr2=scale.foF1 if "foF1" in scale.columns else None,
+            oarr3=scale.hmF1 if "hmF1" in scale.columns else None,
+            oarr4=scale.foE if "foE" in scale.columns else None,
+            oarr5=scale.hmE if "hmE" in scale.columns else None,
+            oarr9=scale.B0 if "B0" in scale.columns else None,
+            oarr34=scale.B1 if "B1" in scale.columns else None,
+        )
+        print(density)
+        fmin, fmax = (
+            np.min([e.fv.min() for e in se.events]),
+            np.max([e.fv.max() for e in se.events]),
+        )
+        fhs = ne2f(density)
+        tfreq = np.array([x for e in se.events for x in e.fv])
+        freqs = np.linspace(fmin, fmax, 101)
+        hvs = self.compute_O_mode_ref(freqs, hs, fhs, h_base)
+        hvs_e = self.compute_O_mode_ref(tfreq, hs, fhs, h_base)
+        so = SimulationOutputs(
+            h=hs,
+            fh=fhs,
+            tf_sweeps=freqs,
+            h_virtual=hvs,
+            tf_sweeps_e=tfreq,
+            h_virtual_e_model=hvs_e,
+            h_virtual_e_obs=np.array([x for e in se.events for x in e.ht]),
+        )
+        logger.info(f"RMdSE: {so.compute_rMdse()}")
+        return [so]
 
     def run_solver(
         self,
@@ -279,59 +331,48 @@ class Polan(object):
 
 
 if __name__ == "__main__":
-    file_path = "tmp/20250527/KW009_2025147120000_SAO.XML"
-    e = Trace.load_xml_sao_file(file_path)[0]
-    p = Polan(
-        e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700, optimize=True
-    )
-    p.polan(
-        dt.datetime(2025, 5, 27),
-        model_ionospheres=[
-            dict(
-                model="Chapman",
-                layer="F",
-                np_bound=get_Np_bounds_from_fv(
-                    [x for ex in e.events for x in ex.fv], df=0.3
-                ),
-                hp_bound=[300, 400],
-                hd_bound=[30, 60],
-            ),
-            dict(
-                model="Parabolic",
-                layer="Es",
-                np_bound=get_Np_bounds_from_fv(
-                    [x for ex in e.events for x in ex.fv if "Es" in ex.layer],
-                    df=0.3,
-                ),
-                hp_bound=[100, 110],
-                hd_bound=[3, 8],
-            ),
-        ],
-        plot=True,
-        run_Es_only=True,
-        n_jobs=48,
-        optimzer_n_samples=500,
-    )
-
-    # p = Polan(e, fig_file_name="tmp/polan/sample.png", h_max_simulation=700)
+    file_path = "tmp/20250519/KW009_2025139000000_SAO.XML"
+    e, scale = Trace.load_xml_sao_file(file_path, ret_scale=True)
+    # p = Polan(
+    #     e[0], fig_file_name="tmp/polan/sample.png", h_max_simulation=700, optimize=True
+    # )
     # p.polan(
     #     dt.datetime(2025, 5, 27),
     #     model_ionospheres=[
     #         dict(
     #             model="Chapman",
     #             layer="F",
-    #             Np=[f2ne(8.1)],
-    #             hp=[400],
-    #             scale_h=[60],
+    #             np_bound=get_Np_bounds_from_fv(
+    #                 [x for ex in e.events for x in ex.fv], df=0.3
+    #             ),
+    #             hp_bound=[300, 400],
+    #             hd_bound=[30, 60],
     #         ),
     #         dict(
     #             model="Parabolic",
     #             layer="Es",
-    #             Np=[f2ne(2.5)],
-    #             hp=[105],
-    #             scale_h=[5],
+    #             np_bound=get_Np_bounds_from_fv(
+    #                 [x for ex in e.events for x in ex.fv if "Es" in ex.layer],
+    #                 df=0.3,
+    #             ),
+    #             hp_bound=[100, 110],
+    #             hd_bound=[3, 8],
     #         ),
     #     ],
     #     plot=True,
     #     run_Es_only=True,
+    #     n_jobs=48,
+    #     optimzer_n_samples=500,
     # )
+
+    p = Polan(
+        e[0], fig_file_name="tmp/polan/sample.png", h_max_simulation=700, h_steps=1.0
+    )
+    p.polan(
+        dt.datetime(2025, 5, 27),
+        model_ionospheres=[],
+        plot=True,
+        run_Es_only=False,
+        iri_core=True,
+        scale=scale,
+    )

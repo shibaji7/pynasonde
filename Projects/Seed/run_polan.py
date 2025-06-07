@@ -3,6 +3,7 @@ import glob
 import os
 
 import numpy as np
+
 np.random.seed(1)
 
 from pynasonde.model.polan.datasets import SimulationOutputs, Trace
@@ -57,12 +58,11 @@ for d in range(1):
             p = Polan(
                 e, fig_file_name=fig_file_name, h_max_simulation=700, optimize=True
             )
-            print(get_best_guess_initial_ionosphere(e))
             so = p.polan(
                 e.date,
                 model_ionospheres=get_best_guess_initial_ionosphere(e),
                 plot=True,
-                run_Es_only=False,
+                run_Es_only=True,
                 n_jobs=48,
                 optimzer_n_samples=100,
             )

@@ -73,12 +73,17 @@ class Trace:
         return e
 
     @staticmethod
-    def load_xml_sao_file(fin: str):
+    def load_xml_sao_file(fin: str, ret_scale: bool = False):
         from pynasonde.digisonde.parsers.sao import SaoExtractor
 
         ext = SaoExtractor(fin, True, True)
         ext.extract_xml()
-        entries = []
+        entries, scale = (
+            [],
+            ext.get_scaled_datasets_xml(
+                params=["foE", "foF1", "foF2", "hmE", "hmF1", "hmF2", "B0", "B1"]
+            ),
+        )
         for sao_record in ext.sao.SAORecord:
             e = Trace(filename=fin, date=ext.date, events=[])
             for trace in sao_record.TraceList.Trace:
@@ -92,7 +97,10 @@ class Trace:
                     )
                 )
             entries.append(e)
-        return entries
+        if ret_scale:
+            return (entries, scale)
+        else:
+            return entries
 
     def draw_trace(self, ax):
         logger.info(f"Drawing traces....")

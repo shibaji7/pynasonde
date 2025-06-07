@@ -106,12 +106,10 @@ def get_Np_bounds_from_fv(trace_fv: np.array, up: float = 0.0, down: float = 0.0
 
 
 def get_hp_bounds_from_ht(trace_ht: np.array, up: float = 0.0, down: float = 0.0):
-    print("<<<<<<<<<", np.max(trace_ht), np.min(trace_ht))
     return [np.mean(trace_ht) - down, np.mean(trace_ht) + up]
 
 
 def get_hp_bounds_from_scale_h(trace_ht: np.array, up: float = 0.0, down: float = 0.0):
-    print(">>>>>>>>>>>>>", np.max(trace_ht), np.min(trace_ht))
     return [
         ((np.max(trace_ht) - np.min(trace_ht)) / 2) - down,
         ((np.max(trace_ht) - np.min(trace_ht)) / 2) + up,
