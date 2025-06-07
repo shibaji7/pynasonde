@@ -78,12 +78,7 @@ class Trace:
 
         ext = SaoExtractor(fin, True, True)
         ext.extract_xml()
-        entries, scale = (
-            [],
-            ext.get_scaled_datasets_xml(
-                params=["foE", "foF1", "foF2", "hmE", "hmF1", "hmF2", "B0", "B1"]
-            ),
-        )
+        entries = []
         for sao_record in ext.sao.SAORecord:
             e = Trace(filename=fin, date=ext.date, events=[])
             for trace in sao_record.TraceList.Trace:
@@ -98,6 +93,9 @@ class Trace:
                 )
             entries.append(e)
         if ret_scale:
+            scale = ext.get_scaled_datasets_xml(
+                params=["foE", "foF1", "foF2", "hmE", "hmF1", "hmF2", "B0", "B1"]
+            )
             return (entries, scale)
         else:
             return entries

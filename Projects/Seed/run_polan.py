@@ -3,6 +3,7 @@ import glob
 import os
 
 import numpy as np
+import pandas as pd
 
 np.random.seed(1)
 
@@ -48,24 +49,36 @@ for d in range(1):
     date = dt.datetime(2025, 5, 19) + dt.timedelta(days=d)
     files = glob.glob(f"tmp/Digisonde/{date.strftime('%Y%m%d')}/*.XML")
     files.sort()
+    records = []
     for j, f in enumerate(files):
-        e = Trace.load_xml_sao_file(f)[0]
-        fname, fig_file_name = (
-            f"tmp/polan/{e.date.strftime('%Y%m%d%H%M%S')}.csv",
-            f"tmp/polan/{e.date.strftime('%Y%m%d%H%M%S')}.png",
-        )
-        if not os.path.exists(fname):
-            p = Polan(
-                e, fig_file_name=fig_file_name, h_max_simulation=700, optimize=True
+        print(f)
+        try:
+            e = Trace.load_xml_sao_file(f)[0]
+            fname, fig_file_name = (
+                f"tmp/polan/{e.date.strftime('%Y%m%d%H%M%S')}.csv",
+                f"tmp/polan/{e.date.strftime('%Y%m%d%H%M%S')}.png",
             )
-            so = p.polan(
-                e.date,
-                model_ionospheres=get_best_guess_initial_ionosphere(e),
-                plot=True,
-                run_Es_only=True,
-                n_jobs=48,
-                optimzer_n_samples=100,
-            )
-            so[0].to_csv(fname)
-        if j == -1:
-            break
+            print(fname)
+            if not os.path.exists(fname):
+                p = Polan(
+                    e, fig_file_name=fig_file_name, h_max_simulation=700, optimize=True
+                )
+                so = p.polan(
+                    e.date,
+                    model_ionospheres=get_best_guess_initial_ionosphere(e),
+                    plot=True,
+                    run_Es_only=True,
+                    n_jobs=48,
+                    optimzer_n_samples=100,
+                )
+                so[0].to_csv(fname)
+            else:
+                df = pd.read_csv(fname)
+                df["date"] = pd.to_datetime(
+                    fname.split("/")[-1].replace(".csv", ""), format="%Y%m%d%H%M%S"
+                )
+                records.append(df)
+        except:
+            pass
+    records = pd.concat(records)
+    print(records.head())

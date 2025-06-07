@@ -74,7 +74,12 @@ class Polan(object):
         trace = trace if trace else self.trace
         logger.info(f"Running POLAN for {date} on {self.trace.filename}")
         if iri_core:
-            so = self.run_iri_solver(date, scale, trace, h_base)
+            so = self.run_iri_solver(
+                date,
+                scale,
+                trace,
+                h_base,
+            )
         else:
             if self.optimize:
                 so = self.run_optimizer(
@@ -82,7 +87,6 @@ class Polan(object):
                     h_base,
                     model_ionospheres,
                     optimzer_n_samples,
-                    run_Es_only,
                     n_jobs,
                 )
             else:
@@ -95,7 +99,7 @@ class Polan(object):
         self,
         date: dt.datetime,
         scale: pd.DataFrame,
-        se: Trace,
+        trace: Trace,
         h_base: float = 70,
     ):
         from pynasonde.model.iri import IRI
@@ -105,25 +109,26 @@ class Polan(object):
             scale.lat,
             scale.lon,
             hs,
-            oarr0=scale.foF2 if "foF2" in scale.columns else None,
+            oarr0=scale.foF2.tolist()[0] if "foF2" in scale.columns else None,
             oarr1=scale.hmF2 if "hmF2" in scale.columns else None,
-            oarr2=scale.foF1 if "foF1" in scale.columns else None,
+            oarr2=scale.foF1.tolist()[0] if "foF1" in scale.columns else None,
             oarr3=scale.hmF1 if "hmF1" in scale.columns else None,
-            oarr4=scale.foE if "foE" in scale.columns else None,
+            oarr4=scale.foE.tolist()[0] if "foE" in scale.columns else None,
             oarr5=scale.hmE if "hmE" in scale.columns else None,
-            oarr9=scale.B0 if "B0" in scale.columns else None,
-            oarr34=scale.B1 if "B1" in scale.columns else None,
+            oarr9=scale.B0.tolist()[0] if "B0" in scale.columns else None,
+            oarr34=scale.B1.tolist()[0] if "B1" in scale.columns else None,
         )
-        print(density)
+        logger.info(f"Running IRI Core.....")
         fmin, fmax = (
-            np.min([e.fv.min() for e in se.events]),
-            np.max([e.fv.max() for e in se.events]),
+            np.min([e.fv.min() for e in trace.events]),
+            np.max([e.fv.max() for e in trace.events]),
         )
         fhs = ne2f(density)
-        tfreq = np.array([x for e in se.events for x in e.fv])
+        tfreq = np.array([x for e in trace.events for x in e.fv])
         freqs = np.linspace(fmin, fmax, 101)
         hvs = self.compute_O_mode_ref(freqs, hs, fhs, h_base)
         hvs_e = self.compute_O_mode_ref(tfreq, hs, fhs, h_base)
+
         so = SimulationOutputs(
             h=hs,
             fh=fhs,
@@ -131,7 +136,7 @@ class Polan(object):
             h_virtual=hvs,
             tf_sweeps_e=tfreq,
             h_virtual_e_model=hvs_e,
-            h_virtual_e_obs=np.array([x for e in se.events for x in e.ht]),
+            h_virtual_e_obs=np.array([x for e in trace.events for x in e.ht]),
         )
         logger.info(f"RMdSE: {so.compute_rMdse()}")
         return [so]

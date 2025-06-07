@@ -51,7 +51,12 @@ class IRI(object):
         event = event if event else self.event
         alt_range = [alts[0], alts[-1], alts[1] - alts[0]]
         iriout = iricore.iri(
-            self.event, alt_range, lat, lon, version=self.iri_version, kwargs=kwargs
+            self.event,
+            alt_range,
+            lat,
+            lon,
+            version=self.iri_version,
+            **kwargs,
         )
         edens = iriout.edens * unit
         # return density in /cm
