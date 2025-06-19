@@ -6,8 +6,8 @@ from pynasonde.digisonde.digi_plots import SaoSummaryPlots, search_color_schemes
 from pynasonde.digisonde.parsers.sao import SaoExtractor
 
 if __name__ == "__main__":
-    for d in range(15):
-        date = dt.datetime(2025, 5, 19) + dt.timedelta(days=d)
+    for d in range(5):
+        date = dt.datetime(2025, 6, 3) + dt.timedelta(days=d)
         col = SaoExtractor.load_XML_files(
             [f"tmp/Digisonde/{date.strftime('%Y%m%d')}"], func_name="scaled"
         )
