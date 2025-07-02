@@ -9,6 +9,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 import xarray as xr
+from joblib import Parallel, delayed
 from loguru import logger
 from pysolar.solar import get_altitude
 
@@ -30,8 +31,6 @@ class Trace:
         lat: float = 37.8815,
         long: float = -75.4374,
     ):
-        import glob
-
         files = glob.glob(os.path.join(folder, mode + extension))
         files.sort()
         traces = {
@@ -196,8 +195,9 @@ class DataSource(object):
         logger.info(f"Needs decompression {self.needs_decompression}")
         return
 
-    def load_data_sets(self, load_start=0, load_end=-1):
-        """ """
+    def load_data_sets(self, load_start=0, load_end=-1, n_jobs=-1):
+        """Parallel loading of datasets using joblib."""
+
         self.datasets = []
         compress = lambda fc, fd: shutil.copyfileobj(
             open(fd, "rb"), bz2.BZ2File(fc, "wb")
@@ -208,19 +208,26 @@ class DataSource(object):
         check_bad_file = lambda f: (
             True if os.path.getsize(f) / (1024 * 1024) >= 5.0 else False
         )
-        for f in self.file_paths[load_start:load_end]:
-            if check_bad_file(f):
-                logger.info(f"Load file: {f}")
-                if self.needs_decompression:
-                    decompress(f, f.replace(".bz2", ""))
-                    os.remove(f)
-                    f = f.replace(".bz2", "")
-                self.datasets.append(
-                    Dataset().__initialize__(xr.load_dataset(f, engine="netcdf4"))
-                )
-                if self.needs_decompression:
-                    compress(f + ".bz2", f)
-                    os.remove(f)
+
+        def process_file(f):
+            if not check_bad_file(f):
+                return None
+            logger.info(f"Load file: {f}")
+            needs_decompression = self.needs_decompression
+            orig_f = f
+            if needs_decompression:
+                decompress(f, f.replace(".bz2", ""))
+                os.remove(f)
+                f = f.replace(".bz2", "")
+            ds = Dataset().__initialize__(xr.load_dataset(f, engine="netcdf4"))
+            if needs_decompression:
+                compress(f + ".bz2", f)
+                os.remove(f)
+            return ds
+
+        files = self.file_paths[load_start:load_end]
+        results = Parallel(n_jobs=n_jobs)(delayed(process_file)(f) for f in files)
+        self.datasets = [ds for ds in results if ds is not None]
         return
 
     def extract_ionograms(self, folder: str = "tmp/", mode: str = "O") -> None:
