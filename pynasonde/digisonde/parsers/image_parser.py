@@ -133,6 +133,22 @@ class IonogramImageExtractor(object):
         OCR_custom_config: str = r"--oem 3 --psm 6",
         word_filtes_for_table_values: dict = {",": "", ":": "."},
     ):
+        """
+        Extracts header information from an image using OCR and returns it as a pandas DataFrame.
+        This method processes a cropped region of an image, applies computer vision properties for thresholding,
+        and uses OCR to extract text. It then parses the first two lines of the extracted text as header columns
+        and their corresponding values, applies optional word replacements, and constructs a DataFrame from the result.
+        Parameters:
+            crop_axis (np.array, optional): Coordinates for cropping the image before OCR. Defaults to np.array([[0, 50], [100, 800]]).
+            cv_props (dict, optional): Properties for OpenCV thresholding. Defaults to {'thresh': 180, 'maxval': 255, 'type': cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU}.
+            OCR_custom_config (str, optional): Custom configuration string for the OCR engine. Defaults to r"--oem 3 --psm 6".
+            word_filtes_for_table_values (dict, optional): Dictionary of string replacements to apply to header columns and values. Defaults to {",": "", ":": "."}.
+        Returns:
+            pd.DataFrame: A DataFrame containing the extracted header information as a single row.
+        Logs:
+            - Extracted text from the image at debug level.
+            - Parsed records as a DataFrame at info level.
+        """
         text = self.extract_text(crop_axis, cv_props, OCR_custom_config)
 
         # Extract all individual parameters
