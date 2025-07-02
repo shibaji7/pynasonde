@@ -246,13 +246,54 @@ class DataSource(object):
 
     def extract_FTI_RTI(
         self,
+        rlim: List[float] = [50, 800],
+        flim: List[float] = [],
+        mode: str = "O",
+        noise_scale: float = 1.,
+    ) -> pd.DataFrame:
+        logger.info(f"Extract FTI/RTI, based on {rlim}km")
+        rti = []
+        for ds in self.datasets:
+            time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)
+            logger.info(f"Time: {time}")
+            f_max = np.nan
+            for i, r in enumerate(ds.Range):
+                if (r < rlim[0]) or (r > rlim[1]):
+                    continue
+                powr = np.array(getattr(ds, f"{mode}_mode_power")[:, i])
+                powr[powr < getattr(ds, f"{mode}_mode_noise") * noise_scale] = np.nan  # remove noise
+                f_max = ds.Frequency[np.nanargmax(powr)]
+                rti.append(dict(
+                    time = time,
+                    frequency = f_max/1e3,  # to MHz
+                    power = np.nanmax(powr),  # in dB
+                    range = r
+                ))    
+        rti = pd.DataFrame.from_records(rti)
+        if (len(flim)==2):
+            rti = rti[(rti.frequency >= flim[0]) & (rti.frequency <= flim[1])]
+        return rti
+
+    def extract_Power_RTI(
+        self,
         folder: str = "tmp/",
         rlim: List[float] = [50, 800],
         flim: List[float] = [3.95, 4.05],
         mode: str = "O",
-        index: int = 0,
+        fname: str = None,
+        xlabel: str = "Time, UT",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[dt.datetime] = None,
+        add_cbar: bool = True,
+        cbar_label: str = "{}-mode Power, dB",
+        cmap: str = "Spectral",
+        prange: List[float] = [5, 70],
+        noise_scale: float = 1.2,
+        interval: float = 4,
+        date_format: str = r"$%H^{%M}$",
+        del_ticks: bool = False,
     ) -> pd.DataFrame:
-        logger.info(f"Extract FTI/RTI, based on {flim}MHz {rlim}km")
+        logger.info(f"Extract Power/RTI, based on {flim}MHz {rlim}km")
         rti = pd.DataFrame()
         for ds in self.datasets:
             time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)
@@ -283,13 +324,29 @@ class DataSource(object):
                 ]
             rti = pd.concat([rti, o])
 
-        fname = f"{index}_{ds.URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
+        if fname is None:
+            fname = f"{ds.URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
         fig_title = f"""{ds.URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
         fig_title += (
             r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"
         )
         i = Ionogram(fig_title=fig_title, nrows=1, ncols=1)
-        i.add_interval_plots(rti, mode=mode, ylim=rlim)
+        i.add_interval_plots(
+            rti,
+            mode=mode,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            xlim=xlim,
+            add_cbar=add_cbar,
+            cbar_label=cbar_label.format(mode),
+            cmap=cmap,
+            prange=prange,
+            noise_scale=noise_scale,
+            del_ticks=del_ticks,
+            interval=interval,
+            date_format=date_format,
+            ylim=rlim,
+        )
         i.save(os.path.join(folder, fname))
         i.close()
         return rti

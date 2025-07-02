@@ -188,6 +188,8 @@ class Ionogram(object):
         cmap: str = "Spectral",
         prange: List[float] = [5, 70],
         noise_scale: float = 1.2,
+        interval: float = 4,
+        date_format: str = r"$%H^{%M}$",
         del_ticks: bool = False,
     ) -> None:
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
@@ -196,9 +198,9 @@ class Ionogram(object):
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
-        hours = mdates.HourLocator(byhour=range(0, 24, 4))
+        hours = mdates.HourLocator(interval=interval)
         ax.xaxis.set_major_locator(hours)
-        ax.xaxis.set_major_formatter(DateFormatter(r"$%H^{%M}$"))
+        ax.xaxis.set_major_formatter(DateFormatter(date_format))
         Zval, lims = (
             np.array(df[f"{mode}_mode_power"]),
             np.array(df[f"{mode}_mode_noise"]),
@@ -212,17 +214,31 @@ class Ionogram(object):
             zparam=f"{mode}_mode_power",
             rounding=False,
         )
-        im = ax.pcolormesh(
+        # Overlay filled contours for the same data
+        im = ax.contourf(
             X,
             Y,
             Z.T,
-            lw=0.01,
-            edgecolors="None",
+            levels=5,
             cmap=cmap,
-            vmax=prange[1],
+            alpha=0.4,
+            zorder=4,
             vmin=prange[0],
-            zorder=3,
+            vmax=prange[1],
         )
+
+        # Overlay contour lines
+        cs = ax.contour(
+            X,
+            Y,
+            Z.T,
+            levels=2,
+            colors='k',
+            linewidths=0.5,
+            zorder=5,
+        )
+        # Optionally label the contour lines
+        ax.clabel(cs, inline=True, fontsize=self.font_size * 0.5)
         ax.text(
             0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
         )
