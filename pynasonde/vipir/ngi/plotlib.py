@@ -188,9 +188,10 @@ class Ionogram(object):
         cmap: str = "Spectral",
         prange: List[float] = [5, 70],
         noise_scale: float = 1.2,
-        interval: float = 4,
         date_format: str = r"$%H^{%M}$",
         del_ticks: bool = False,
+        xtick_locator: mdates.HourLocator = mdates.HourLocator(interval=4),
+        xdate_lims: List[dt.datetime] = None,
     ) -> None:
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
         ax = self._add_axis(del_ticks=del_ticks)
@@ -198,8 +199,7 @@ class Ionogram(object):
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
         ax.set_ylim(ylim)
         ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
-        hours = mdates.HourLocator(interval=interval)
-        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_major_locator(xtick_locator)
         ax.xaxis.set_major_formatter(DateFormatter(date_format))
         Zval, lims = (
             np.array(df[f"{mode}_mode_power"]),
@@ -214,17 +214,17 @@ class Ionogram(object):
             zparam=f"{mode}_mode_power",
             rounding=False,
         )
+        Z[Z<prange[0]] = prange[0]
+        levels = np.linspace(prange[0], prange[1], 5)
         # Overlay filled contours for the same data
         im = ax.contourf(
             X,
             Y,
             Z.T,
-            levels=5,
+            levels=levels,
             cmap=cmap,
             alpha=0.4,
             zorder=4,
-            vmin=prange[0],
-            vmax=prange[1],
         )
 
         # Overlay contour lines
@@ -232,8 +232,8 @@ class Ionogram(object):
             X,
             Y,
             Z.T,
-            levels=2,
-            colors='k',
+            levels=levels,
+            colors="k",
             linewidths=0.5,
             zorder=5,
         )
@@ -242,6 +242,8 @@ class Ionogram(object):
         ax.text(
             0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
         )
+        if xdate_lims is not None:
+            ax.set_xlim(xdate_lims)
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
         return ax

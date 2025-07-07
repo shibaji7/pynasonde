@@ -12,6 +12,7 @@ import xarray as xr
 from joblib import Parallel, delayed
 from loguru import logger
 from pysolar.solar import get_altitude
+import matplotlib.dates as mdates
 
 from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
@@ -249,7 +250,7 @@ class DataSource(object):
         rlim: List[float] = [50, 800],
         flim: List[float] = [],
         mode: str = "O",
-        noise_scale: float = 1.,
+        noise_scale: float = 1.0,
     ) -> pd.DataFrame:
         logger.info(f"Extract FTI/RTI, based on {rlim}km")
         rti = []
@@ -261,16 +262,20 @@ class DataSource(object):
                 if (r < rlim[0]) or (r > rlim[1]):
                     continue
                 powr = np.array(getattr(ds, f"{mode}_mode_power")[:, i])
-                powr[powr < getattr(ds, f"{mode}_mode_noise") * noise_scale] = np.nan  # remove noise
+                powr[powr < getattr(ds, f"{mode}_mode_noise") * noise_scale] = (
+                    np.nan
+                )  # remove noise
                 f_max = ds.Frequency[np.nanargmax(powr)]
-                rti.append(dict(
-                    time = time,
-                    frequency = f_max/1e3,  # to MHz
-                    power = np.nanmax(powr),  # in dB
-                    range = r
-                ))    
+                rti.append(
+                    dict(
+                        time=time,
+                        frequency=f_max / 1e3,  # to MHz
+                        power=np.nanmax(powr),  # in dB
+                        range=r,
+                    )
+                )
         rti = pd.DataFrame.from_records(rti)
-        if (len(flim)==2):
+        if len(flim) == 2:
             rti = rti[(rti.frequency >= flim[0]) & (rti.frequency <= flim[1])]
         return rti
 
@@ -287,11 +292,12 @@ class DataSource(object):
         add_cbar: bool = True,
         cbar_label: str = "{}-mode Power, dB",
         cmap: str = "Spectral",
+        xtick_locator: mdates.HourLocator = mdates.HourLocator(interval=4),
         prange: List[float] = [5, 70],
         noise_scale: float = 1.2,
-        interval: float = 4,
         date_format: str = r"$%H^{%M}$",
         del_ticks: bool = False,
+        xdate_lims: List[dt.datetime] = None,
     ) -> pd.DataFrame:
         logger.info(f"Extract Power/RTI, based on {flim}MHz {rlim}km")
         rti = pd.DataFrame()
@@ -326,7 +332,10 @@ class DataSource(object):
 
         if fname is None:
             fname = f"{ds.URSI}_{rti.time.min().strftime('%Y%m%d.%H%M-')}{rti.time.max().strftime('%H%M')}_{mode}-mode.png"
-        fig_title = f"""{ds.URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
+        if xdate_lims is None:
+            fig_title = f"""{ds.URSI}/{rti.time.min().strftime('%H%M-')}{rti.time.max().strftime('%H%M')} UT, {rti.time.max().strftime('%d %b %Y')}"""
+        else:
+            fig_title = f"""{ds.URSI}/{xdate_lims[0].strftime('%H%M-')}{xdate_lims[1].strftime('%H%M')} UT, {xdate_lims[1].strftime('%d %b %Y')}"""
         fig_title += (
             r"/ $f_0\sim$[" + "%.2f" % flim[0] + "-" + "%.2f" % flim[1] + "] MHz"
         )
@@ -343,9 +352,10 @@ class DataSource(object):
             prange=prange,
             noise_scale=noise_scale,
             del_ticks=del_ticks,
-            interval=interval,
             date_format=date_format,
             ylim=rlim,
+            xtick_locator=xtick_locator,
+            xdate_lims=xdate_lims,
         )
         i.save(os.path.join(folder, fname))
         i.close()
