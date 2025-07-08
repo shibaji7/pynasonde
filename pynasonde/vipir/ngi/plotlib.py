@@ -43,7 +43,7 @@ class Ionogram(object):
         self.ncols = ncols
         self.nrows = nrows
         self.fig, self.axes = plt.subplots(
-            figsize=(figsize[0] * nrows, figsize[1] * ncols),
+            figsize=(figsize[0] * ncols, figsize[1] * nrows),
             dpi=300,
             nrows=nrows,
             ncols=ncols,
@@ -192,7 +192,7 @@ class Ionogram(object):
         del_ticks: bool = False,
         xtick_locator: mdates.HourLocator = mdates.HourLocator(interval=4),
         xdate_lims: List[dt.datetime] = None,
-    ) -> None:
+    ):
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
         ax = self._add_axis(del_ticks=del_ticks)
         ax.set_xlim(xlim)
