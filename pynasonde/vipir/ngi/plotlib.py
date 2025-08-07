@@ -214,7 +214,7 @@ class Ionogram(object):
             zparam=f"{mode}_mode_power",
             rounding=False,
         )
-        Z[Z<prange[0]] = prange[0]
+        Z[Z < prange[0]] = prange[0]
         levels = np.linspace(prange[0], prange[1], 5)
         # Overlay filled contours for the same data
         im = ax.contourf(

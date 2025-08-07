@@ -6,13 +6,13 @@ import shutil
 from dataclasses import dataclass
 from typing import List
 
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 import xarray as xr
 from joblib import Parallel, delayed
 from loguru import logger
 from pysolar.solar import get_altitude
-import matplotlib.dates as mdates
 
 from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.ngi.utils import TimeZoneConversion

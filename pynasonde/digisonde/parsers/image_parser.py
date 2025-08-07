@@ -180,6 +180,6 @@ class IonogramImageExtractor(object):
 
 
 if __name__ == "__main__":
-    iie = IonogramImageExtractor("../../raw_datasets/ion250610_210301.png")
+    iie = IonogramImageExtractor("tmp/ion250610_210301.png")
     iie.parse_artist_params_table()
     iie.extract_header()

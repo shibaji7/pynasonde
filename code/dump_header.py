@@ -67,7 +67,7 @@ p.close()
 #     xlim=[1, 22],
 #     add_cbar=True,
 #     cbar_label="O-mode Power, dB",
-#     prange=[5, 30],
+#     prange=[5, 1000],
 #     del_ticks=False,
 # )
 # p.save("tmp/WI937_2022233235902.png")

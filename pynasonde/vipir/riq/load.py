@@ -9,6 +9,8 @@ from pynasonde.vipir.riq.headers.pct import PctType
 from pynasonde.vipir.riq.headers.pri import PriType
 from pynasonde.vipir.riq.headers.sct import SctType
 
+# from pynasonde.vipir.riq.trace import extract_echo_traces
+
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = SimpleNamespace(
     **dict(

@@ -199,16 +199,19 @@ class SkyExtractor(object):
         # we need to add 5 more lines to main index
 
         # if n_sources <= 26 then they are in 1 line otherwise check on _i+5 lines
-        _, y_coords = self.parse_line(sky_arch_list, _i + 1)
+        import re
+
+        y_coords = re.findall(r"-?\d+\.\d+", sky_arch_list[_i + 1].strip())
         y_coords = [float(y) for y in y_coords]
-        _, x_coords = self.parse_line(sky_arch_list, _i + 2)
+        x_coords = re.findall(r"-?\d+\.\d+", sky_arch_list[_i + 2].strip())
         x_coords = [float(x) for x in x_coords]
-        _, spect_amp = self.parse_line(sky_arch_list, _i + 3)
+        spect_amp = re.findall(r"-?\d+(?:\.\d+)?", sky_arch_list[_i + 3].strip())
         spect_amp = [float(a) for a in spect_amp]
-        _, spect_dop = self.parse_line(sky_arch_list, _i + 4)
+        spect_dop = re.findall(r"-?\d+(?:\.\d+)?", sky_arch_list[_i + 4].strip())
         spect_dop = [float(d) for d in spect_dop]
-        _, rms_error = self.parse_line(sky_arch_list, _i + 5)
+        rms_error = re.findall(r"-?\d+(?:\.\d+)?", sky_arch_list[_i + 5].strip())
         rms_error = [float(r) for r in rms_error]
+        print(y_coords, x_coords, spect_amp, spect_dop, rms_error)
         data = dict(
             y_coords=y_coords,  # Y coordinate
             x_coords=x_coords,  # X coordinate

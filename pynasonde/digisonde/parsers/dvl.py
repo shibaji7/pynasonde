@@ -11,7 +11,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
-from pynasonde.ngi.utils import TimeZoneConversion
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 class DvlExtractor(object):
