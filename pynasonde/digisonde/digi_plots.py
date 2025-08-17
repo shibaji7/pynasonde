@@ -568,6 +568,7 @@ class SkySummaryPlots(DigiPlots):
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size},
             )
+        ax.set_rmax(rlim)
         if cbar:
             self._add_colorbar(im, self.fig, ax, cbar_label, [0.05, 0.0125, 0.015, 0.5])
         return
