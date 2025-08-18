@@ -192,6 +192,16 @@ class RsfFreuencyGroup:
         # Need to filter out values below threshold
         # May need to modify some logic
         self.amplitude[self.amplitude < self.mpa] = 0
+        # Convert Azimuth angle to directions
+        direction_map = {
+            0: "N",
+            60: "NE",
+            120: "SE",
+            180: "S",
+            240: "SW",
+            300: "NW",
+        }
+        self.azm_directions = [direction_map[np.mod(az, 360)] for az in self.azimuth.astype(np.int64)]
         return
 
 

@@ -184,8 +184,8 @@ class RsfExtractor:
                         "mpa",
                     ],
                 )
-                for am, dn, p, az, h in zip(
-                    fg.amplitude, fg.dop_num, fg.phase, fg.azimuth, fg.height
+                for am, dn, p, az, azd, h in zip(
+                    fg.amplitude, fg.dop_num, fg.phase, fg.azimuth, fg.azm_directions, fg.height
                 ):
                     d = copy.copy(d0)
                     d.update(
@@ -195,6 +195,7 @@ class RsfExtractor:
                             "phase": p,
                             "azimuth": az,
                             "height": h,
+                            "azm_directions": azd,
                         }
                     )
                     records.append(d)
