@@ -5,10 +5,10 @@ import numpy as np
 
 # fname = "tmp/WI937_2022233235902.RIQ"
 from pynasonde.vipir.ngi.plotlib import Ionogram
-from pynasonde.vipir.riq.headers.pct import PctType
-from pynasonde.vipir.riq.headers.pri import PriType
-from pynasonde.vipir.riq.headers.sct import SctType
-from pynasonde.vipir.riq.load import VIPIR_VERSION_MAP, RiqDataset
+from pynasonde.vipir.riq.datatypes.pct import PctType
+from pynasonde.vipir.riq.datatypes.pri import PriType
+from pynasonde.vipir.riq.datatypes.sct import SctType
+from pynasonde.vipir.riq.parsers.read_riq import VIPIR_VERSION_MAP, RiqDataset
 
 # x, y = SctType(), PctType()
 # x.read_sct(fname)
@@ -19,31 +19,32 @@ from pynasonde.vipir.riq.load import VIPIR_VERSION_MAP, RiqDataset
 
 # pri = PriType()
 # pri.load_data(fname)
-riq = RiqDataset.create_from_file(
-    fname, unicode="latin-1", vipir_version=VIPIR_VERSION_MAP.One
-)
-i = riq.ionogram()
-# print(i.frequencies.tolist())
-p = Ionogram(ncols=1, nrows=1)
-a = i.amplitude
-# a[a <= 0] = np.nan
-# a = np.ma.masked_invalid(a)
-p.add_ionogram(
-    frequency=i.frequencies,
-    height=i.range_gates,
-    value=a,
-    mode="O",
-    xlabel="Frequency, MHz",
-    ylabel="Virtual Height, km",
-    ylim=[50, 600],
-    xlim=[1.8, 22],
-    add_cbar=True,
-    cbar_label="O-mode Power, dB",
-    prange=[0, 100],
-    del_ticks=False,
-)
-p.save("tmp/PL407_2024058061501.png")
-p.close()
+if True:
+    riq = RiqDataset.create_from_file(
+        fname, unicode="latin-1", vipir_version=VIPIR_VERSION_MAP.One
+    )
+    (snr, frequencies, heights) = riq.get_ionogram()
+    # # print(i.frequencies.tolist())
+    p = Ionogram(ncols=1, nrows=1)
+    # a = i.amplitude
+    # # a[a <= 0] = np.nan
+    # # a = np.ma.masked_invalid(a)
+    p.add_ionogram(
+        frequency=frequencies,
+        height=heights,
+        value=snr,
+        mode="O",
+        xlabel="Frequency, MHz",
+        ylabel="Virtual Height, km",
+        ylim=[50, 600],
+        xlim=[1.8, 22],
+        add_cbar=True,
+        cbar_label="O-mode Power, dB",
+        prange=[0, 10],
+        del_ticks=False,
+    )
+    p.save("tmp/PL407_2024058061501.png")
+    p.close()
 # from pynasonde.pynasonde.ngi.source import DataSource
 
 # fname = "tmp/WI937_2022233235902.RIQ"
@@ -67,7 +68,7 @@ p.close()
 #     xlim=[1, 22],
 #     add_cbar=True,
 #     cbar_label="O-mode Power, dB",
-#     prange=[5, 1000],
+#     prange=[5, 100],
 #     del_ticks=False,
 # )
 # p.save("tmp/WI937_2022233235902.png")

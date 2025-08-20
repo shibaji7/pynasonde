@@ -35,7 +35,7 @@ class PriType:
     rgt2: np.int32 = 0
 
     # I/Q data for receiver and range gate (2, max_rg, max_rx)
-    a_scan: np.ndarray = None
+    pulse_i: np.ndarray = None
     # Amplitude of I/Q data (max_rg, max_rx)
     amplitude: np.ndarray = None
     # Phase of I/Q data (max_rg, max_rx) in radians 0 to 2*pi

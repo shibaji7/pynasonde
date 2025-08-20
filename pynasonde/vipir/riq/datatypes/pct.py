@@ -1,10 +1,11 @@
+import struct
 from dataclasses import dataclass
 
 import numpy as np
 from loguru import logger
 
-from pynasonde.vipir.riq.headers.default_factory import PCT_default_factory
-from pynasonde.vipir.riq.headers.sct import SctType
+from pynasonde.vipir.riq.datatypes.default_factory import PCT_default_factory
+from pynasonde.vipir.riq.datatypes.sct import SctType, read_dtype
 from pynasonde.vipir.riq.utils import trim_null
 
 
@@ -35,6 +36,40 @@ class PctType:
         self.user = trim_null("\x00")
         return
 
+    def read_pct_from_file_pointer(
+        self, fp, sct: SctType, vipir_version: dict, unicode: str = "latin-1"
+    ):
+        for i, dtype in enumerate(PCT_default_factory):
+            self = read_dtype(dtype, self, fp, unicode)
+        logger.info(f"Reading PCT {self.record_id}")
+        self.load_sct(sct, vipir_version)
+        vipir_value_size = (vipir_version["vipir_version"] + 1) * 2
+        chunksize = (
+            int(vipir_value_size) * 2 * sct.station.rx_count * sct.timing.gate_count
+        )
+        data = fp.read(chunksize)
+        self.pulse_i = np.full(
+            (sct.timing.gate_count, sct.station.rx_count),
+            32767,
+            dtype=vipir_version["np_format"],
+        )
+        self.pulse_q = np.full(
+            (sct.timing.gate_count, sct.station.rx_count),
+            32767,
+            dtype=vipir_version["np_format"],
+        )
+        index, index_increment = 0, 2 * vipir_value_size
+        for j in range(sct.timing.gate_count):
+            for k in range(sct.station.rx_count):
+                self.pulse_i[j, k], self.pulse_q[j, k] = (
+                    struct.unpack("<i", data[index : index + vipir_value_size])[0],
+                    struct.unpack(
+                        "<i", data[index + vipir_value_size : index + index_increment]
+                    )[0],
+                )
+                index += index_increment
+        return self
+
     def load_sct(self, sct: SctType, vipir_version: dict) -> None:
         logger.info(f"Reading SCT {sct.user}")
         self.vipir_version = vipir_version
@@ -51,56 +86,8 @@ class PctType:
         # total size of pulse table and data block in bytes
         # IQ ~ 2, Value Size (2 or 4 or 8), n_echoes
         self.data_offset = self.pct_offset + (
-            2 * vipir_version["value_Size"] * self.echo_count
+            2 * (vipir_version["vipir_version"] + 1) * self.echo_count
         )
-        return
-
-    def read_pct(
-        self, fname: str, pulse_num: np.int32 = -1, unicode: str = "latin-1"
-    ) -> None:
-        logger.info(f"Reading PCT Pulse: {fname}")
-        if pulse_num <= 0:
-            raise ValueError(f"Pulse number always >= 0. You provided {pulse_num}.")
-        byte_offset = self.sct_offset + ((pulse_num - 1) * self.data_offset)
-        logger.info(f"Reading Pulse: {pulse_num}")
-        # Load all PCT Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(PCT_default_factory),
-            mode="r",
-            offset=byte_offset,
-            shape=(1,),
-        )
-        for i, dtype in enumerate(PCT_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
-        self.read_pct_IQRxRG(fname, pulse_num)
-        return
-
-    def read_pct_IQRxRG(self, fname: str, pulse_num: np.int32) -> None:
-        logger.info(f"Reading IQRxRG Pulse: {pulse_num}")
-        byte_offset = self.sct_offset + ((pulse_num - 1) * self.data_offset)
-        factory = [
-            (
-                "IQRxRG",
-                self.vipir_version["np_format"],
-                (self.num_gates, self.num_receivers, 2),
-            )
-        ]
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(factory),
-            mode="r",
-            offset=byte_offset + self.pct_offset,
-            shape=(1,),
-        )
-        # Read the data into memory for faster access)
-        setattr(self, "IQRxRG", o[0][0])
-        # Data in the RIQ file is Big Endian
-        if self.vipir_version["swap"]:
-            self.IQRxRG = self.IQRxRG.byteswap()
-        logger.info(f"Loaded shape of I/Q: {self.IQRxRG.shape}")
         return
 
     def dump_pct(

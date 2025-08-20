@@ -5,11 +5,10 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-from pynasonde.vipir.riq.headers.pct import PctType
-from pynasonde.vipir.riq.headers.pri import PriType
-from pynasonde.vipir.riq.headers.sct import SctType
-
-# from pynasonde.vipir.riq.trace import extract_echo_traces
+from pynasonde.vipir.riq.datatypes.pct import PctType
+from pynasonde.vipir.riq.datatypes.pri import PriType
+from pynasonde.vipir.riq.datatypes.sct import SctType
+from pynasonde.vipir.riq.trace import extract_echo_traces
 
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = SimpleNamespace(
@@ -18,7 +17,7 @@ VIPIR_VERSION_MAP = SimpleNamespace(
             vipir_version=0,  # Version identifier
             value_Size=4,  # Size of values in bytes
             np_format="int32",  # NumPy data type format
-            swap=True,  # Whether to swap byte order
+            swap=False,  # Whether to swap byte order
         ),
         Two=dict(
             vipir_version=1,  # Version identifier
@@ -190,15 +189,20 @@ class RiqDataset:
             self.sct.timing.gate_step * 0.15,
         )  # Converted range gates to km
         ionogram = np.zeros((len(frequencies), len(range_gates)), dtype=np.float128)
+        print(ionogram.shape)
 
         # Integrate the amplitude for each frequency component
         for i, pset in enumerate(self.pulset):
-            # Iterate through each pulse set
-            for _, p in enumerate(pset):
-                # Extract PRI and PCT data
-                pri = p["pri"]
-                # Calculate the integrated amplitude for all receivers
-                ionogram[i, :] += pri.read_dB_amplitude_for_ionogram()
+            ionogram[i, :] = extract_echo_traces(
+                self.sct,
+                pset,
+            )
+        # # # Iterate through each pulse set
+        # for _, p in enumerate(pset):
+        #     # Extract PRI and PCT data
+        #     pri = p["pri"]
+        #     # Calculate the integrated amplitude for all receivers
+        #     ionogram[i, :] += pri.read_dB_amplitude_for_ionogram()
         ionogram /= self.sct.frequency.pulse_count
         id = IonogramDataset(
             frequencies=frequencies,

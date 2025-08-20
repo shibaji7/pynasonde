@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-from pynasonde.vipir.riq.headers.default_factory import (
+from pynasonde.vipir.riq.datatypes.default_factory import (
     Exciter_default_factory,
     Frequency_default_factory,
     Monitor_default_factory,
@@ -15,6 +15,45 @@ from pynasonde.vipir.riq.headers.default_factory import (
     Timing_default_factory,
 )
 from pynasonde.vipir.riq.utils import trim_null
+
+
+def read_dtype(dtype, obj, fp, unicode: str = "latin-1"):
+    if len(dtype) == 3:
+        if dtype[1] == "S4":
+            if len(dtype[2]) == 1:
+                query = (
+                    fp.read(4 * dtype[2][0])
+                    .replace(b"\x00", b"")
+                    .decode(unicode)
+                    .strip()
+                )
+                setattr(obj, dtype[0], query)
+            if len(dtype[2]) == 2:
+                query = [
+                    fp.read(dtype[2][0]).replace(b"\x00", b"").decode(unicode).strip()
+                    for i in range(dtype[2][0])
+                ]
+                setattr(obj, dtype[0], query)
+        else:
+            if len(dtype[2]) == 1:
+                query = np.array(
+                    [np.fromfile(fp, dtype[1], count=1)[0] for i in range(dtype[2][0])]
+                )
+                setattr(obj, dtype[0], query)
+            if len(dtype[2]) == 2:
+                query = np.array(
+                    [
+                        [
+                            np.fromfile(fp, dtype[1], count=1)[0]
+                            for _ in range(dtype[2][1])
+                        ]
+                        for i in range(dtype[2][0])
+                    ]
+                )
+                setattr(obj, dtype[0], query)
+    else:
+        setattr(obj, dtype[0], np.fromfile(fp, dtype[1], count=1)[0])
+    return obj
 
 
 @dataclass
@@ -74,30 +113,21 @@ class StationType:
     clock_type: str = ""  # Source of absoulte UT timing
     user: str = ""  # Spare space for user-defined information
 
-    def read_station(self, fname: str, unicode: str = "latin-1") -> None:
-        # Load all Station Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Station_default_factory),
-            mode="r",
-            offset=316,
-            shape=(1,),
-        )
+    def read_station_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Station_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(
-                    self,
-                    dtype[0],
-                    (
-                        "".join([char.decode(unicode) for char in o[0][i]])
-                        if len(dtype[2]) == 1
-                        else [
-                            "".join([char.decode(unicode) for char in chars])
-                            for chars in o[0][i]
-                        ]
-                    ),
-                )
+            self = read_dtype(dtype, self, fp, unicode)
+        self.clean()
+        return
+
+    def clean(self):
+        n_chan = self.rx_count
+        self.rx_antenna_type = self.rx_antenna_type[:n_chan]
+        self.rx_position = self.rx_position[:n_chan]
+        self.rx_direction = self.rx_direction[:n_chan]
+        self.rx_height = self.rx_height[:n_chan]
+        self.rx_cable_length = self.rx_cable_length[:n_chan]
+        self.drive_band_bounds = self.drive_band_bounds[: self.drive_band_count]
+        self.drive_band_atten = self.drive_band_atten[: self.drive_band_count]
         return
 
 
@@ -135,19 +165,15 @@ class TimingType:
     cal_pairs: np.int32 = 0  # Number of IQ pairs in waveform memory
     user: str = ""  # Spare space for user-defined information
 
-    def read_timing(self, fname: str, unicode: str = "latin-1") -> None:
-        # Load all Timing Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Timing_default_factory),
-            mode="r",
-            offset=3552,
-            shape=(1,),
-        )
+    def read_timing_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Timing_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+            self = read_dtype(dtype, self, fp, unicode)
+        self.clean()
+        return
+
+    def clean(self):
+        self.data_baud = self.data_baud[: self.data_baud_count]
+        self.cal_baud = self.cal_baud[: self.cal_baud_count]
         return
 
 
@@ -185,23 +211,16 @@ class FrequencyType:
     )  # Base frequencies attenuation/silent table
     user: str = ""  # Spare space for user-defined information
 
-    def read_frequency(self, fname: str, unicode: str = "latin-1") -> None:
-        # Load all Frequency Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Frequency_default_factory),
-            mode="r",
-            offset=20324,
-            shape=(1,),
-        )
+    def read_frequency_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Frequency_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(
-                    self,
-                    dtype[0],
-                    "".join([x.decode(unicode) for x in o[0][i]]),
-                )
+            self = read_dtype(dtype, self, fp, unicode)
+        self.clean()
+        return
+
+    def clean(self):
+        self.base_table = self.base_table[: self.base_steps]
+        self.drive_table = self.drive_table[: self.base_steps]
+        self.pulse_pattern = self.pulse_pattern[: self.pulse_count]
         return
 
 
@@ -229,19 +248,9 @@ class RecieverType:
     analog_delay: np.float64 = 0.0  # Analog delay of receiver, us
     user: str = ""  # Spare space for user-defined information
 
-    def read_reciever(self, fname: str, unicode="latin-1") -> None:
-        # Load all Reciever Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Reciever_default_factory),
-            mode="r",
-            offset=87184,
-            shape=(1,),
-        )
+    def read_reciever_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Reciever_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+            self = read_dtype(dtype, self, fp, unicode)
         return
 
 
@@ -261,19 +270,14 @@ class ExciterType:
     analog_delay: np.float64 = 0.0  # Analog delay of exciter/transmitter, us
     user: str = ""  # Spare space for user-defined information
 
-    def read_exciter(self, fname: str, unicode="latin-1") -> None:
-        # Load all Exciter Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Exciter_default_factory),
-            mode="r",
-            offset=88152,
-            shape=(1,),
-        )
+    def read_exciter_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Exciter_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+            self = read_dtype(dtype, self, fp, unicode)
+        self.clean()
+        return
+
+    def clean(self):
+        self.coefficients = self.coefficients[: self.rcf_taps]
         return
 
 
@@ -296,19 +300,9 @@ class MonitorType:
     )  # As read prior to ionogram
     user: str = ""  # Spare space for user-defined information
 
-    def read_monitor(self, fname: str, unicode="latin-1") -> None:
-        # Load all Frequency Type parameters
-        o = np.memmap(
-            fname,
-            dtype=np.dtype(Monitor_default_factory),
-            mode="r",
-            offset=89428,
-            shape=(1,),
-        )
+    def read_monitor_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
         for i, dtype in enumerate(Monitor_default_factory):
-            setattr(self, dtype[0], o[0][i])
-            if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
+            self = read_dtype(dtype, self, fp, unicode)
         return
 
 
@@ -354,24 +348,14 @@ class SctType:
         default_factory=MonitorType
     )  # Built In Test values substructure
 
-    def read_sct(self, fname: str, unicode="latin-1") -> None:
-        logger.info(f"Reading SCT: {fname}")
-        # Load all SCT Type parameters
-        o = np.memmap(
-            fname, dtype=np.dtype(SCT_default_factory), mode="r", offset=0, shape=(1,)
-        )
+    def read_sct_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        logger.info(f"Reading SCT ....")
         for i, dtype in enumerate(SCT_default_factory):
-            setattr(self, dtype[0], o[0][i])
             if (len(dtype) == 3) and (dtype[1] == "S4"):
-                setattr(self, dtype[0], "".join([x.decode(unicode) for x in o[0][i]]))
-        self.station.read_station(fname, unicode)
-        self.timing.read_timing(fname, unicode)
-        self.frequency.read_frequency(fname, unicode)
-        self.receiver.read_reciever(fname, unicode)
-        self.exciter.read_exciter(fname, unicode)
-        self.monitor.read_monitor(fname, unicode)
-
-        self.fix_SCT_strings()
+                query = fp.read(4 * dtype[2][0])
+                setattr(self, dtype[0], query.decode(unicode))
+            else:
+                setattr(self, dtype[0], np.fromfile(fp, dtype[1], count=1)[0])
         return
 
     def fix_SCT_strings(self) -> None:

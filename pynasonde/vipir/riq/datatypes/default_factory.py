@@ -105,7 +105,7 @@ Frequency_default_factory: List[Tuple] = [
 Reciever_default_factory: List[Tuple] = [
     ("file_id", "S4", (16,)),  # "uint8" [4 16]
     ("rx_chan", "int32"),  # "int32" [1 1]
-    ("rx_map", "int32", (16)),  # "int32" [1 16]
+    ("rx_map", "int32", (16,)),  # "int32" [1 16]
     ("word_format", "int32"),  # "int32" [1 1]
     ("cic2_dec", "int32"),  # "int32" [1 1]
     ("cic2_interp", "int32"),  # "int32" [1 1]
@@ -135,11 +135,11 @@ Exciter_default_factory: List[Tuple] = [
 ]
 
 Monitor_default_factory: List[Tuple] = [
-    ("balun_currents", "int32"),
-    ("balun_status", "int32"),
-    ("front_end_status", "int32"),
-    ("receiver_status", "int32"),
-    ("exciter_status", "int32"),
+    ("balun_currents", "int32", (8,)),
+    ("balun_status", "int32", (8,)),
+    ("front_end_status", "int32", (8,)),
+    ("receiver_status", "int32", (8,)),
+    ("exciter_status", "int32", (2,)),
     ("user", "S4", (128,)),
 ]
 
