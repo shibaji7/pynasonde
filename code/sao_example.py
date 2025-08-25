@@ -1,7 +1,9 @@
+import datetime as dt
+
+import numpy as np
+
 from pynasonde.sao_extractor import SaoExtractor
 from pynasonde.sao_summary_plots import SaoSummaryPlots
-import datetime as dt
-import numpy as np
 
 # Example Usage
 if __name__ == "__main__":
