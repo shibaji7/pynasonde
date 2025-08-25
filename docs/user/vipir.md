@@ -122,5 +122,64 @@ Here are the substrcuture holding information on instrumentation stetting and co
 
 | Field Name `FrequencyType`             | Type     | Size(Bytes) | Note / Description  |
 | :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Name of the timing settings file |
-| base_start             |  `float64`        | 8 | Name of the timing settings file |
+| file_id             |  `str`        | 8 | Name of the frequency settings file |
+| base_start             |  `float64`        | 8 | Initial base frequency |
+| base_end             |  `float64`        | 8 | Final base frequency |
+| base_steps             |  `int32`        | 4 | Number of base frequencies |
+| tune_type             |  `int32`        | 4 | Tuning type flag: 1=log, 2=linear, 3=table, 4=Log+Fixed ShuffleMode |
+| base_table             |  `[float64]`        | 8192[8] | Nominal or Base frequency table |
+| linear_step             |  `float64`        | 8 | Linear frequency step [kHz] |
+| log_step             |  `float64`        | 8 | Log frequency step, [percent] |
+| freq_table_id             |  `str`        | 8 | Manual tuning table filename |
+| tune_steps             |  `int32`        | 4 | All frequencies pre-ramp repeats |
+| pulse_count             |  `int32`        | 4 | Pulset frequency vector length |
+| pulse_pattern             |  `[int32]`        | 256[4] | Pulset frequency vector |
+| pulse_offset             |  `float64`        | 8 | Pulset offset [kHz] |
+| ramp_steps             |  `int32`        | 4 | Pulsets per B-mode ramp |
+| ramp_repeats             |  `int32`        | 4 | Repeat count of B-mode ramps |
+| drive_table             |  `[float64]`        | 8192[8] | Base frequencies attenuation/silent table |
+| user             |  `str`        | 16 | Spare space for user-defined information |
+
+
+| Field Name `RecieverType`             | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| file_id             |  `str`        | 8 | Frequency settings file |
+| rx_chan             |  `int32`        | 4 | Number of receivers |
+| rx_map             |  `[int32]`        | 16[4] | Receiver-to-antenna mapping |
+| word_format             |  `int32`        | 4 | 0 = big endian fixed, 1 = little endian, 2 = floating_point, 3=32 bit little endian integer (v2.z) |
+| cic2_dec             |  `int32`        | 4 | DDC filter block |
+| cic2_interp             |  `int32`        | 4 | DDC filter block |
+| cic2_scale             |  `int32`        | 4 | DDC filter block |
+| cic5_dec             |  `int32`        | 4 | DDC filter block |
+| cic5_scale             |  `int32`        | 4 | DDC filter block |
+| rcf_type             |  `str`        | 8 | Text descriptor of FIR filter block |
+| rcf_dec             |  `int32`        | 4 | Decimation factor for FIR filter block |
+| rcf_taps             |  `int32`        | 4 | Number of taps in FIR filter block |
+| coefficients             |  `[int32]`        | 160[4] | Receiver filter coefficients |
+| analog_delay             |  `float64`        | 8 | Analog delay of receiver, us |
+| user             |  `str`        | 16 | Spare space for user-defined information |
+
+
+| Field Name `ExciterType`             | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| file_id             |  `str`        | 8 | Frequency settings file |
+| cic_scale             |  `int32`        | 4 | DUC filter block |
+| cic2_dec             |  `int32`        | 4 | DUC filter block |
+| cic2_interp             |  `int32`        | 4 | DUC filter block |
+| cic5_interp             |  `int32`        | 4 | DUC filter block |
+| rcf_type             |  `str`        | 8 | Text descriptor of FIR filter block |
+| rcf_taps             |  `int32`        | 4 | Number of taps in FIR filter block |
+| rcf_taps_phase             |  `int32`        | 4 | Number of taps in FIR filter block |
+| coefficients             |  `[int32]`        | 256[4] | Receiver filter coefficients |
+| analog_delay             |  `float64`        | 8 | Analog delay of exciter/transmitter, us |
+| user             |  `str`        | 16 | Spare space for user-defined information |
+
+
+| Field Name `MonitorType`             | Type     | Size(Bytes) | Note / Description  |
+| :---------------- | :------: | :------: | ----: |
+| balun_currents             |  `[int32]`        | 8[4] | As read prior to ionogram |
+| balun_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
+| front_end_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
+| receiver_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
+| exciter_status             |  `[int32]`        | 2[4] | As read prior to ionogram |
+| user             |  `str`        | 16 | Spare space for user-defined information |
