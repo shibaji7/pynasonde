@@ -183,3 +183,38 @@ Here are the substrcuture holding information on instrumentation stetting and co
 | receiver_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
 | exciter_status             |  `[int32]`        | 2[4] | As read prior to ionogram |
 | user             |  `str`        | 16 | Spare space for user-defined information |
+
+
+### Pulse Configuration Table (PCT)
+
+The Pulse Configuration Table (PCT) describes the settings and measured values for each transmitted pulse in the VIPIR ionogram. Each PCT record contains metadata about the pulse, including timing, frequency, amplifier status, and the raw in-phase (`pulse_i`) and quadrature (`pulse_q`) samples for each range gate and receiver channel.
+
+The `pulse_i` and `pulse_q` arrays contain the raw in-phase and quadrature samples for each range gate and receiver channel. These samples are used to compute the signal power and phase for ionogram analysis.
+
+| Field Name              | Type     | Size(Bytes) | Note / Description  |
+| :---------------------- | :------: | :------: | ----: |
+| record_id               | `int32`  | 4         | Sequence number of this PCT |
+| pri_ut                  | `float64`| 8         | UT of this pulse |
+| pri_time_offset         | `float64`| 8         | Time read from system clock, not precise |
+| base_id                 | `int32`  | 4         | Base Frequency counter |
+| pulse_id                | `int32`  | 4         | Pulse set element for this PRI |
+| ramp_id                 | `int32`  | 4         | Ramp set element for this PRI |
+| repeat_id               | `int32`  | 4         | Ramp repeat element for this PRI |
+| loop_id                 | `int32`  | 4         | Outer loop element for this PRI |
+| frequency               | `float64`| 8         | Frequency of observation (kHz) |
+| nco_tune_word           | `int32`  | 4         | Tuning word sent to the receiver |
+| drive_attenuation       | `float64`| 8         | Low-level drive attenuation [dB] |
+| pa_flags                | `int32`  | 4         | Status flags from amplifier |
+| pa_forward_power        | `float64`| 8         | Forward power from amplifier |
+| pa_reflected_power      | `float64`| 8         | Reflected power from amplifier |
+| pa_vswr                 | `float64`| 8         | Voltage Standing Wave Ratio from amplifier |
+| pa_temperature          | `float64`| 8         | Amplifier temperature |
+| proc_range_count        | `int32`  | 4         | Number of range gates kept this PRI |
+| proc_noise_level        | `float64`| 8         | Estimated noise level for this PRI |
+| pulse_i                 | `[int or float]` | Variable | In-phase samples for each gate and receiver channel |
+| pulse_q                 | `[int or float]` | Variable | Quadrature samples for each gate and receiver channel |
+| user                    | `str`    | 64        | Spare space for user-defined information |
+
+**pulse_i**: 2D array of in-phase samples, shape = (number of gates, number of receiver channels).  
+**pulse_q**: 2D array of quadrature samples, shape = (number of gates, number of receiver channels).  
+These arrays are used to reconstruct the amplitude and phase of the received radar signal for each pulse.
