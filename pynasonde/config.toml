@@ -20,3 +20,14 @@ scaler.apply_filter=true
 [polan]
 h_max_simulation=500
 h_step=1e-3
+
+[vipir_data_format_maps]
+version=1.0
+[[vipir_data_format_maps.configs]]
+vipir_version=1
+data_type=2
+np_format="float32"
+[[vipir_data_format_maps.configs]]
+vipir_version=0
+data_type=1
+np_format="float32"

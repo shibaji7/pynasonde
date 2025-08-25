@@ -83,52 +83,37 @@ class SaoExtractor(object):
             list: A list of strings, each representing a line from the file.
         """
         with open(self.filename, "r") as f:
-            return f.readlines()
+            SAOarch = [line.rstrip("\n") for line in f]
+            return SAOarch
 
-    @staticmethod
-    def parse_index_line(line, num_chunks):
-        """
-        Parses a line into a list of integers based on fixed-width chunks.
+    def pad(self, s, length, pad_char=" "):
+        return s.ljust(length, pad_char)
 
-        Args:
-            line (str): The line to parse.
-            num_chunks (int): Number of 3-character chunks to extract.
-
-        Returns:
-            list: A list of integers extracted from the line.
-        """
-        padded_line = line.ljust(120)  # Pad line to 120 characters
-        return [
-            int(chunk.strip())
-            for chunk in re.findall(".{3}", padded_line[: num_chunks * 3])
-        ]
-
-    def process_line(self, line, num_ch, num_elements, format_type):
+    def parse_line(self, line, fmt, num_ch):
         """
         Processes a line based on the format type and the number of elements.
 
         Args:
             line (str): The line to be processed.
-            num_ch (int): Width of each element.
             num_elements (int): Number of elements to extract.
             format_type (str): Format string indicating the data type.
 
         Returns:
             list: A list of parsed values.
         """
-        padded_line = line.ljust(num_ch * ((len(line) + num_ch - 1) // num_ch))
-        values = []
-        for i in range(num_elements):
-            start = i * num_ch
-            end = start + num_ch
-            chunk = padded_line[start:end].strip()
-            if format_type in ["%7.3f", "%8.3f", "%11.6f", "%20.12f"]:
-                values.append(float(chunk) if chunk else None)
-            elif format_type in ["%1d", "%2d", "%3d"]:
-                values.append(int(chunk) if chunk else None)
+        results = []
+        for i in range(0, len(line), num_ch):
+            chunk = line[i : i + num_ch]
+            if fmt in ["%1c", "%120c"]:
+                results.append(chunk)
+            elif fmt in ["%1d", "%2d", "%3d", "%7.3f", "%8.3f", "%11.6f", "%20.12f"]:
+                try:
+                    results.append(float(chunk.strip()))
+                except ValueError:
+                    results.append(None)
             else:
-                values.append(chunk)
-        return values
+                results.append(chunk)
+        return results
 
     def extract_xml(self):
         """
@@ -223,75 +208,73 @@ class SaoExtractor(object):
             dict: The populated sao_struct dictionary containing all extracted data.
         """
         # Read file lines
-        sao_arch = self.read_file()
+        SAOarch, self.SAOstruct = self.read_file(), dict()
 
-        # Parse first two lines for indices
-        dindex1 = self.parse_index_line(sao_arch[0], 40)
-        dindex2 = self.parse_index_line(sao_arch[1], 40)
-        noe = dindex1 + dindex2  # Concatenate indices
+        Dindex1 = [int(x) for x in re.findall(r".{3}", self.pad(SAOarch[0], 120))]
+        Dindex2 = [int(x) for x in re.findall(r".{3}", self.pad(SAOarch[1], 120))]
+        noe = Dindex1 + Dindex2
 
-        # Define formats and variable names
         fmt_cell = [
             "%7.3f",
             "%120c",
             "%1c",
             "%8.3f",
             "%2d",
-            "%7.3f",  # Data Index, Geof. Const.,Description,Time and Sounder,Scaled,Flags,Doppler Table.
+            "%7.3f",
             "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # O trace F2
             "%8.3f",
-            "%8.3f",
-            "%3d",
-            "%1d",
-            "%8.3f",  # O trace F1
             "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # O trace E
+            "%8.3f",
+            "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # X trace F2
+            "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # X trace F1
+            "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # X trace E
+            "%8.3f",
+            "%8.3f",
+            "%3d",
+            "%1d",
+            "%8.3f",
             "%3d",
             "%3d",
-            "%3d",  # Median Amplitude of F, E and Es
+            "%3d",
             "%11.6f",
             "%11.6f",
-            "%11.6f",  # T. Height Coeff. UMLCAR
-            "%20.12f",  # Quazi-parabolic segments
-            "%1d",  # Edit Flags
-            "%11.6f",  # Valley description
+            "%11.6f",
+            "%20.12f",
+            "%1d",
+            "%11.6f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # O trace Es
+            "%8.3f",
             "%8.3f",
             "%3d",
             "%1d",
-            "%8.3f",  # O trace E Auroral
             "%8.3f",
             "%8.3f",
-            "%8.3f",  # True Height Profile
+            "%8.3f",
+            "%8.3f",
             "%1c",
             "%1c",
-            "%1c",  # URSI Q/D Letters and Edit Flags Traces/Profile
+            "%1c",
             "%11.6f",
             "%8.3f",
             "%8.3f",
-            "%8.3f",  # Auroral E Profile Data
+            "%8.3f",
         ]
         var_cell = [
             "geophcon",
@@ -356,7 +339,7 @@ class SaoExtractor(object):
             "edea",
         ]
         scal_cell = [
-            "foF",
+            "foF2",
             "foF1",
             "M3000F",
             "MUF3000",
@@ -406,118 +389,88 @@ class SaoExtractor(object):
             "fbEs",
             "TypeEs",
         ]
-
-        count = 2  # Initialize the line counter
-        for i, fmt in enumerate(fmt_cell):
-            if noe[i] == 0:
-                continue  # Skip if no elements
-
-            # Determine field width based on format
-            num_ch = {
-                "%7.3f": 7,
-                "%8.3f": 8,
-                "%11.6f": 11,
-                "%20.12f": 20,
-                "%120c": 120,
-                "%1c": 1,
-                "%1d": 1,
-                "%2d": 2,
-                "%3d": 3,
-            }[fmt]
-
-            line_in = sao_arch[count].strip()  # Adjust for 0-based indexing
-            fixln = len(line_in)  # Length of the line
-            # If the line length isn't divisible by num_ch, pad it to the next multiple of num_ch
-            if fixln % num_ch != 0:
-                line_in = line_in.rjust(
-                    num_ch * ((fixln + num_ch - 1) // num_ch)
-                )  # Pad to the left
-            # Additional padding for specific variable names
-            if var_cell[i] in ["Qletter", "Dletter"]:
-                line_in = line_in.rjust(noe[i])  # Pad to the left based on noe[i0]
-
-            if var_cell[i] != "Scaled":  # Check if the current variable is not 'Scaled'
-                in_off = 0
-                for i1 in range(noe[i]):  # Iterate over the number of elements
-                    i2 = i1 + in_off
-                    if i2 * num_ch > len(line_in):  # Check if index exceeds line length
-                        in_off -= (fixln + num_ch - 1) // num_ch  # Adjust offset
-                        count += 1  # Move to the next line
-                        line_in = sao_arch[count].strip()  # Read next line
-                        fixln = len(line_in)
-                        if fixln % num_ch != 0:  # Pad line if necessary
-                            line_in = line_in.rjust(
-                                num_ch * ((fixln + num_ch - 1) // num_ch)
-                            )
-                        i2 = i1 + in_off
-
-                    # Extract chunk based on current index
-                    chunk = line_in[num_ch * (i2 - 1) : num_ch * i2].strip()
-                    if not chunk:  # Handle empty or invalid data
-                        chunk = " "
-                    self.sao_struct.setdefault(var_cell[i], []).append(
-                        float(chunk)
-                        if chunk.strip().replace(".", "", 1).isdigit()
-                        else chunk
-                    )
+        count = 2
+        for i0, fmt in enumerate(fmt_cell):
+            if noe[i0] == 0:
+                continue
+            # Determine num_ch from fmt
+            if fmt == "%7.3f":
+                num_ch = 7
+            elif fmt == "%8.3f":
+                num_ch = 8
+            elif fmt == "%11.6f":
+                num_ch = 11
+            elif fmt == "%20.12f":
+                num_ch = 20
+            elif fmt == "%120c":
+                num_ch = 120
+            elif fmt == "%1c":
+                num_ch = 1
+            elif fmt == "%1d":
+                num_ch = 1
+            elif fmt == "%2d":
+                num_ch = 2
+            elif fmt == "%3d":
+                num_ch = 3
             else:
-                in_off = 0
-                for i1 in range(noe[i]):  # Iterate over the number of scaled fields
-                    i2 = i1 + in_off
-                    if i2 * num_ch > len(line_in):  # Check if index exceeds line length
-                        in_off -= (fixln + num_ch - 1) // num_ch  # Adjust offset
-                        count += 1  # Move to the next line
-                        line_in = sao_arch[count].strip()  # Read next line
-                        fixln = len(line_in)
-                        if fixln % num_ch != 0:  # Pad line if necessary
-                            line_in = line_in.rjust(
-                                num_ch * ((fixln + num_ch - 1) // num_ch)
-                            )
-                        i2 = i1 + in_off
+                num_ch = 1
 
-                    # Extract chunk based on current index
-                    chunk = line_in[num_ch * (i2 - 1) : num_ch * i2].strip()
-                    field_name = scal_cell[i1]  # Get the scaled field name
-                    if not chunk:  # Handle empty or invalid data
-                        chunk = None
-                    self.sao_struct.setdefault(var_cell[i], {}).setdefault(
-                        field_name, []
-                    ).append(
-                        float(chunk)
-                        if chunk and chunk.strip().replace(".", "", 1).isdigit()
-                        else chunk
+            # Concatenate lines until enough data
+            expected_items = noe[i0]
+            total_chars_needed = num_ch * expected_items
+            line_in = ""
+            while len(line_in) < total_chars_needed and count < len(SAOarch):
+                line_in += self.pad(
+                    SAOarch[count],
+                    num_ch * ((len(SAOarch[count]) + num_ch - 1) // num_ch),
+                )
+                count += 1
+
+            # Special case for Qletter/Dletter
+            if var_cell[i0] in ["Qletter", "Dletter"]:
+                line_in = self.pad(line_in, expected_items)
+
+            # Parse data
+            if var_cell[i0] != "Scaled":
+                self.SAOstruct[var_cell[i0]] = []
+                for i1 in range(expected_items):
+                    chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
+                    aux_out = self.parse_line(chunk, fmt, num_ch)
+                    self.SAOstruct[var_cell[i0]].append(aux_out[0] if aux_out else None)
+            else:
+                self.SAOstruct[var_cell[i0]] = {}
+                for i1 in range(expected_items):
+                    chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
+                    aux_out = self.parse_line(chunk, fmt, num_ch)
+                    self.SAOstruct[var_cell[i0]][scal_cell[i1]] = (
+                        aux_out[0] if aux_out else None
                     )
 
-            count += 1
-
-        # Correct specific fields if necessary
-        if "sysdes" in self.sao_struct:
-            self.sao_struct["sysdes"] = "".join(self.sao_struct["sysdes"])
+        if "sysdes" in self.SAOstruct:
+            self.SAOstruct["sysdes"] = np.array(self.SAOstruct["sysdes"])
 
         for key in ["ED", "TH", "PF"]:
-            if key in self.sao_struct:
-                self.sao_struct[key] = list(
+            if key in self.SAOstruct:
+                self.SAOstruct[key] = list(
                     filter(
                         None,
                         [
                             x.strip() if type(x) is str else x
-                            for x in self.sao_struct[key]
+                            for x in self.SAOstruct[key]
                         ],
                     )
                 )
-                if type(self.sao_struct[key][0]) is str:
-                    self.sao_struct[key] = [float(x) for x in self.sao_struct[key]]
-        self.sao = to_namespace(self.sao_struct)
-        return self.sao_struct
+                if type(self.SAOstruct[key][0]) is str:
+                    self.SAOstruct[key] = [float(x) for x in self.SAOstruct[key]]
+        self.sao = to_namespace(self.SAOstruct)
+        return self.SAOstruct
 
     def get_scaled_datasets(self, asdf=True):
         for key in vars(self.sao.Scaled).keys():
-            if (
-                len(vars(self.sao.Scaled)[key]) == 1
-                and type(vars(self.sao.Scaled)[key][0]) == str
-            ):
+            if type(vars(self.sao.Scaled)[key]) == str:
                 setattr(self.sao.Scaled, key, [np.nan])
-        o = pd.DataFrame.from_records(vars(self.sao.Scaled))
+
+        o = pd.DataFrame.from_records(vars(self.sao.Scaled), index=[0])
         o.replace(9999.0, np.nan, inplace=True)
         if hasattr(self, "date"):
             o["datetime"] = self.date
@@ -655,82 +608,3 @@ class SaoExtractor(object):
             collections.extend(df_collection)
         collections = pd.concat(collections)
         return collections
-
-
-# Example Usage
-if __name__ == "__main__":
-    # extractor = SaoExtractor("tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000437.SAO")
-    # extractor.extract()
-    # print(extractor.sao)
-    # coll1 = SaoExtractor.load_SAO_files(
-    #     folders=["tmp/SKYWAVE_DPS4D_2023_10_14"],
-    #     func_name="height_profile",
-    # )
-    # coll1.ed = coll1.ed / 1e6
-    # sao_plot = SaoSummaryPlots(
-    #     figsize=(6, 3), fig_title="KR835/13-14 Oct, 2023", draw_local_time=True
-    # )
-    # sao_plot.add_TS(
-    #     coll1,
-    #     zparam="ed",
-    #     prange=[0, 1],
-    #     zparam_lim=10,
-    #     cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
-    # )
-    # sao_plot.save("tmp/example_pf.png")
-    # sao_plot.close()
-    # coll2 = SaoExtractor.load_SAO_files(
-    #     folders=["tmp/SKYWAVE_DPS4D_2023_10_14"], func_name="scaled"
-    # )
-    # sao_plot = SaoSummaryPlots(
-    #     figsize=(6, 3), fig_title="KR835/13-14 Oct, 2023", draw_local_time=True
-    # )
-    # sao_plot.plot_TS(coll2, left_yparams=["foF1"], left_ylim=[1, 15])
-    # sao_plot.save("tmp/example_ts.png")
-    # sao_plot.close()
-    # SaoSummaryPlots.plot_isodensity_contours(
-    #     coll1,
-    #     xlim=[dt.datetime(2023, 10, 13, 12), dt.datetime(2023, 10, 14)],
-    #     fname="tmp/example_id.png",
-    # )
-    extractor = SaoExtractor("tmp/20250527/KW009_2025147120000_SAO.XML", True, True)
-    extractor.extract_xml()
-    print(extractor.get_scaled_datasets_xml())
-    print(extractor.get_height_profile_xml())
-    # sao_plot = SaoSummaryPlots(
-    #     figsize=(3, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
-    # )
-    # sao_plot.save("tmp/kw_ion.png")
-    # sao_plot.close()
-    col = SaoExtractor.load_XML_files(["tmp/20250527/"], func_name="scaled")
-    sao_plot = SaoSummaryPlots(
-        figsize=(6, 3), fig_title="kw009/27 May, 2025", draw_local_time=False
-    )
-    col["foFs"], col["hmFs"] = (
-        np.nanmax([col.foF1.tolist(), col.foF2.tolist()], axis=0),
-        np.nanmax([col.hmF1.tolist(), col.hmF2.tolist()], axis=0),
-    )
-    print(col.head())
-    sao_plot.plot_TS(
-        col,
-        left_yparams=["foEs"],
-        right_yparams=["h`Es"],
-        right_ylim=[80, 150],
-        left_ylim=[0, 6],
-        seed=6,
-    )
-    sao_plot.save("tmp/example_ts.png")
-    # #
-    # # print(col.head())
-    # # sao_plot.add_TS(
-    # #     col,
-    # #     zparam="pf",
-    # #     prange=[2, 5],
-    # #     zparam_lim=np.nan,
-    # #     cbar_label=r"$f_0$, MHz",
-    # #     scatter_ms=40,
-    # #     plot_type="scatter",
-    # #     ylim=[90, 150],
-    # # )
-    # # sao_plot.save("tmp/example_pf.png")
-    # sao_plot.close()

@@ -36,6 +36,7 @@ class PriType:
 
     # I/Q data for receiver and range gate (2, max_rg, max_rx)
     pulse_i: np.ndarray = None
+    pulse_q: np.ndarray = None
     # Amplitude of I/Q data (max_rg, max_rx)
     amplitude: np.ndarray = None
     # Phase of I/Q data (max_rg, max_rx) in radians 0 to 2*pi
@@ -120,16 +121,6 @@ class PriType:
             default_factory=lambda: [0] * self.max_rx
         )
         return
-
-    def read_dB_amplitude_for_ionogram(self) -> np.array:
-        """
-        Read the amplitude data for the ionogram.
-        """
-        # Integrate the amplitude data over the receivers
-        amp_iono_db = np.nansum(self.ampdB, axis=1) / self.receiver_count
-        # Replace NaN values with 0.
-        amp_iono_db = np.nan_to_num(amp_iono_db, nan=0.0)
-        return amp_iono_db
 
     def calculate_zenith(self) -> None:
         """

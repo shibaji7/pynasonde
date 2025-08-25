@@ -1,5 +1,6 @@
 import struct
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import numpy as np
 from loguru import logger
@@ -7,6 +8,13 @@ from loguru import logger
 from pynasonde.vipir.riq.datatypes.default_factory import PCT_default_factory
 from pynasonde.vipir.riq.datatypes.sct import SctType, read_dtype
 from pynasonde.vipir.riq.utils import trim_null
+
+
+def to_mantissa_exponant(iq: float, masks: tuple = (-16, 15)) -> float:
+    mantissa = (masks[0] & iq) / 16
+    exponant = 15 - (masks[1] & iq) - 3
+    floatv = 1.0 * mantissa * (2.0**exponant)
+    return floatv
 
 
 @dataclass
@@ -37,13 +45,13 @@ class PctType:
         return
 
     def read_pct_from_file_pointer(
-        self, fp, sct: SctType, vipir_version: dict, unicode: str = "latin-1"
+        self, fp, sct: SctType, vipir_config: SimpleNamespace, unicode: str = "latin-1"
     ):
         for i, dtype in enumerate(PCT_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         logger.info(f"Reading PCT {self.record_id}")
-        self.load_sct(sct, vipir_version)
-        vipir_value_size = (vipir_version["vipir_version"] + 1) * 2
+        # self.load_sct(sct, vipir_config)
+        vipir_value_size = 2 * (vipir_config.vipir_version + 1)  # bytes
         chunksize = (
             int(vipir_value_size) * 2 * sct.station.rx_count * sct.timing.gate_count
         )
@@ -51,44 +59,83 @@ class PctType:
         self.pulse_i = np.full(
             (sct.timing.gate_count, sct.station.rx_count),
             32767,
-            dtype=vipir_version["np_format"],
+            dtype=vipir_config.np_format,
         )
         self.pulse_q = np.full(
             (sct.timing.gate_count, sct.station.rx_count),
             32767,
-            dtype=vipir_version["np_format"],
+            dtype=vipir_config.np_format,
         )
         index, index_increment = 0, 2 * vipir_value_size
+        print(">>>>>>>>>>>>>>>>", vipir_value_size, chunksize, index_increment)
         for j in range(sct.timing.gate_count):
             for k in range(sct.station.rx_count):
-                self.pulse_i[j, k], self.pulse_q[j, k] = (
-                    struct.unpack("<i", data[index : index + vipir_value_size])[0],
-                    struct.unpack(
-                        "<i", data[index + vipir_value_size : index + index_increment]
-                    )[0],
-                )
+                if vipir_config.data_type == 0:
+                    self.pulse_i[j, k], self.pulse_q[j, k] = (
+                        int.from_bytes(
+                            data[index : index + vipir_value_size], "big", signed=True
+                        ),
+                        int.from_bytes(
+                            data[index + vipir_value_size : index + index_increment],
+                            "big",
+                            signed=True,
+                        ),
+                    )
+                elif vipir_config.data_type == 1:
+                    # masks = (-16, 15)
+                    # pi, pq = (
+                    #     int.from_bytes(
+                    #         data[index : index + vipir_value_size], "big", signed=True
+                    #     ),
+                    #     int.from_bytes(
+                    #         data[index + vipir_value_size : index + index_increment],
+                    #         "big",
+                    #         signed=True,
+                    #     ),
+                    # )
+                    # self.pulse_i[j, k] = to_mantissa_exponant(pi, masks)
+                    # self.pulse_q[j, k] = to_mantissa_exponant(pq, masks)
+                    mask12 = -16
+                    mask4 = 15
+                    pi = int.from_bytes(data[index : index + 2], "big", signed=True)
+                    mantissa = 0  # base value is mantissa
+                    ex = 0  # ex is exponent
+                    floatv = 0.0  # floatv is resulting floating point value
+                    mantissa = mask12 & pi
+                    mantissa = mantissa / 16
+                    ex = mask4 & pi
+                    ex = 15 - ex - 3
+                    # floatv=pi
+                    if mantissa != 0:
+                        floatv = 1.0 * mantissa * (2.0**ex)
+                    ival = floatv
+                    self.pulse_i[j, k] = ival
+                    pq = int.from_bytes(data[index + 2 : index + 4], "big", signed=True)
+                    # PERFORM REGISTER SHIFT
+                    mantissa = 0
+                    ex = 0
+                    floatv = 0.0
+                    mantissa = mask12 & pq
+                    mantissa = mantissa / 16
+                    ex = mask4 & pq
+                    ex = 15 - ex - 3
+                    # floatv=pq
+                    if mantissa != 0:
+                        floatv = 1.0 * mantissa * (2.0**ex)
+                    qval = floatv
+                    self.pulse_q[j, k] = qval
+                elif vipir_config.data_type == 2:
+                    self.pulse_i[j, k], self.pulse_q[j, k] = (
+                        struct.unpack("<i", data[index : index + vipir_value_size])[0],
+                        struct.unpack(
+                            "<i",
+                            data[index + vipir_value_size : index + index_increment],
+                        )[0],
+                    )
+                else:
+                    raise ValueError("Invalid VIPIR data type")
                 index += index_increment
         return self
-
-    def load_sct(self, sct: SctType, vipir_version: dict) -> None:
-        logger.info(f"Reading SCT {sct.user}")
-        self.vipir_version = vipir_version
-        self.sct_offset = sct.sounding_table_size  # bytes
-        self.pct_offset = sct.pulse_table_size  # bytes
-        self.num_receivers = sct.receiver.rx_chan
-        self.num_gates = sct.timing.gate_count
-        self.echo_count = (
-            sct.receiver.rx_chan * sct.timing.gate_count
-        )  # per pulse, bytes
-        self.total_pulse_count = (
-            sct.timing.pri_count
-        )  # Total pulse count for integration
-        # total size of pulse table and data block in bytes
-        # IQ ~ 2, Value Size (2 or 4 or 8), n_echoes
-        self.data_offset = self.pct_offset + (
-            2 * (vipir_version["vipir_version"] + 1) * self.echo_count
-        )
-        return
 
     def dump_pct(
         self, t32: np.float64 = 0.0000186264514923096, to_file: str = None
