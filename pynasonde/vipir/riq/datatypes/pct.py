@@ -50,7 +50,6 @@ class PctType:
         for i, dtype in enumerate(PCT_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         logger.info(f"Reading PCT {self.record_id}")
-        # self.load_sct(sct, vipir_config)
         vipir_value_size = 2 * (vipir_config.vipir_version + 1)  # bytes
         chunksize = (
             int(vipir_value_size) * 2 * sct.station.rx_count * sct.timing.gate_count
@@ -67,7 +66,6 @@ class PctType:
             dtype=vipir_config.np_format,
         )
         index, index_increment = 0, 2 * vipir_value_size
-        print(">>>>>>>>>>>>>>>>", vipir_value_size, chunksize, index_increment)
         for j in range(sct.timing.gate_count):
             for k in range(sct.station.rx_count):
                 if vipir_config.data_type == 0:
