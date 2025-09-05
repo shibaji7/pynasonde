@@ -375,9 +375,24 @@ if __name__ == "__main__":
     )
     p.polan(
         dt.datetime(2025, 5, 27),
-        model_ionospheres=[],
+        model_ionospheres=[
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=1.3e12,
+                hp=400,
+                scale_h=60,
+            ),
+            dict(
+                model="Chapman",
+                layer="F",
+                Np=1e11,
+                hp=250,
+                scale_h=30,
+            ),
+        ],
         plot=True,
         run_Es_only=False,
-        iri_core=True,
+        iri_core=False,
         scale=scale,
     )

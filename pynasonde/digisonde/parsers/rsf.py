@@ -185,7 +185,12 @@ class RsfExtractor:
                     ],
                 )
                 for am, dn, p, az, azd, h in zip(
-                    fg.amplitude, fg.dop_num, fg.phase, fg.azimuth, fg.azm_directions, fg.height
+                    fg.amplitude,
+                    fg.dop_num,
+                    fg.phase,
+                    fg.azimuth,
+                    fg.azm_directions,
+                    fg.height,
                 ):
                     d = copy.copy(d0)
                     d.update(
@@ -231,20 +236,24 @@ class RsfExtractor:
 
 if __name__ == "__main__":
     extractor = RsfExtractor(
-        "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286235456.RSF", True, True
+        "/tmp/chakras4/Crucial X9/APEP/AFRL_Digisondes/Digisonde Files/SKYWAVE_DPS4D_2023_10_14/KR835_2023287000000.RSF",
+        True,
+        True,
     )
     extractor.extract()
-    df = extractor.to_pandas()
-    from pynasonde.digisonde.digi_plots import RsfIonogram
+    print(extractor.rsf_data.rsf_data_units[0].header)
+    print(extractor.rsf_data.rsf_data_units[0].frequency_groups[0])
+    # df = extractor.to_pandas()
+    # from pynasonde.digisonde.digi_plots import RsfIonogram
 
-    print(df.head())
-    print(df[df.pol == "X"].amplitude.min(), df[df.pol == "X"].amplitude.max())
-    r = RsfIonogram()
-    r.add_ionogram(
-        df[df.pol == "O"],
-        xparam="frequency_reading",
-        yparam="height",
-        zparam="amplitude",
-    )
-    r.save("tmp/extract_rsf.png")
-    r.close()
+    # print(df.head())
+    # print(df[df.pol == "X"].amplitude.min(), df[df.pol == "X"].amplitude.max())
+    # r = RsfIonogram()
+    # r.add_ionogram(
+    #     df[df.pol == "O"],
+    #     xparam="frequency_reading",
+    #     yparam="height",
+    #     zparam="amplitude",
+    # )
+    # r.save("tmp/extract_rsf.png")
+    # r.close()

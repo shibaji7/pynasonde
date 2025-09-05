@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import List
 
+import cv2
 import numpy as np
 from loguru import logger
 
@@ -15,20 +16,86 @@ from pynasonde.vipir.riq.datatypes.default_factory import (
     Station_default_factory,
     Timing_default_factory,
 )
-from pynasonde.vipir.riq.datatypes.pct import PctType
-from pynasonde.vipir.riq.datatypes.pri import PriType
+from pynasonde.vipir.riq.datatypes.pct import Ionogram, PctType
 from pynasonde.vipir.riq.datatypes.sct import SctType
 
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = load_toml().vipir_data_format_maps
 
-@dataclass
-class Ionogram:
-    frequency: np.ndarray
-    height: np.ndarray
-    snr_value: np.ndarray
-    phase_value: np.ndarray
-    mode: str
+
+def find_thresholds(
+    data: np.ndarray, bins: int = 100, prominence: float = 100, **kwargs
+):
+    from scipy.signal import find_peaks
+
+    data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0).flatten()
+    data = data[data > 0.0]
+    counts, bin_edges = np.histogram(data, bins=bins, *kwargs)
+    dips, _ = find_peaks(-counts, prominence=prominence, *kwargs)
+    dip_bins = bin_edges[dips]
+    print(dip_bins)
+    return dip_bins, dip_bins[0]
+
+
+def remove_morphological_noise(
+    ion: Ionogram,
+    threshold: float = 0.0,
+    morf_type=cv2.MORPH_RECT,
+    iterations: int = 1,
+    kernel_size: tuple = (1, 3),
+    parameter: str = "powerdB",
+):
+    data = getattr(ion, parameter)
+    img_bin = (data > threshold).astype(np.uint8)
+    kernel = cv2.getStructuringElement(morf_type, kernel_size)
+    opened = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, kernel, iterations=iterations)
+    closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel, iterations=iterations)
+    data = data * closed
+    data[data <= threshold] = np.nan
+    setattr(ion, parameter, data)
+    return ion
+
+
+def adaptive_gain_filter(
+    ion: Ionogram,
+    snr_threshold: float = 0.0,
+    generic_filter_size: int = 3,
+    mode: str = "constant",
+    cval: float = 0.0,
+    apply_median_filter: bool = False,
+    median_filter_size: int = 3,
+    parameter: str = "powerdB",
+    **kwargs,
+):
+    from scipy.ndimage import generic_filter, median_filter
+
+    data = getattr(ion, parameter)
+    # Compute gain factor: count non-NaN values in each 3x3 box
+    data[data <= snr_threshold] = np.nan
+    valid_mask = ~np.isnan(data)
+    gain = generic_filter(
+        valid_mask.astype(float),
+        np.nansum,
+        size=generic_filter_size,
+        mode=mode,
+        cval=cval,
+        *kwargs,
+    )
+    # Optionally normalize gain (e.g., divide by n**2 for a nXn box)
+    gain = gain / generic_filter_size**2
+    data *= gain
+    if apply_median_filter:
+        data = np.nan_to_num(data, nan=0.0)
+        data = median_filter(
+            data,
+            size=median_filter_size,
+            mode=mode,
+            cval=cval,
+            *kwargs,
+        )
+    data[data <= snr_threshold] = np.nan
+    setattr(ion, parameter, data)
+    return ion
 
 
 @dataclass
@@ -53,7 +120,6 @@ class RiqDataset:
         fname (str): The file name of the dataset.
         sct (SctType): SCT (System Configuration Table) data.
         pcts (List[PctType]): List of PCT (Pulse Configuration Table) data.
-        pris (List[PriType]): List of PRI (Pulse Repetition Interval) data.
         pulset (List[List]): Grouped pulse data.
         unicode (str): Encoding format for reading the file.
     """
@@ -61,7 +127,6 @@ class RiqDataset:
     fname: str
     sct: SctType = None
     pcts: List[PctType] = None
-    pris: List[PriType] = None
     pulset: List[List] = None
     swap_frequency: float = 0.0
     swap_pulset: List = None
@@ -155,11 +220,19 @@ class RiqDataset:
         )
         return riq
 
-    def get_ionogram(self):
-        frequencies = (
+    def get_ionogram(
+        self,
+        threshold: float = None,
+        remove_baseline_noise: bool = False,
+        bins: int = 100,
+        prominence: float = 100,
+        **kwargs,
+    ) -> Ionogram:
+        ion = Ionogram()
+        ion.frequency = (
             np.array([psets.pcts[0].frequency for psets in self.pulsets]) / 1e3
         )
-        heights = (
+        ion.height = (
             np.arange(
                 self.sct.timing.gate_start,
                 self.sct.timing.gate_end,
@@ -185,35 +258,29 @@ class RiqDataset:
                 self.sct.station.rx_count,
             ),
         )
-        pulse_i, pulse_q = np.mean(pulse_i, axis=(1, 3)), np.mean(pulse_q, axis=(1, 3))
-        power = np.sqrt(pulse_i**2 + pulse_q**2)
-        power_base = np.nanmean(power, axis=1)
-        power = power - power_base[:, None]
-        snr = 10 * np.log10(power)
-
-        from scipy.ndimage import generic_filter
-
-        # Compute gain factor: count non-NaN values in each 3x3 box
-        snr[snr < 0] = np.nan
-        valid_mask = ~np.isnan(snr)
-        gain = generic_filter(
-            valid_mask.astype(float), np.nansum, size=3, mode="constant", cval=0.0
+        ion.pulse_i, ion.pulse_q = np.mean(pulse_i, axis=(1, 3)), np.mean(
+            pulse_q, axis=(1, 3)
         )
-        # Optionally normalize gain (e.g., divide by 9 for a 3x3 box)
-        gain = gain / 9.0
-        snr = snr * gain
+        # Calculate power, power base, and SNR
+        power = np.sqrt(ion.pulse_i**2 + ion.pulse_q**2)
+        ion.power = (
+            power - np.median(power, axis=1)[:, None]
+            if remove_baseline_noise
+            else power
+        )
+        ion.powerdB = 10 * np.log10(ion.power)
+        if threshold is None:
+            _, threshold = find_thresholds(
+                ion.powerdB, bins=bins, prominence=prominence, *kwargs
+            )
+        logger.info(f"Threshold: {threshold}")
+        ion.powerdB[ion.powerdB < threshold] = np.nan
+        # Calculate phase
+        ion.phase = np.arctan2(ion.pulse_i, ion.pulse_q)
+        print(ion.phase)
+        # ion.phase = np.unwrap(ion.phase, axis=1)
 
-        snr = np.nan_to_num(snr, nan=0.0)
-        from scipy.ndimage import median_filter
-
-        snr_med = median_filter(snr, size=3)
-
-        # 2. Remove vertical lines: zero out columns with too many nonzero pixels
-        col_nonzero = np.count_nonzero(snr_med > 0, axis=1) / snr_med.shape[1]
-        vertical_cols = np.where(col_nonzero > 0.5)[0]
-        snr_med[vertical_cols, :] = 0
-
-        return (snr_med, frequencies, heights)
+        return ion
 
 
 if __name__ == "__main__":

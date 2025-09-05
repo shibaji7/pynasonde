@@ -18,6 +18,17 @@ def to_mantissa_exponant(iq: float, masks: tuple = (-16, 15)) -> float:
 
 
 @dataclass
+class Ionogram:
+    pulse_i: np.ndarray = None  # I data for each range gate and receiver
+    pulse_q: np.ndarray = None  # Q data for each range gate and receiver
+    power: np.ndarray = None  # Power data for each range gate and receiver
+    powerdB: np.ndarray = None  # SNR data for each range gate and receiver
+    phase: np.ndarray = None  # Phase data for each range gate and receiver
+    frequency: np.ndarray = None  # Frequencies for each pulse set
+    height: np.ndarray = None  # Heights for each range gate
+
+
+@dataclass
 class PctType:
     record_id: np.int32 = 0  # Sequence number of this PCT
     pri_ut: np.float64 = 0.0  # UT of this pulse
@@ -49,7 +60,8 @@ class PctType:
     ):
         for i, dtype in enumerate(PCT_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
-        logger.info(f"Reading PCT {self.record_id}")
+        if np.mod(self.record_id, 500) == 0:
+            logger.info(f"Reading PCT {self.record_id}")
         vipir_value_size = 2 * (vipir_config.vipir_version + 1)  # bytes
         chunksize = (
             int(vipir_value_size) * 2 * sct.station.rx_count * sct.timing.gate_count
@@ -80,48 +92,19 @@ class PctType:
                         ),
                     )
                 elif vipir_config.data_type == 1:
-                    # masks = (-16, 15)
-                    # pi, pq = (
-                    #     int.from_bytes(
-                    #         data[index : index + vipir_value_size], "big", signed=True
-                    #     ),
-                    #     int.from_bytes(
-                    #         data[index + vipir_value_size : index + index_increment],
-                    #         "big",
-                    #         signed=True,
-                    #     ),
-                    # )
-                    # self.pulse_i[j, k] = to_mantissa_exponant(pi, masks)
-                    # self.pulse_q[j, k] = to_mantissa_exponant(pq, masks)
-                    mask12 = -16
-                    mask4 = 15
-                    pi = int.from_bytes(data[index : index + 2], "big", signed=True)
-                    mantissa = 0  # base value is mantissa
-                    ex = 0  # ex is exponent
-                    floatv = 0.0  # floatv is resulting floating point value
-                    mantissa = mask12 & pi
-                    mantissa = mantissa / 16
-                    ex = mask4 & pi
-                    ex = 15 - ex - 3
-                    # floatv=pi
-                    if mantissa != 0:
-                        floatv = 1.0 * mantissa * (2.0**ex)
-                    ival = floatv
-                    self.pulse_i[j, k] = ival
-                    pq = int.from_bytes(data[index + 2 : index + 4], "big", signed=True)
-                    # PERFORM REGISTER SHIFT
-                    mantissa = 0
-                    ex = 0
-                    floatv = 0.0
-                    mantissa = mask12 & pq
-                    mantissa = mantissa / 16
-                    ex = mask4 & pq
-                    ex = 15 - ex - 3
-                    # floatv=pq
-                    if mantissa != 0:
-                        floatv = 1.0 * mantissa * (2.0**ex)
-                    qval = floatv
-                    self.pulse_q[j, k] = qval
+                    masks = (-16, 15)
+                    pi, pq = (
+                        int.from_bytes(
+                            data[index : index + vipir_value_size], "big", signed=True
+                        ),
+                        int.from_bytes(
+                            data[index + vipir_value_size : index + index_increment],
+                            "big",
+                            signed=True,
+                        ),
+                    )
+                    self.pulse_i[j, k] = to_mantissa_exponant(pi, masks)
+                    self.pulse_q[j, k] = to_mantissa_exponant(pq, masks)
                 elif vipir_config.data_type == 2:
                     self.pulse_i[j, k], self.pulse_q[j, k] = (
                         struct.unpack("<i", data[index : index + vipir_value_size])[0],

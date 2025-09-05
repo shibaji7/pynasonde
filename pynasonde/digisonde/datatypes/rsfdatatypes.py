@@ -201,7 +201,9 @@ class RsfFreuencyGroup:
             240: "SW",
             300: "NW",
         }
-        self.azm_directions = [direction_map[np.mod(az, 360)] for az in self.azimuth.astype(np.int64)]
+        self.azm_directions = [
+            direction_map[np.mod(az, 360)] for az in self.azimuth.astype(np.int64)
+        ]
         return
 
 

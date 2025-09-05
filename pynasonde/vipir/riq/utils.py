@@ -1,8 +1,6 @@
 import math
 
-# Constants for PI and TWOPI
-PII = math.pi
-TWOPII = 2 * math.pi
+import numpy as np
 
 
 # Determine if the number is odd
@@ -92,11 +90,11 @@ def unwrap(phase):
     float :
         Unwrapped phase.
     """
-    if abs(phase) <= PII:
+    if abs(phase) <= math.pi:
         return phase
-    elif phase > PII:
-        return phase - TWOPII
-    elif phase < -PII:
-        return phase + TWOPII
+    elif phase > math.pi:
+        return phase - 2 * math.pi
+    elif phase < -math.pi:
+        return phase + 2 * math.pi
     else:
-        return 9999.0  # Error case
+        return np.nan  # Error case
