@@ -15,17 +15,10 @@ from types import SimpleNamespace
 
 import numpy as np
 from loguru import logger
+from scipy import constants
 
 from pynasonde.model.trace.ionosphere import IRI, IonosphereModels
-from pynasonde.model.trace.rtplots import PlotRays
-
-# ------------------------- Physical constants -------------------------
-EPS0 = 8.8541878128e-12  # F/m
-QE = 1.602176634e-19  # C
-ME = 9.10938356e-31  # kg
-TWOPI = 2.0 * np.pi
-C_M_S = 299792458.0  # m/s
-C_KM_S = C_M_S / 1e3  # km/s
+from pynasonde.model.trace.plottrace import PlotRays
 
 
 # ======================== Helper: Interpolator ========================
@@ -100,8 +93,10 @@ class Bilinear2D:
 # ======================== Plasma / refractive index ====================
 def plasma_freq_hz(ne_m3: float | np.ndarray) -> np.ndarray:
     """f_p [Hz] from electron density ne [m^-3]."""
-    omega_p = np.sqrt(ne_m3 * QE * QE / (EPS0 * ME))
-    return omega_p / TWOPI
+    omega_p = np.sqrt(
+        ne_m3 * constants.e * constants.e / (constants.epsilon_0 * constants.m_e)
+    )
+    return omega_p / (2 * np.pi)
 
 
 def n2_from_ne(
@@ -295,13 +290,18 @@ class RayTracer2D:
             self.outputs = pool.map(self.run_single_ray, tasks)
         return self.outputs
 
-    def homing_in_to_locate_roots(self, outputs=[], ground_location_precision=6):
+    def homing_in_to_locate_roots(
+        self, outputs=[], ground_height_precision: int = 2, homing_error_km: float = 10
+    ):
         self.homing_roots = []
         outputs = outputs if len(outputs) > 0 else self.outputs
         for o in outputs:
-            if ((o.reason == "ground_hit") and (np.round(o.y_km[-1], 6) == 0.0)) or (
-                o.reason == "evanescent"
-            ):
+            homing = (o.reason == "evanescent") or (
+                (o.reason == "ground_hit")
+                and (np.round(o.y_km[-1], ground_height_precision) == 0.0)
+                and (np.abs(np.abs(o.x_km[-1]) - o.x_km[0]) <= homing_error_km)
+            )
+            if homing:
                 self.homing_roots.append(o.el0_deg)
         return self.homing_roots
 

@@ -278,36 +278,3 @@ class IonosphereModels:
         )
         alpha_X[X > x_params[2]] = 1 - d_params[1]
         return X, Z, Ne, alpha_X, Ne * alpha_X
-
-    @classmethod
-    def tid_cusp_function_alpha(
-        cls,
-        x: np.ndarray = np.linspace(-1500, 1500, 601),  # horizontal distance [km]
-        hs: np.ndarray = np.linspace(0, 1000, 501),  # altitude [km]
-        fp: float = 6.00001e6,
-        hm: float = 300,
-        H_scale: float = 50,
-        a: float = 0.5,
-        S: float = 100,
-        tilt: float = 60.0,
-        Ne_floor: float = 2e10,
-    ):
-        X, Z = np.meshgrid(x, hs)
-        k = np.tan(np.deg2rad(tilt))
-        scale = 1 + (a * np.exp(-(((X + (k * (hm - Z))) / S) ** 2)))
-        Ne = (
-            calculate_ne_from_plasma_frequency(fp)
-            * (1 - ((hm - Z) / (2 * H_scale)) ** 2)
-            * scale
-        )
-        Ne[Ne <= 0] = 0
-        Ne += Ne_floor
-        return X, Z, Ne
-
-
-if __name__ == "__main__":
-    # iri = IRI(dt.datetime(2024, 4, 8, 19))
-    # iri.create_iri_2D_based_on_central_latlon(
-    #     33.72,360.-253.26
-    # )
-    IRI.create_chapman_ionosphere_bump()
