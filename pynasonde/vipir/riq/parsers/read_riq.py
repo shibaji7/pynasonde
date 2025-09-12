@@ -274,11 +274,11 @@ class RiqDataset:
                 ion.powerdB, bins=bins, prominence=prominence, *kwargs
             )
         logger.info(f"Threshold: {threshold}")
-        ion.powerdB[ion.powerdB < threshold] = np.nan
+        ion.powerdB[ion.powerdB < threshold] = 0.0
         # Calculate phase
-        ion.phase = np.arctan2(ion.pulse_i, ion.pulse_q)
-        print(ion.phase)
-        # ion.phase = np.unwrap(ion.phase, axis=1)
+        # ion.phase = np.arctan2(ion.pulse_i, ion.pulse_q)
+        # print(ion.phase)
+        # # ion.phase = np.unwrap(ion.phase, axis=1)
 
         return ion
 

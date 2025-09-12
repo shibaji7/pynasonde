@@ -32,6 +32,7 @@ if True:
         apply_median_filter=True,
         median_filter_size=3,
     )
+    ion.powerdB[np.isnan(ion.powerdB)] = 0.0
     # # print(i.frequencies.tolist())
     p = Ionogram(ncols=1, nrows=1)
     # a = i.amplitude
