@@ -18,6 +18,7 @@ from pynasonde.vipir.riq.datatypes.default_factory import (
 )
 from pynasonde.vipir.riq.datatypes.pct import Ionogram, PctType
 from pynasonde.vipir.riq.datatypes.sct import SctType
+from pynasonde.vipir.riq.parsers.trace import extract_echo_traces
 
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = load_toml().vipir_data_format_maps
@@ -244,6 +245,7 @@ class RiqDataset:
             np.array([p.pulse_i for psets in self.pulsets for p in psets.pcts]),
             np.array([p.pulse_q for psets in self.pulsets for p in psets.pcts]),
         )
+        extract_echo_traces(self.sct, pulse_i, pulse_q)
         pulse_i, pulse_q = (
             pulse_i.reshape(
                 len(self.pulsets),
@@ -279,7 +281,6 @@ class RiqDataset:
         # ion.phase = np.arctan2(ion.pulse_i, ion.pulse_q)
         # print(ion.phase)
         # # ion.phase = np.unwrap(ion.phase, axis=1)
-
         return ion
 
 

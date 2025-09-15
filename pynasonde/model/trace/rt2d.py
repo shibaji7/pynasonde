@@ -291,12 +291,15 @@ class RayTracer2D:
         return self.outputs
 
     def homing_in_to_locate_roots(
-        self, outputs=[], ground_height_precision: int = 2, homing_error_km: float = 10
+        self,
+        outputs=[],
+        ground_height_precision: int = 2,
+        homing_error_km: float = 10,
     ):
         self.homing_roots = []
         outputs = outputs if len(outputs) > 0 else self.outputs
         for o in outputs:
-            homing = (o.reason == "evanescent") or (
+            homing = (
                 (o.reason == "ground_hit")
                 and (np.round(o.y_km[-1], ground_height_precision) == 0.0)
                 and (np.abs(np.abs(o.x_km[-1]) - o.x_km[0]) <= homing_error_km)
@@ -315,6 +318,7 @@ class RayTracer2D:
         figure_file_name=None,
         kind="pf",
         close=False,
+        text=None,
     ):
         outputs = outputs if len(outputs) > 0 else self.outputs
         homing_roots = homing_roots if len(homing_roots) > 0 else self.homing_roots
@@ -324,6 +328,7 @@ class RayTracer2D:
             outputs,
             kind=kind,
             ped_angles=homing_roots,
+            text=text,
         )
         if figure_file_name:
             rp.save(figure_file_name)
@@ -427,15 +432,7 @@ def ray_trace_2d_ionosphereic_wave_front(
     d_params: np.ndarray = np.asarray([0.4, 0.15]),
     frequencies: np.ndarray = np.asarray([8.3]),
     el_angles: np.ndarray = np.arange(50, 110, 0.5),
-    homing_roots: np.ndarray = np.asarray(
-        [
-            67.39054019895454,
-            68.89908795759418,
-            85.63520531083785,
-            86.4857224280745,
-            97.43711022984058,
-        ]
-    ),
+    homing_roots: np.ndarray = np.asarray([]),
     x0_km=0.0,
     y0_km=0.0,
     s_max_km=3000.0,  # allow enough total path
@@ -477,10 +474,155 @@ def ray_trace_2d_ionosphereic_wave_front(
     return X, Z, Ne, outputs
 
 
-if __name__ == "__main__":
-    for i, jx in enumerate(np.arange(-50, 50, 10)):
-        x_params = np.asarray([-62, 93, 127]) + (jx * 4)
-        ray_trace_2d_ionosphereic_wave_front(
-            x_params=x_params, figure_file_name=f"figures/rt/wv{i}.png"
+class TIDModel:
+    def __init__(
+        self,
+        lambda_h,
+        period,
+        I_deg,
+        az_wave_deg=0.0,
+        az_Bh_deg=0.0,
+        Ub_ref=15.0,
+        z0_ref=250e3,
+        kzi_override=None,
+        gamma=1.4,
+        g=9.80665,
+    ):
+        """
+        Initialize a gravity-wave–driven TID model (Hooke 1968 form).
+
+        Parameters
+        ----------
+        lambda_h : float
+            Horizontal wavelength (m).
+        period : float
+            Wave period (s).
+        I_deg : float
+            Geomagnetic inclination (deg).
+        az_wave_deg : float
+            Azimuth of wave propagation (deg; 0°=east, 90°=north).
+        az_Bh_deg : float
+            Azimuth of horizontal projection of B-field (deg).
+        Ub_ref : float
+            Neutral velocity along B at z0_ref (m/s).
+        z0_ref : float
+            Reference altitude for Ub_ref (m).
+        kzi_override : float or None
+            Optional override for dissipation term k_zi (1/m).
+        gamma : float
+            Ratio of specific heats for dry air.
+        g : float
+            Gravitational acceleration (m/s^2).
+        """
+        self.lambda_h = lambda_h
+        self.period = period
+        self.I_deg = I_deg
+        self.az_wave_deg = az_wave_deg
+        self.az_Bh_deg = az_Bh_deg
+        self.Ub_ref = Ub_ref
+        self.z0_ref = z0_ref
+        self.kzi_override = kzi_override
+        self.g = g
+        self.gamma = gamma
+        return
+
+    @staticmethod
+    def brunt_vaisala_and_acoustic(H, gamma=1.4, g=9.80665):
+        """Return Brunt–Väisälä frequency, sound speed, acoustic cutoff."""
+        N_B = (gamma - 1) * g / (gamma * H)
+        c = np.sqrt(gamma * g * H)
+        omega_a = c / (2.0 * H)
+        return N_B, c, omega_a
+
+    @staticmethod
+    def vertical_wavenumber(
+        kh, omega, H, omega_a=None, N_B=None, c=None, gamma=1.4, g=9.80665
+    ):
+        """Dispersion relation for vertical wavenumber."""
+        if N_B is None or c is None or omega_a is None:
+            N_B, c, omega_a = TIDModel.brunt_vaisala_and_acoustic(H, gamma=gamma, g=g)
+        tiny = 1e-12
+        term1 = (
+            kh**2
+            * ((omega**2) / (N_B**2 + tiny))
+            * (1.0 / (np.maximum(omega**2, tiny) - 1.0 + tiny))
         )
-        # print(x_params)
+        term2 = (omega**2 - omega_a**2) / (c**2 + tiny)
+        return term1 + term2
+
+    @staticmethod
+    def make_k_components(lambda_h, az_wave_deg):
+        """Return kh, kx, ky for horizontal wavevector."""
+        kh = 2.0 * np.pi / lambda_h
+        az = np.deg2rad(az_wave_deg)
+        kx = kh * np.cos(az)
+        ky = kh * np.sin(az)
+        return kh, kx, ky
+
+    @staticmethod
+    def k_parallel_to_B(kx, ky, m_r, I_deg, az_Bh_deg=0.0):
+        """Return component of k along geomagnetic field."""
+        I = np.deg2rad(I_deg)
+        azb = np.deg2rad(az_Bh_deg)
+        bx = np.cos(I) * np.cos(azb)
+        by = np.cos(I) * np.sin(azb)
+        bz = -np.sin(I)
+        return kx * bx + ky * by + m_r * bz
+
+    def compute(self, x, z, t, Ne_bg, dNe_dz, H):
+        """
+        Compute TID perturbation.
+
+        Parameters
+        ----------
+        x, z, t : array_like
+            Grids of horizontal, vertical, and time coordinates (m, m, s).
+        Ne_bg : callable or array_like
+            Background electron density profile function of z.
+        dNe_dz : callable or array_like
+            Gradient of Ne_bg.
+        H : float or callable
+            Scale height (m) or function of z.
+
+        Returns
+        -------
+        Ne_prime : ndarray
+            Complex perturbation electron density.
+        Ne_prime_abs : ndarray
+            Amplitude of perturbation.
+        Phi : ndarray
+            Phase term (rad).
+        """
+        x = np.asarray(x)
+        z = np.asarray(z)
+        t = np.asarray(t)
+        X, Z, T = np.meshgrid(x, z, t, indexing="xy")
+
+        Ne = Ne_bg(Z) if callable(Ne_bg) else np.asarray(Ne_bg)
+        dNez = dNe_dz(Z) if callable(dNe_dz) else np.asarray(dNe_dz)
+        Hval = H(Z) if callable(H) else np.asarray(H)
+        z0_ref = self.z0_ref or float(np.nanmean(z))
+
+        omega = 2.0 * np.pi / self.period
+        kh, kx, ky = self.make_k_components(self.lambda_h, self.az_wave_deg)
+
+        m2 = self.vertical_wavenumber(kh, omega, Hval)
+        m_r = np.real(np.where(m2 >= 0.0, np.sqrt(m2), 0.0))
+        kzi = (1.0 / (2.0 * Hval)) if (self.kzi_override is None) else self.kzi_override
+
+        kbr = self.k_parallel_to_B(kx, ky, m_r, self.I_deg, az_Bh_deg=self.az_Bh_deg)
+
+        I = np.deg2rad(self.I_deg)
+        tiny = 1e-12
+        geom_term = (1.0 / np.maximum(Ne, tiny)) * dNez + kzi
+        arctan_term = np.arctan((np.sin(I) * geom_term) / np.maximum(kbr, tiny))
+        Phi = (omega * T) - (kx * X + ky * 0 * X + m_r * Z) + arctan_term
+
+        growth = np.exp(kzi * (Z - z0_ref))
+        mag_factor = np.sqrt(
+            (geom_term**2) + ((kbr / np.maximum(np.sin(I), tiny)) ** 2)
+        )
+        Ne_prime_abs = Ne * self.Ub_ref * growth * (np.sin(I) / omega) * mag_factor
+
+        Ne_prime = Ne_prime_abs * np.exp(1j * Phi)
+        return Ne_prime, Ne_prime_abs, Phi

@@ -127,7 +127,6 @@ class PlotRays(object):
         self,
         outputs=[],
         kind="edens",
-        zoomed_in=[],
         lcolor="k",
         lw=0.3,
         ls="-",
@@ -179,6 +178,8 @@ class PlotRays(object):
             if o.el0_deg in ped_angles:
                 col, width = "darkgreen", lw * 2
             ax.plot(x_km, y_km, c=col, zorder=ray_zorder, ls=ls, lw=width)
+        if text:
+            ax.text(0.05, 0.95, text, ha="left", va="top", transform=ax.transAxes)
         return ax
 
     def set_density(self, X, Z, Ne, pf=None):
