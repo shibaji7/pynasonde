@@ -10,47 +10,135 @@ def compute_phase(i, q):
     return np.arctan2(q, i) % (2 * np.pi)
 
 
+def get_clean_iq_by_heights(
+    pulse_i: np.ndarray,
+    pulse_q: np.ndarray,
+    f1_range_low: Optional[int] = 70,
+    f1_range_high: Optional[int] = 1000,
+    # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
+    range_dev: Optional[float] = 1.5,
+):
+    f1_rlow = int(np.floor(f1_range_low / range_dev))
+    f1_rhigh = int(np.ceil(f1_range_high / range_dev))
+    pulse_i_range, pulse_q_range = (
+        pulse_i[:, f1_rlow:f1_rhigh, :],
+        pulse_q[:, f1_rlow:f1_rhigh, :],
+    )
+    power = np.sqrt(pulse_i_range**2 + pulse_q_range**2)
+    n_pulses = power.shape[0]
+    return pulse_i_range, pulse_q_range, power, n_pulses, f1_rlow, f1_rhigh
+
+
 def extract_echo_traces(
     sct: SctType,
     pulse_i: np.ndarray,
     pulse_q: np.ndarray,
-    f1_freq_low: Optional[int] = 0,
-    f1_freq_high: Optional[int] = 20000,
     f1_range_low: Optional[int] = 70,
     f1_range_high: Optional[int] = 1000,
-    f2_freq_max: Optional[int] = 13000,
-    pulse_block_min: Optional[float] = 0.0,
-    snr_variance_threshold: Optional[int] = 1.1,
-    doppler_time_offsets: Optional[np.array] = np.array(
-        [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08]
-    ),
+    snr_variance_threshold: Optional[float] = 1.1,
+    f2max: Optional[float] = 13000,
+    # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
+    range_dev: Optional[float] = 1.5,
 ):
-    frequencies = sct.frequency.base_table
-    freq_id_range = np.argwhere(
-        (frequencies < f1_freq_high) & (frequencies > f1_freq_low)
-    )
-    pulse_i_range, pulse_q_range = (
-        pulse_i[:, f1_range_low:f1_range_high, :],
-        pulse_q[:, f1_range_low:f1_range_high, :],
-    )
-    power = np.sqrt(pulse_i_range**2 + pulse_q_range**2)
-    n_pulses = power.shape[0]
-
-    p_block_size = int(n_pulses - pulse_block_min)
-    v_coef = 300000 / (4 * np.pi)
-
-    peak_gates, phases, xphases, yphases = (
-        np.zeros(p_block_size),
-        np.zeros(p_block_size),
-        np.zeros(p_block_size),
-        np.zeros(p_block_size),
+    (pulse_i_range, pulse_q_range, power, n_pulses, _, _) = get_clean_iq_by_heights(
+        pulse_i,
+        pulse_q,
+        f1_range_low=f1_range_low,
+        f1_range_high=f1_range_high,
+        range_dev=range_dev,
     )
 
-    peak_gates = np.nanargmax(20 * np.log10(power[..., 0]), axis=1)
-    print(power.shape)
-    idx = np.arange(power.shape[0])
-    ew_i = pulse_i_range[idx, peak_gates, 0]
-    ew_q = pulse_q_range[idx, peak_gates, 0]
-    xphases = compute_phase(ew_i, ew_q)
+    if sct.frequency.tune_type == 1:
+        peak_gates = np.nanargmax(20 * np.log10(power[..., 0]), axis=1)
+        num_sets = int(n_pulses / sct.frequency.pulse_count)
+        block_freq = sct.frequency.base_table[:num_sets]
+    elif sct.frequency.tune_type == 2:
+        raise NotImplementedError("TUNE_TYPE 2 not implemented yet")
+    elif sct.frequency.tune_type == 3:
+        raise NotImplementedError("TUNE_TYPE 3 not implemented yet")
+    elif sct.frequency.tune_type >= 4:
+        peak_gates = np.nanargmax(20 * np.log10(power[..., 0]), axis=1)
+        num_sets = int(n_pulses / sct.frequency.pulse_count)
+        block_freq = sct.frequency.base_table[::2]
+    else:
+        raise ValueError(f"Unknown frequency tune type: {sct.frequency.tune_type}")
+    clean_range = np.zeros(num_sets, dtype=int)
+    # Reshape peak_gates to (num_sets, pulse_count)
+    range_blocks = peak_gates[: num_sets * sct.frequency.pulse_count].reshape(
+        num_sets, sct.frequency.pulse_count
+    )
+    # Compute variance and mean along pulse axis
+    variances = np.var(range_blocks, axis=1)
+    means = np.mean(range_blocks, axis=1)
+    # Assign means to clean_range where variance is below threshold
+    mask = variances < snr_variance_threshold
+    clean_range[mask] = means[mask]
 
+    good_index = np.where(
+        (block_freq < f2max)
+        & (block_freq > 0)
+        & (clean_range > 0)
+        & (clean_range >= f1_range_low)
+        & (clean_range <= f1_range_high)
+    )[0]
+
+    compute_phase_velocity(
+        sct,
+        pulse_i,
+        pulse_q,
+        f1_range_low=f1_range_low,
+        f1_range_high=f1_range_high,
+        snr_variance_threshold=snr_variance_threshold,
+        f2max=f2max,
+        range_dev=range_dev,
+    )
+    return good_index
+
+
+def compute_phase_velocity(
+    sct: SctType,
+    pulse_i: np.ndarray,
+    pulse_q: np.ndarray,
+    f1_range_low: Optional[int] = 70,
+    f1_range_high: Optional[int] = 1000,
+    snr_variance_threshold: Optional[float] = 1.1,
+    f2max: Optional[float] = 13000,
+    # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
+    range_dev: Optional[float] = 1.5,
+):
+    (pulse_i_range, pulse_q_range, power, n_pulses, _, _) = get_clean_iq_by_heights(
+        pulse_i,
+        pulse_q,
+        f1_range_low=f1_range_low,
+        f1_range_high=f1_range_high,
+        range_dev=range_dev,
+    )
+
+    if sct.frequency.tune_type == 1:
+        peak_gates = np.nanargmax(20 * np.log10(power[..., 0]), axis=1)
+    elif sct.frequency.tune_type == 2:
+        raise NotImplementedError("TUNE_TYPE 2 not implemented yet")
+    elif sct.frequency.tune_type == 3:
+        raise NotImplementedError("TUNE_TYPE 3 not implemented yet")
+    elif sct.frequency.tune_type >= 4:
+        peak_gates = np.nanargmax(20 * np.log10(power[..., 0]), axis=1)
+    else:
+        raise ValueError(f"Unknown frequency tune type: {sct.frequency.tune_type}")
+
+    pulse_q_peakrange, pulse_i_peakrange = (
+        pulse_q_range[:, peak_gates, :],
+        pulse_i_range[:, peak_gates, :],
+    )
+    phase = np.unwrap(np.arctan2(pulse_q_peakrange, pulse_i_peakrange))
+    # xphases, yphases = (
+    #     phase[..., 0],  # E-W Phases
+    #     phase[..., 1],  # N-S Phases
+    # )
+    n_pulses, n_gates, n_ch = pulse_q_range.shape
+    peak_gates = np.clip(peak_gates, 0, n_gates - 1)
+    idx = np.arange(n_pulses)
+
+    pulse_q_peakrange = pulse_q_range[idx, peak_gates, :]  # shape (n_pulses, 2)
+    print(pulse_q_peakrange.shape)
+    pulse_i_peakrange = pulse_i_range[idx, peak_gates, :]  # shape (n_pulses, 2)
     return

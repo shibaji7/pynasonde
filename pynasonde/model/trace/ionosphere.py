@@ -278,3 +278,24 @@ class IonosphereModels:
         )
         alpha_X[X > x_params[2]] = 1 - d_params[1]
         return X, Z, Ne, alpha_X, Ne * alpha_X
+
+    @classmethod
+    def cusp_function_tids(
+        cls,
+        x: np.ndarray = np.linspace(-1500, 1500, 601),  # horizontal distance [km]
+        hs: np.ndarray = np.linspace(0, 1000, 501),  # altitude [km]
+        NmF2: float = 1e12,
+        hmF2: float = 300.0,
+        H_scale: float = 50.0,
+        Ne_floor: float = 2e10,
+        A=0.1,
+        kx=2 * np.pi / 200,
+        kz=2 * np.pi / 300,
+        phi=0,
+    ):
+        X, Z = np.meshgrid(x, hs)
+        z = (Z - hmF2) / H_scale
+        Ne = NmF2 * np.exp(0.5 * (1 - z - np.exp(-z))) + Ne_floor
+        factor = A * np.sin(kx * X + kz * Z + phi)
+        ndNe = (1.0 + factor) * Ne
+        return X, Z, Ne, ndNe
