@@ -54,5 +54,8 @@ nav:
     - DIGISONDE: user/digisonde.md
     - Citing: user/citing.md
     - Toolbox: 
-            - ISCA: tools/isca.md
-            - RTI: tools/fti.md
+            - isca: tools/isca.md
+            - fti: tools/fti.md
+            - ionogram: tools/ionogram.md
+            - skymaps: tools/skymaps.md
+            - stackplot: tools/stackplot.md

@@ -33,7 +33,7 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
   - [Citing](user/citing.md)
   - [Authors](user/authors.md)
   - Toolbox
-    - [ISCA](tools/isca.md)
+    - [isca](tools/isca.md)
     - [fti](tools/fti.md)
     - [ionogram](tools/ionogram.md)
     - [skymaps](tools/skymaps.md)
