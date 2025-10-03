@@ -1,6 +1,15 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools-scm[toml]>=8", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pynasonde"
+dynamic = ["version"]
+description = "Precision ionospheric radio sounding tools"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Shibaji Chakraborty"}]
+license = {text = "MIT"}
 
 [tool.pytest.ini_options]
 minversion = "6.0"
