@@ -109,3 +109,74 @@ This file is formatted in structured ASCII, with each entry corresponding to a s
 | Ht       |  `float64`        | 8 | Top (virtual) height of the velocity measurements, km |
 | Fl       |  `float64`        | 8 | Lower operating frequency, MHz |
 | Fu       |  `float64`        | 8 | Upper operating frequency, MHz |
+
+### Legacy Scinece Data Format: DFT
+The **`.DFT` drift data file** consists of a variable number of **4,096-byte blocks**, where each block contains **8-bit amplitudes and phases** of the Doppler spectra.
+#### Data Organization
+
+- **Smallest entity**: a **sub-case**
+  - A sub-case contains **four Doppler spectra** for each antenna
+  - Obtained at:
+    - one frequency
+    - one height gate
+    - one polarization setting
+
+- **Doppler spectra length**:
+  - Each Doppler spectrum is `2N` elements long
+  - `N` is an operator-selected parameter
+
+#### Storage Format
+
+- The amplitudes of Doppler spectra are grouped into sets of **128 elements** for storage.
+- Each set of 128 amplitudes may include data from **one to four antennas**, depending on the value of `N`.
+- After 128 amplitudes, the block stores the corresponding **128 phase values** of the same Doppler spectrum (or spectra).
+
+#### Summary Table
+
+| Data Entity         | Description                                                     |
+|---------------------|-----------------------------------------------------------------|
+| Block size          | 4,096 bytes (fixed)                                            |
+| Data type           | 8-bit integers (amplitude and phase values)                    |
+| Smallest unit       | Sub-case (per frequency × height gate × polarization)           |
+| Doppler spectra     | Four per antenna, each `2N` elements long                       |
+| Grouping            | 128 amplitude values, followed by 128 phase values              |
+| Antenna data        | Each 128-element set may include 1–4 antennas (depending on `N`) |
+
+For details please check [Digisonde Manual](https://digisonde.com/pdf/Digisonde4DManual_LDI-web.pdf) section 5.166.
+
+### Raw Sounding Data Files: RSF
+
+The **RSF ionogram file** is composed of 4,096-byte blocks.  
+Each block contains a **Header** and a variable number of **Frequency Groups**.
+
+Refer to the *Digisonde Technical Manual*:  
+- **Table 5C-37** — General Purpose PREFACE format  
+- **Table 5C-38** — RSF Header structure  
+- **Table 5C-39** — Frequency Group length settings  
+- **Section 4** — Explanation of operator-selectable PREFACE parameters  
+
+---
+
+#### RSF File Layout
+
+| Entity           | Size (Bytes)  | Description                                                                                     | Reference in Manual      |
+|------------------|---------------|-------------------------------------------------------------------------------------------------|--------------------------|
+| PREFACE          | variable      | General Purpose PREFACE containing operator-selectable parameters and defaults                  | Table 5C-37; Sec. 4      |
+| Block            | 4,096         | Fundamental RSF storage unit, consisting of a Header + Frequency Groups                        | —                        |
+| RSF Header       | variable      | Header structure for each block                                                                | Table 5C-38              |
+| Frequency Group  | variable      | Unit containing PRELUDE + one height profile                                                    | Table 5C-39              |
+| PRELUDE          | 6             | Fixed-size preamble for each Frequency Group                                                    | Table 5C-39              |
+| Height Profile   | variable      | Virtual height data, length depends on operator-selected number of heights                      | Table 5C-39              |
+
+---
+
+#### Polarization Option
+
+| Condition           | Storage Behavior                                                                 |
+|---------------------|----------------------------------------------------------------------------------|
+| `A < 8`             | Both **O- and X-mode** polarizations stored, each in its own Frequency Group     |
+| `A ≥ 8`             | Only **O-mode** polarization stored for each frequency                          |
+
+*(`A` = PREFACE Character #29 parameter)*
+
+---
