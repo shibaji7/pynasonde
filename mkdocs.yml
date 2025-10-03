@@ -53,6 +53,7 @@ nav:
     - VIPIR: user/vipir.md
     - DIGISONDE: user/digisonde.md
     - Citing: user/citing.md
+    - Authors: user/authors.md
     - Toolbox: 
             - isca: tools/isca.md
             - fti: tools/fti.md
