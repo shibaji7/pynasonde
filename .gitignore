@@ -12,6 +12,8 @@ __pycache__/
 *.RIQ*
 *.riq*
 *.out*
+_bkp*
+
 
 # Output files
 *tmp*

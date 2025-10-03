@@ -34,7 +34,10 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
   - [Authors](user/authors.md)
   - Toolbox
     - [ISCA](tools/isca.md)
-    - [RTI](tools/fti.md)
+    - [fti](tools/fti.md)
+    - [ionogram](tools/ionogram.md)
+    - [skymaps](tools/skymaps.md)
+    - [stackplot](tools/stackplot.md)
   - Tutorials
   - [VIPIR](user/vipir.md)
   - [DIGISONDE](user/digisonde.md)

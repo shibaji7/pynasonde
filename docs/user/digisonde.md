@@ -42,12 +42,10 @@ Outputs from a DIGISONDE are stored in `.SAO`, `.SKY`, `.DVL`, `.DFT` and `.RSF`
 | File Extension              | File Type     | Note / Description  |
 | :---------------- | :------: | ------: |
 | `.SAO` | Structured ASCII / XML | Standard Archiving Output: Stores scaled ionosonde data in a compact, machine- and human-readable format. |
-| `.SKY` | Structured ASCII | Skymap data files stores raw echo traces after inversion |
-| `.DVL` | Structured ASCII |  |
-| `.DFT` | Structured Binary |  |
-| `.RSF` | Structured Binary |  |
-| `.SBF` | Structured Binary |  |
-| `.EDP` | Structured Binary |  |
+| `.SKY` | Structured ASCII | Skymap data files stores raw echo traces after inversion. |
+| `.DVL` | Structured ASCII | Drift Velocity data files stores velocity estimates from the peak echoe locations. |
+| `.DFT` | Structured Binary | Drift Fourier spectra files stores full Fourier transform spectra of Doppler-shifted signals (Hz bins, power values). |
+| `.RSF` | Structured Binary | Raw Sounding File stores  |
 
 All these files are either a custom binary format or structured ASCII formats. Structures of the datas is best understood through `C`, and `FORTRAN` definitions. However, we provide `Python`-version of the data structure.
 
