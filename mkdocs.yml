@@ -61,4 +61,4 @@ nav:
             - skymaps: tools/skymaps.md
             - stackplot: tools/stackplot.md
             - trace: tools/trace.md
-    - API Reference:
+    # - API Reference:
