@@ -22,16 +22,6 @@ plugins:
               show_root_heading: true
               show_source: true
               members_order: source
-                        setup_commands:
-                            # Mock optional heavy binary dependencies so mkdocstrings can import modules
-                            - "import sys"
-                            - |
-                                    _mock_names = ['cv2', 'scipy', 'sklearn', 'joblib', 'pysolar', 'timezonefinder', 'toml', 'xarray', 'pandas', 'matplotlib', 'matplotlib.pyplot']
-                                    import types
-                                    for _m in _mock_names:
-                                            if _m in sys.modules:
-                                                    continue
-                                            sys.modules[_m] = types.ModuleType(_m)
      
 markdown_extensions:
     - extra
