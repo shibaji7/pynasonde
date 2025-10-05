@@ -10,8 +10,8 @@ theme:
 plugins:
     - search
     - glightbox
-    - bibtex:
-        bib_file: "docs/refs.bib"
+    # - bibtex:
+    #     bib_file: "docs/refs.bib"
     - mkdocstrings:
         enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
         custom_templates: templates
