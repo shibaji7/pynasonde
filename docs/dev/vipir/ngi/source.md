@@ -1,4 +1,4 @@
-::: pynasonde.vipir.ngi.source.DataSource
+<!-- ::: pynasonde.vipir.ngi.source.DataSource
     handler: python
     options:
         show_root_heading: true
@@ -18,4 +18,4 @@
         members:
             - __initialize__
             - set_traces
-            - get_n_traces
+            - get_n_traces -->

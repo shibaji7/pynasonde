@@ -9,7 +9,7 @@ document.
 This version of the MIT Public License incorporates the terms
 and conditions of MIT General Public License.
 -->
-
+<!-- 
 ## ngi.scale — NoiseProfile and AutoScaler (manual doc)
 
 This page provides a short, manual reference for the primary classes in
@@ -48,4 +48,4 @@ classes manually.
             - extract
             - to_binary_traces
             - fit_parabola
-    - `to_binary_traces(...)` — threshold the image (Otsu + morphological operations), cluster candidate points with DBSCAN and fit parabolic curves to traces.
+    - `to_binary_traces(...)` — threshold the image (Otsu + morphological operations), cluster candidate points with DBSCAN and fit parabolic curves to traces. -->
