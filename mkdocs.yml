@@ -17,8 +17,11 @@ plugins:
         default_handler: python
         handlers:
           python:
+            paths: ["pynasonde"]  
             options:
+              show_root_heading: true
               show_source: true
+              members_order: source
      
 markdown_extensions:
     - extra
