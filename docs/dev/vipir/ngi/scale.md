@@ -9,3 +9,12 @@ document.
 This version of the MIT Public License incorporates the terms
 and conditions of MIT General Public License.
 -->
+
+::: pynasonde.vipir.ngi.scale.NoiseProfile
+    handler: python
+    options:
+    options:
+        members:
+            - get_exp_profile
+    show_root_heading: true
+    show_source: false

@@ -9,12 +9,3 @@ document.
 This version of the MIT Public License incorporates the terms
 and conditions of MIT General Public License.
 -->
-
-::: pynasonde.vipir.ngi.utils.TimeZoneConversion
-    handler: python
-    options:
-    options:
-        members:
-            - utc_to_local_time
-    show_root_heading: true
-    show_source: false
