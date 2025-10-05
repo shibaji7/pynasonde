@@ -167,6 +167,12 @@ class DigiPlots(object):
         return
 
     def close(self):
+        """Clear and close the current Matplotlib figure.
+
+        This frees memory held by the figure and closes the associated
+        Matplotlib window/backend. Call this when the plot is no longer
+        needed (for example after saving to disk).
+        """
         self.fig.clf()
         plt.close()
         return
@@ -179,12 +185,12 @@ class DigiPlots(object):
         label: str = "",
         mpos: List[float] = [0.025, 0.0125, 0.015, 0.5],
     ):
-    """Add a colorbar to the right of an axis.
+        """Add a colorbar to the right of an axis.
 
-    Parameters mirror common Matplotlib `colorbar` usage but provide a
-    simple positioning interface via `mpos` describing relative offsets
-    and size of the colorbar axes.
-    """
+        Parameters mirror common Matplotlib `colorbar` usage but provide a
+        simple positioning interface via `mpos` describing relative offsets
+        and size of the colorbar axes.
+        """
         pos = ax.get_position()
         cpos = [
             pos.x1 + mpos[0],
@@ -347,15 +353,15 @@ class SaoSummaryPlots(DigiPlots):
         color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
         seed: int = 5,
     ):
-    """Plot multiple scalar timeseries from `df` on left and optional
-    right axes.
+        """Plot multiple scalar timeseries from `df` on left and optional
+        right axes.
 
-    The left axis shows the `left_yparams` series and the right axis
-    (if `right_yparams` provided) shows additional series using a twin
-    y-axis. Colors are picked from a color_map seeded for reproducible
-    plots.
-    """
-    np.random.seed(seed)
+        The left axis shows the `left_yparams` series and the right axis
+        (if `right_yparams` provided) shows additional series using a twin
+        y-axis. Colors are picked from a color_map seeded for reproducible
+        plots.
+        """
+        np.random.seed(seed)
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)
@@ -430,14 +436,14 @@ class SaoSummaryPlots(DigiPlots):
         ax: plt.axes = None,
         kind: str = "ionogram",
     ):
-    """Plot an ionogram-style trace: frequency (log-scaled) vs virtual
-    height.
+        """Plot an ionogram-style trace: frequency (log-scaled) vs virtual
+        height.
 
-    If `kind=='ionogram'` lines are drawn, otherwise individual points are
-    plotted. The x-axis is log10-scaled but tick labels are shown in
-    linear frequency values for readability.
-    """
-    utils.setsize(self.font_size)
+        If `kind=='ionogram'` lines are drawn, otherwise individual points are
+        plotted. The x-axis is log10-scaled but tick labels are shown in
+        linear frequency values for readability.
+        """
+        utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
@@ -503,6 +509,15 @@ class SaoSummaryPlots(DigiPlots):
         zorder: int = 4,
         cmap="Spectral",
     ):
+        """Plot frequency bands as isodensity contours over time and height.
+
+        This convenience function bins the input DataFrame by `fbins` and
+        renders small square markers for points whose `zparam` (frequency)
+        falls in each frequency bin. It is useful to visualize the
+        distribution of echo frequencies over time/height.
+
+        If `fname` is provided the figure will be saved to disk.
+        """
         plot = SaoSummaryPlots(figsize=figsize, nrows=1, ncols=1)
         ax = plot.get_axes(del_ticks)
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
@@ -611,13 +626,13 @@ class SkySummaryPlots(DigiPlots):
         zorder: int = 2,
         nrticks: int = 5,
     ):
-    """Render a polar skymap of measured points.
+        """Render a polar skymap of measured points.
 
-    The DataFrame should contain x/y coordinates in same units and a
-    color parameter `zparam`. The method converts coords to (r,theta) and
-    plots them on a polar projection with optional colorbar.
-    """
-    utils.setsize(self.font_size)
+        The DataFrame should contain x/y coordinates in same units and a
+        color parameter `zparam`. The method converts coords to (r,theta) and
+        plots them on a polar projection with optional colorbar.
+        """
+        utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_thetamin(theta_lim[0])
         ax.set_thetamax(theta_lim[1])
@@ -674,6 +689,13 @@ class SkySummaryPlots(DigiPlots):
         return
 
     def plot_doppler_waterfall(self):
+        """Placeholder for plotting Doppler waterfall plots.
+
+        This method is currently not implemented. It is expected to accept a
+        DataFrame or stream of Doppler spectra and render a waterfall
+        (frequency vs time) visualization.
+        """
+        # Not implemented yet
         return
 
     def plot_drift_velocities(
@@ -698,12 +720,12 @@ class SkySummaryPlots(DigiPlots):
         ylim: List = [-100, 100],
         xlim: List[dt.datetime] = None,
     ):
-    """Plot drift velocities with error bars.
+        """Plot drift velocities with error bars.
 
-    Expects `df` with `xparam` datetime and `yparam` + `error` columns. This
-    is a simple helper commonly used by higher-level plotting wrappers.
-    """
-    utils.setsize(self.font_size)
+        Expects `df` with `xparam` datetime and `yparam` + `error` columns. This
+        is a simple helper commonly used by higher-level plotting wrappers.
+        """
+        utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
         ax.set_xlim(xlim)
@@ -762,15 +784,15 @@ class SkySummaryPlots(DigiPlots):
         figsize: tuple = (2.5, 7),
         draw_local_time: bool = False,
     ):
-    """Create a 3-row DVL velocity plot (Vx, Vy, Vz) with optional save.
+        """Create a 3-row DVL velocity plot (Vx, Vy, Vz) with optional save.
 
-    This static helper builds a SkySummaryPlots container and uses
-    `plot_drift_velocities` to populate each subplot. It returns the
-    plot object unless `fname` is provided (in which case it saves and
-    closes the figure).
-    """
+        This static helper builds a SkySummaryPlots container and uses
+        `plot_drift_velocities` to populate each subplot. It returns the
+        plot object unless `fname` is provided (in which case it saves and
+        closes the figure).
+        """
 
-    xparam = "local_" + xparam if draw_local_time else xparam
+        xparam = "local_" + xparam if draw_local_time else xparam
         dvlplot = SkySummaryPlots(
             figsize=figsize,
             nrows=3,
@@ -819,6 +841,11 @@ class SkySummaryPlots(DigiPlots):
 
 
 class RsfIonogram(DigiPlots):
+    """Plotting helpers for RSF-format ionograms.
+
+    Provides methods to render RSF-style ionograms (frequency vs height) and
+    convenience helpers for filtering and visualizing RSF amplitude data.
+    """
 
     def __init__(
         self,
@@ -866,13 +893,13 @@ class RsfIonogram(DigiPlots):
         zorder: int = 2,
         lower_plimit: float = 5,
     ):
-    """Add an RSF-style ionogram to the current axis.
+        """Add an RSF-style ionogram to the current axis.
 
-    RSF ionograms use frequency_reading (Hz) which is converted to MHz and
-    plotted versus height. Signal amplitude below `lower_plimit` is
-    discarded to remove noise.
-    """
-    utils.setsize(self.font_size)
+        RSF ionograms use frequency_reading (Hz) which is converted to MHz and
+        plotted versus height. Signal amplitude below `lower_plimit` is
+        discarded to remove noise.
+        """
+        utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
