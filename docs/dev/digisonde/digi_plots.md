@@ -1,8 +1,10 @@
 ::: pynasonde.digisonde.digi_plots
     handler: python
-        options:
-            show_root_heading: true
-            show_source: true
+    options:
+        show_root_heading: true
+        show_source: true
+        members:
+            - search_color_schemes
 
 ::: pynasonde.digisonde.digi_plots.DigiPlots
     handler: python
