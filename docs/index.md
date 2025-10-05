@@ -43,3 +43,6 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
   - Tutorials
   - [VIPIR](user/vipir.md)
   - [DIGISONDE](user/digisonde.md)
+  - Code Documentation
+      - [Scaling VIPIR: scale.py](dev/vipir/ngi/scale.md)
+      - [Utils(ngi): utils.py](dev/vipir/ngi/utils.md)
