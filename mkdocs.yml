@@ -55,7 +55,7 @@ nav:
     - Ionosonde Data Access: user/ionosonde.md
     - VIPIR: user/vipir.md
     - DIGISONDE: user/digisonde.md
-    - DIGISONDE Dev:
+    - Code Documentation:
             - Overview: dev/digisonde/README.md
             - Parsers:
                 - SAO: dev/digisonde/parsers_sao.md
