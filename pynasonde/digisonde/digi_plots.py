@@ -1,3 +1,23 @@
+"""Plotting helpers for the Digisonde subpackage.
+
+This module provides higher-level plotting utilities used by Digisonde
+parsers and analyses. The main classes are:
+
+- ``DigiPlots``: base figure/axes manager and small conveniences.
+- ``SaoSummaryPlots``: time-height and ionogram-style visualizations.
+- ``SkySummaryPlots``: polar/skymap plotting helpers and drift plots.
+- ``RsfIonogram``: RSF-format ionogram renderer.
+
+Each class accepts pandas DataFrames produced by the library parsers and
+offers simple, documented methods for common visualizations.
+
+Quick example
+-------------
+>>> from pynasonde.digisonde.digi_plots import SaoSummaryPlots
+>>> plotter = SaoSummaryPlots(fig_title='Example', nrows=1, ncols=1)
+>>> # plotter.add_TS(df)
+"""
+
 import datetime as dt
 from types import SimpleNamespace
 from typing import List, Optional, Sequence
