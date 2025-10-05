@@ -1,3 +1,9 @@
+::: pynasonde.digisonde.digi_plots
+    handler: python
+        options:
+            show_root_heading: true
+            show_source: true
+
 ::: pynasonde.digisonde.digi_plots.DigiPlots
     handler: python
     options:
