@@ -11,10 +11,10 @@ and conditions of MIT General Public License.
 -->
 
 ::: pynasonde.vipir.ngi.TimeZoneConversion
-    handler: python
-    options:
-    options:
-        members:
-            - utc_to_local_time
-      show_root_heading: true
-      show_source: false
+        handler: python
+        options:
+        options:
+            members:
+                - utc_to_local_time
+        show_root_heading: true
+        show_source: false
