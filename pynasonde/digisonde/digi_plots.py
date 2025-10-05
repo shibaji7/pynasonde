@@ -44,6 +44,26 @@ def search_color_schemes(
     search_length: int = 10000,
     color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
 ) -> List:
+    """Search for random color combinations sampled from a colormap that satisfy bounds.
+
+    This helper tries a number of random seeds and samples `num_colors` values
+    from `color_map` for each seed. Each sampled value is tested against the
+    corresponding `bounds` entry which should be a dict with `gt` and `lt`
+    (greater-than and less-than) thresholds. Seeds that produce values within
+    all bounds are recorded and returned.
+
+    Args:
+        num_colors: Number of colors to sample per seed.
+        bounds: List of dicts, one per color, with numeric keys `gt` and `lt`.
+        search_length: Number of seeds to try (default 10000). Higher values
+            increase the chance of finding acceptable combinations.
+        color_map: A Matplotlib colormap used to convert sampled fractions to
+            RGBA colors.
+
+    Returns:
+        A list of dicts with keys: 'seed' (int), 'decimals' (list of floats),
+        and 'color' (list of RGBA tuples).
+    """
     cmap = []
     for se in range(search_length):
         np.random.seed(se)
@@ -60,8 +80,23 @@ def search_color_schemes(
 
 
 class DigiPlots(object):
-    """
-    A class to plot a summary stack plots using the data obtained from SAO
+    """Base plotting helper.
+
+    DigiPlots wraps common Matplotlib figure and axis management used across
+    the Digisonde plotting helpers. It centralizes figure creation, sizing,
+    colorbar placement and provides small convenience helpers like
+    `get_axes`, `save` and `close`.
+
+    Attributes:
+        fig_title: Title shown on the first subplot.
+        nrows, ncols: Subplot grid layout.
+        font_size: Base font size applied via `utils.setsize`.
+        figsize: Per-subplot size (width, height).
+        date: Optional reference date used by some plotters.
+        date_lims: Optional x-axis limits as datetimes.
+        subplot_kw: Passed to `plt.subplots` for e.g. polar projections.
+        draw_local_time: If True, certain methods will use local time columns
+            (prefixed with `local_`) instead of UTC.
     """
 
     def __init__(
@@ -98,6 +133,12 @@ class DigiPlots(object):
         return
 
     def get_axes(self, del_ticks=True):
+        """Return the next axes for plotting and optionally remove ticks.
+
+        This advances an internal subplot counter so subsequent calls will
+        return the next axis in the grid. When the first subplot is returned
+        the figure title is drawn.
+        """
         utils.setsize(self.font_size)
         ax = (
             self.axes[self.n_sub_plots]
@@ -121,6 +162,7 @@ class DigiPlots(object):
         return ax
 
     def save(self, filepath):
+        """Save current figure to `filepath` using tight bounding box."""
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
@@ -137,9 +179,12 @@ class DigiPlots(object):
         label: str = "",
         mpos: List[float] = [0.025, 0.0125, 0.015, 0.5],
     ):
-        """
-        Add a colorbar to the right of an axis.
-        """
+    """Add a colorbar to the right of an axis.
+
+    Parameters mirror common Matplotlib `colorbar` usage but provide a
+    simple positioning interface via `mpos` describing relative offsets
+    and size of the colorbar axes.
+    """
         pos = ax.get_position()
         cpos = [
             pos.x1 + mpos[0],
@@ -154,7 +199,14 @@ class DigiPlots(object):
 
 
 class SaoSummaryPlots(DigiPlots):
-    """ """
+    """Plotting helpers for SAO summary time-series and ionogram-style plots.
+
+    This class provides higher-level plotting methods built on top of
+    `DigiPlots` such as `add_TS` (time-series rasterized frequency plots) and
+    `plot_TS` (time-series of scalar parameters). The methods accept pandas
+    DataFrames produced by `pynasonde.digisonde.parsers` and use column names
+    to select x/y/z parameters.
+    """
 
     def __init__(
         self,
@@ -204,6 +256,22 @@ class SaoSummaryPlots(DigiPlots):
         plot_type: str = "pcolor",
         scatter_ms: float = 4,
     ):
+        """Create a time-height colored grid (pcolor) or scatter showing the
+        parameter `zparam` as a color over time (`xparam`) and height/level
+        (`yparam`).
+
+        Args:
+            df: pandas DataFrame with columns for x/y/z.
+            xparam/yparam/zparam: Column names to use for the axes and color.
+            cmap: Matplotlib colormap or our COLOR_MAPS.* entries.
+            prange: Colorbar min/max used when rendering.
+            plot_type: 'pcolor' for gridded rendering, anything else uses
+                scatter with square markers.
+
+        Returns:
+            Tuple (ax, im) where `im` is the Matplotlib QuadMesh or PathCollection
+            used for colorbar generation.
+        """
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)
@@ -279,7 +347,15 @@ class SaoSummaryPlots(DigiPlots):
         color_map: LinearSegmentedColormap = COLOR_MAPS.RedBlackBlue,
         seed: int = 5,
     ):
-        np.random.seed(seed)
+    """Plot multiple scalar timeseries from `df` on left and optional
+    right axes.
+
+    The left axis shows the `left_yparams` series and the right axis
+    (if `right_yparams` provided) shows additional series using a twin
+    y-axis. Colors are picked from a color_map seeded for reproducible
+    plots.
+    """
+    np.random.seed(seed)
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
         utils.setsize(self.font_size)
@@ -354,7 +430,14 @@ class SaoSummaryPlots(DigiPlots):
         ax: plt.axes = None,
         kind: str = "ionogram",
     ):
-        utils.setsize(self.font_size)
+    """Plot an ionogram-style trace: frequency (log-scaled) vs virtual
+    height.
+
+    If `kind=='ionogram'` lines are drawn, otherwise individual points are
+    plotted. The x-axis is log10-scaled but tick labels are shown in
+    linear frequency values for readability.
+    """
+    utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
@@ -462,7 +545,11 @@ class SaoSummaryPlots(DigiPlots):
 
 
 class SkySummaryPlots(DigiPlots):
-    """ """
+    """Polar/sky plotting utilities.
+
+    Used to create skymaps, drift velocity plots, and other polar visualizations
+    from Digisonde-derived coordinate data.
+    """
 
     def __init__(
         self,
@@ -490,12 +577,19 @@ class SkySummaryPlots(DigiPlots):
         return
 
     def convert_to_rt(self, row, xparam, yparam, zparam):
-        """Convert to r/theta coordinate"""
+        """Convert cartesian x/y coordinates to polar (r, theta).
 
+        This is an `apply` helper used by `plot_skymap`. It computes radial
+        distance and angle (theta). Marker style is chosen based on the
+        sign of `zparam` (useful to differentiate doppler sign).
+        """
+
+        # Radius and angle (note arctan2 returns angle in radians)
         row["r"], row["theta"] = (
             np.sqrt(row[xparam] ** 2 + row[yparam] ** 2),
-            -np.arctan2(row[yparam], row[xparam]),  # + np.pi / 2,
+            -np.arctan2(row[yparam], row[xparam]),
         )
+        # Choose a marker to visually separate positive/negative zparam
         row["marker"] = "+" if row[zparam] > 0 else "o"
         return row
 
@@ -517,7 +611,13 @@ class SkySummaryPlots(DigiPlots):
         zorder: int = 2,
         nrticks: int = 5,
     ):
-        utils.setsize(self.font_size)
+    """Render a polar skymap of measured points.
+
+    The DataFrame should contain x/y coordinates in same units and a
+    color parameter `zparam`. The method converts coords to (r,theta) and
+    plots them on a polar projection with optional colorbar.
+    """
+    utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_thetamin(theta_lim[0])
         ax.set_thetamax(theta_lim[1])
@@ -598,7 +698,12 @@ class SkySummaryPlots(DigiPlots):
         ylim: List = [-100, 100],
         xlim: List[dt.datetime] = None,
     ):
-        utils.setsize(self.font_size)
+    """Plot drift velocities with error bars.
+
+    Expects `df` with `xparam` datetime and `yparam` + `error` columns. This
+    is a simple helper commonly used by higher-level plotting wrappers.
+    """
+    utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         xlim = xlim if xlim is not None else [df[xparam].min(), df[xparam].max()]
         ax.set_xlim(xlim)
@@ -657,7 +762,15 @@ class SkySummaryPlots(DigiPlots):
         figsize: tuple = (2.5, 7),
         draw_local_time: bool = False,
     ):
-        xparam = "local_" + xparam if draw_local_time else xparam
+    """Create a 3-row DVL velocity plot (Vx, Vy, Vz) with optional save.
+
+    This static helper builds a SkySummaryPlots container and uses
+    `plot_drift_velocities` to populate each subplot. It returns the
+    plot object unless `fname` is provided (in which case it saves and
+    closes the figure).
+    """
+
+    xparam = "local_" + xparam if draw_local_time else xparam
         dvlplot = SkySummaryPlots(
             figsize=figsize,
             nrows=3,
@@ -753,7 +866,13 @@ class RsfIonogram(DigiPlots):
         zorder: int = 2,
         lower_plimit: float = 5,
     ):
-        utils.setsize(self.font_size)
+    """Add an RSF-style ionogram to the current axis.
+
+    RSF ionograms use frequency_reading (Hz) which is converted to MHz and
+    plotted versus height. Signal amplitude below `lower_plimit` is
+    discarded to remove noise.
+    """
+    utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})

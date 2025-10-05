@@ -1,6 +1,6 @@
 # DFT datatypes
 
-::: pynasonde.digisonde.datatypes.dftdatatypes
+::: pynasonde.digisonde.datatypes.dftdatatypes.DftHeader
     handler: python
     options:
         show_root_heading: true
