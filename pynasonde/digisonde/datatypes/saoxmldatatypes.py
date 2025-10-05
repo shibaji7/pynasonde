@@ -1,9 +1,26 @@
+"""Datatypes and XML-to-dataclass mapping helpers for SAO XML.
+
+This module defines dataclasses that mirror the SAO XML structure used by
+Digisonde SAO exports. It includes utility parsing functions in
+``SAORecordList.load_from_xml`` that validate against the DTD and map XML
+elements into rich Python dataclasses.
+"""
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class URSI:
+    """Represents a single URSI characteristic entry.
+
+    Attributes:
+        ID: Identifier of the parameter.
+        Val: Numeric value (coerced to float in ``__post_init__``).
+        Name, Units, QL, DL, SigFig, UpperBound, LowerBound, Bound,
+        BoundaryType, Flag: Optional metadata fields mapped from XML.
+    """
+
     ID: Any
     Val: Any
     Name: Optional[str] = None
@@ -18,6 +35,7 @@ class URSI:
     Flag: Optional[str] = None
 
     def __post_init__(self):
+        # Ensure numeric value is a float for downstream consumers
         self.Val = float(self.Val)
         return
 
@@ -53,7 +71,8 @@ class CharacteristicList:
     Num: Optional[Any] = None
 
     def __post_init__(self):
-        self.Num = int(self.Num)
+        """Coerce list-count fields to integers when present."""
+        self.Num = int(self.Num) if self.Num is not None else None
         return
 
 
@@ -150,8 +169,18 @@ class SAORecordList:
 
     @staticmethod
     def load_from_xml(xml_path: str, dtd_path: str = None) -> "SAORecordList":
-        """
-        Parse an SAO XML file, validate with DTD, and return a SAORecordList dataclass.
+        """Parse an SAO XML file and return a populated SAORecordList.
+
+        The method validates the XML against the SAO DTD (if available via
+        ``dtd_path`` or the packaged resource), then recursively maps XML
+        elements to the dataclass hierarchy defined in this module.
+
+        Args:
+            xml_path: Path to the SAO XML file to parse.
+            dtd_path: Optional path to a DTD file for validation.
+
+        Returns:
+            SAORecordList populated with parsed SAORecord instances.
         """
         # --- DTD Validation ---
         from lxml import etree

@@ -1,3 +1,10 @@
+"""SBF datatypes for Digisonde SBF-format files.
+
+Defines dataclasses for SBF headers and frequency groups. Methods such
+as ``setup`` perform unit conversions and populate derived arrays (like
+height vectors) used by plotting routines.
+"""
+
 import datetime as dt
 from dataclasses import dataclass
 from typing import List
@@ -7,8 +14,11 @@ import numpy as np
 
 @dataclass
 class SbfHeader:
-    """
-    Class to represent the header of an SBF file.
+    """Header for an SBF data block.
+
+    Many numeric fields are stored in compact encodings in the file format;
+    the ``__post_init__`` method converts common fields to SI units (Hz,
+    datetime, etc.) for convenience.
     """
 
     # Header fields
@@ -119,8 +129,12 @@ class SbfHeader:
 
 @dataclass
 class SbfFreuencyGroup:
-    """
-    Class to represent the frequency group of an SBF file.
+    """Represents a frequency group within an SBF block.
+
+    Instances carry arrays for amplitude, phase and azimuth along with
+    metadata fields like `mpa`, `offset`, and `frequency_reading`. The
+    ``setup`` method converts units and interprets offset codes into
+    human-readable values.
     """
 
     # Frequency group fields
@@ -195,8 +209,10 @@ class SbfFreuencyGroup:
 
 @dataclass
 class SbfDataUnit:
-    """
-    Class to represent the data of an SBF Block 4096 bytes.
+    """Container for a parsed SBF data block.
+
+    After parsing, call ``setup`` to populate group-derived attributes like
+    `height` for each frequency group.
     """
 
     header: SbfHeader = None

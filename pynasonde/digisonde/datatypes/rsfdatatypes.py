@@ -1,3 +1,10 @@
+"""RSF datatypes for Digisonde RSF-format files.
+
+These dataclasses model the on-disk RSF header and frequency-group
+structures. They include small helpers (``__post_init__`` and ``setup``)
+that convert raw numeric encodings to SI units where practical.
+"""
+
 import datetime as dt
 from dataclasses import dataclass
 from typing import List
@@ -7,8 +14,11 @@ import numpy as np
 
 @dataclass
 class RsfHeader:
-    """
-    Class to represent the header of an RSF file.
+    """Header describing an RSF data file or block.
+
+    Many fields are parser-specific and reflect the original RSF format
+    header. The ``__post_init__`` method converts frequency and time
+    related fields to more convenient units (Hz, Python datetime).
     """
 
     # Header fields
@@ -119,8 +129,12 @@ class RsfHeader:
 
 @dataclass
 class RsfFreuencyGroup:
-    """
-    Class to represent the frequency group of an RSF file.
+    """A single frequency-group carrying arrays of spectral values.
+
+    Attributes include arrays for amplitude, doppler indices, phase and
+    azimuth. The ``setup`` method converts array units (e.g., amplitude to
+    dB, phase units to degrees) and synthesizes derived fields like
+    height arrays and azimuth direction labels.
     """
 
     # Frequency group fields
@@ -209,8 +223,11 @@ class RsfFreuencyGroup:
 
 @dataclass
 class RsfDataUnit:
-    """
-    Class to represent the data of an RSF Block 4096 bytes.
+    """Represents a single RSF block containing header + frequency groups.
+
+    The `setup` method populates group-specific derived fields such as the
+    height vector for each frequency group based on the header's range
+    start and increment.
     """
 
     header: RsfHeader = None

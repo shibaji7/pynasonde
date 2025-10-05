@@ -1,3 +1,15 @@
+"""MMM / ModMax datatypes used by Digisonde MMM files.
+
+This module defines simple dataclasses that represent the header and data
+blocks found in MMM/ModMax-format files. These are small containers that
+help the parser provide structured access to parsed fields and perform
+lightweight unit conversions in ``__post_init__`` where necessary.
+
+Typical usage:
+    header = ModMaxHeader(record_type=1, header_length=256, year=2023)
+    block = ModMaxDataUnit(header=header, frequency_groups=[...])
+"""
+
 import datetime as dt
 from dataclasses import dataclass
 from typing import List
@@ -7,8 +19,11 @@ import numpy as np
 
 @dataclass
 class ModMaxHeader:
-    """
-    Class to represent the header of an RSF file.
+    """Header for an MMM/ModMax data block.
+
+    Attributes reflect the raw fields parsed from the MMM header. Units
+    are noted in comments and converted where appropriate in
+    ``__post_init__`` (for example frequency values are scaled to Hz).
     """
 
     # Header fields
@@ -102,8 +117,11 @@ class ModMaxHeader:
 
 @dataclass
 class ModMaxFreuencyGroup:
-    """
-    Class to represent the frequency group of an MMM file (sub group).
+    """Represents a single frequency group (sub-block) inside an MMM block.
+
+    Contains frequency, gain and the most-probable-amplitude (mpa) values
+    plus timing information. Parsers populate the numeric arrays and call
+    ``setup`` or other helpers to convert units when needed.
     """
 
     # Block type (1,2)
@@ -124,8 +142,12 @@ class ModMaxFreuencyGroup:
 
 @dataclass
 class ModMaxDataUnit:
-    """
-    Class to represent the data of an MMM Block 4096 bytes.
+    """Container for a full MMM data block.
+
+    Attributes:
+        header: ModMaxHeader instance with block-level metadata.
+        frequency_groups: List of ModMaxFreuencyGroup instances with parsed
+            frequency-group data for the block.
     """
 
     header: ModMaxHeader = None

@@ -1,4 +1,6 @@
-# SBF datatypes
+## SBF datatypes
+
+Dataclasses for SBF-format records and frequency groups.
 
 ::: pynasonde.digisonde.datatypes.sbfdatatypes
     handler: python
@@ -9,6 +11,7 @@
 ## Example
 
 ```python
-from pynasonde.digisonde.datatypes.sbfdatatypes import SBFRecord
-# r = SBFRecord.from_bytes(bdata)
+from pynasonde.digisonde.datatypes.sbfdatatypes import SbfHeader, SbfDataUnit
+hdr = SbfHeader(year=2024)
+unit = SbfDataUnit(header=hdr, frequency_groups=[])
 ```

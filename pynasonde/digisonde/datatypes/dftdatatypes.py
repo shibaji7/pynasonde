@@ -1,3 +1,15 @@
+"""DFT datatypes used by the Digisonde DFT parser.
+
+This module defines small `dataclass` containers that mirror the on-disk
+DFT record structures used by Digisonde DFT-format files. The classes are
+lightweight holders for parsed fields and provide small normalization steps
+in ``__post_init__`` where appropriate.
+
+These types are intended to be used by the parser code under
+``pynasonde.digisonde.parsers.dft`` and by higher-level utilities that need
+structured access to the parsed header and spectral data.
+"""
+
 from dataclasses import dataclass
 from typing import List
 
@@ -6,6 +18,17 @@ import numpy as np
 
 @dataclass
 class SubCaseHeader:
+    """Header for a single frequency/height subcase inside a DFT block.
+
+    Attributes:
+        frequency: Raw frequency value for this subcase (parser-specific
+            units).
+        height_mpa: Height value (raw units as read from the record).
+        height_bin: Height bin index used for indexing spectral data.
+        agc_offset: AGC offset recorded for this subcase.
+        polarization: Polarization identifier for the subcase.
+    """
+
     frequency: int = None
     height_mpa: int = None
     height_bin: int = None
@@ -13,13 +36,43 @@ class SubCaseHeader:
     polarization: int = None
 
     def __post_init__(self):
-        # Convert units and types for specific fields
-        # self.frequency = self.frequency * 10
+        """Post-init hook for small normalization steps.
+
+        Parsers can populate these fields using raw binary values; if unit
+        normalization or type conversions are required they should be
+        applied here. The code currently contains a commented-out example of
+        scaling frequency if needed.
+        """
+        # Example normalization (left commented because parser decides):
+        # if self.frequency is not None:
+        #     self.frequency = int(self.frequency * 10)
         return
 
 
 @dataclass
 class DftHeader:
+    """Top-level header for a DFT record block.
+
+    This dataclass collects the primary header fields found at the
+    beginning of a DFT data block. Field names follow the original parser
+    naming where possible; values are stored as integers or small numeric
+    types and may require interpretation by the consumer (units are
+    parser-dependent).
+
+    Attributes (selected):
+        record_type: Numeric record type identifier.
+        year, doy, hour, minute, second: Timestamp components for the block.
+        number_of_heights: Number of height bins in the block.
+        start_frequency, end_frequency: Frequency scan bounds.
+        num_doppler_lines: Number of doppler spectral lines per sample.
+        subcases: Optional list of :class:`SubCaseHeader` entries describing
+            per-frequency subcases within this DFT block.
+
+    Note: Many additional fields present in the original format are kept as
+    attributes to preserve full fidelity. Consult the parser implementation
+    for exact byte-to-field mappings.
+    """
+
     record_type: int = None
     year: int = None
     doy: int = None
@@ -62,21 +115,55 @@ class DftHeader:
     subcases: List[SubCaseHeader] = None
 
     def __post_init__(self):
-        # Convert units and types for specific fields
+        """Optional normalization after construction.
+
+        Parsers may choose to perform small unit conversions or sanity checks
+        here. The method is intentionally lightweight to avoid surprising
+        side-effects during object construction.
+        """
+        # Example: if timestamp fields were zero-padded strings they could
+        # be converted to ints here. Keep processing minimal.
         return
 
 
 @dataclass
 class DopplerSpectra:
+    """Container for a single Doppler spectrum.
+
+    Attributes:
+        amplitude: Array-like amplitude values for the Doppler bins.
+        phase: Array-like phase values for the Doppler bins.
+    """
+
     amplitude: np.array = None
     phase: np.array = None
 
     def __post_init__(self):
-        self.amplitude *= 3 / 8  # to dB
+        """Apply small amplitude scaling used by the original format.
+
+        The parser historically scales amplitude values by 3/8 to convert
+        to the units expected by downstream code (historical dB-like scale).
+        This operation is performed in-place on the amplitude array when
+        present.
+        """
+        if self.amplitude is not None:
+            try:
+                self.amplitude *= 3 / 8  # to dB-like units (parser convention)
+            except Exception:
+                # If amplitude is not numeric-array-like, skip scaling.
+                pass
         return
 
 
 @dataclass
 class DopplerSpectralBlock:
+    """Top-level block containing a DFT header and associated spectra.
+
+    Attributes:
+        header: :class:`DftHeader` instance describing block-level metadata.
+        spectra_line: List of :class:`DopplerSpectra` instances (one per
+            height/frequency sample) contained in the block.
+    """
+
     header: DftHeader = None
     spectra_line: List[DopplerSpectra] = None
