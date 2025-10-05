@@ -1,4 +1,5 @@
 python setup.py clean --all
+rm -rf dist site_build site
 rm -rf build *.egg-info
 rm -rf `find -type d -name '.ipynb_checkpoints'`
 rm -rf `find -type d -name '__pycache__'`

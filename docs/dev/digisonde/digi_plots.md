@@ -2,7 +2,7 @@
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
         members:
             - __init__
             - get_axes
@@ -14,7 +14,7 @@
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
         members:
             - add_TS
             - plot_TS
