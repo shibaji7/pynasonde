@@ -61,19 +61,19 @@ extra_javascript:
 
 nav:
     - Home: index.md
-    # - Installation: user/install.md  
-    # - Ionosonde Data Access: user/ionosonde.md
-    # - VIPIR: user/vipir.md
-    # - DIGISONDE: user/digisonde.md
-    # - Citing: user/citing.md
-    # - Authors: user/authors.md
-    # - Toolbox: 
-    #         - isca: tools/isca.md
-    #         - fti: tools/fti.md
-    #         - ionogram: tools/ionogram.md
-    #         - skymaps: tools/skymaps.md
-    #         - stackplot: tools/stackplot.md
-    #         - trace: tools/trace.md
+    - Installation: user/install.md  
+    - Ionosonde Data Access: user/ionosonde.md
+    - VIPIR: user/vipir.md
+    - DIGISONDE: user/digisonde.md
+    - Citing: user/citing.md
+    - Authors: user/authors.md
+    - Toolbox: 
+            - isca: tools/isca.md
+            - fti: tools/fti.md
+            - ionogram: tools/ionogram.md
+            - skymaps: tools/skymaps.md
+            - stackplot: tools/stackplot.md
+            - trace: tools/trace.md
     # - API Documentation:
     #         - Overview: dev/digisonde/README.md
     #         - Parsers:
