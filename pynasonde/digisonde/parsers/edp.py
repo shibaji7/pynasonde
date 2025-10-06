@@ -37,9 +37,6 @@ class EdpExtractor(object):
                 If True, attempt to parse a timestamp from the filename (default False). The extractor expects a trailing YYYYDDDHHMMSS-like token in the filename when this is used.
             extract_stn_from_name: bool, optional
                 If True, attempt to extract a station code from the filename (default False).
-
-        Returns:
-            None
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
