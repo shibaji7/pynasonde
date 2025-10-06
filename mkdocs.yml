@@ -74,25 +74,26 @@ nav:
             - skymaps: tools/skymaps.md
             - stackplot: tools/stackplot.md
             - trace: tools/trace.md
-    - API Documentation: dev/
-    #         - Overview: dev/digisonde/README.md
-    #         - Parsers:
-    #             - SAO: dev/digisonde/parsers_sao.md
-    #             - SKY: dev/digisonde/parsers_sky.md
-    #             - SBF: dev/digisonde/parsers_sbf.md
-    #             - MMM: dev/digisonde/parsers_mmm.md
-    #             - DFT: dev/digisonde/parsers_dft.md
-    #             - RSF: dev/digisonde/parsers_rsf.md
-    #             - EDP: dev/digisonde/parsers_edp.md
-    #             - DVL: dev/digisonde/parsers_dvl.md
-    #         - Datatypes:
-    #             - Index: dev/digisonde/datatypes.md
-    #             - SAO XML: dev/digisonde/datatypes_saoxmldatatypes.md
-    #             - SBF: dev/digisonde/datatypes_sbfdatatypes.md
-    #             - MMM: dev/digisonde/datatypes_mmmdatatypes.md
-    #             - DFT: dev/digisonde/datatypes_dftdatatypes.md
-    #             - RSF: dev/digisonde/datatypes_rsfdatatypes.md
-    #         - Raw:
-    #             - Parse: dev/digisonde/raw_parse.md
-    #             - IQStream AFRL: dev/digisonde/raw_iqstream_afrl.md
-    #             - Raw plots: dev/digisonde/raw_raw_plots.md
+    - API Documentation:
+            - Digisonde: digisonde/index.md
+            - digi_utils.md
+            - digi_plots.md
+            - Digisonde Parsers: digisonde/parsers/index.md
+                - digisonde/parsers/sao.md
+                - digisonde/parsers/sky.md
+                - digisonde/parsers/sbf.md
+                - digisonde/parsers/mmm.md
+                - digisonde/parsers/dft.md
+                - digisonde/parsers/rsf.md
+                - digisonde/parsers/edp.md
+                - digisonde/parsers/dvl.md
+            - Digisonde Datatypes: digisonde/datatypes/index.md
+                - digisonde/datatypes/saoxmldatatypes.md
+                - digisonde/datatypes/sbfdatatypes.md
+                - digisonde/datatypes/mmmdatatypes.md
+                - digisonde/datatypes/dftdatatypes.md
+                - digisonde/datatypes/rsfdatatypes.md
+            - Raw Digisonde: digisonde/raw/index.md
+                - digisonde/raw/parse.md
+                - digisonde/raw/iqstream_afrl.md
+                - digisonde/raw/raw_plots.md
