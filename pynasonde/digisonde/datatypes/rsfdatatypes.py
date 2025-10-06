@@ -21,90 +21,90 @@ class RsfHeader:
     related fields to more convenient units (Hz, Python datetime).
 
     Attributes:
-        record_type : int
+        record_type: int
             Numeric record type identifier.
-        header_length : int
+        header_length: int
             Length of the header in bytes.
-        version_maker : int
+        version_maker: int
             Version/maker code (raw integer).
-        year : int
+        year: int
             Year of the measurement.
-        doy : int
+        doy: int
             Day-of-year component.
-        month : int
+        month: int
             Month component.
-        dom : int
+        dom: int
             Day-of-month component.
-        hour : int
+        hour: int
             Hour component.
-        minute : int
+        minute: int
             Minute component.
-        second : int
+        second: int
             Second component.
-        stn_code_rx : str
+        stn_code_rx: str
             Receiver station code.
-        stn_code_tx : str
+        stn_code_tx: str
             Transmitter station code.
-        schedule : int
+        schedule: int
             Schedule code.
-        program : int
+        program: int
             Program code.
-        start_frequency : float
+        start_frequency: float
             Start frequency (converted to Hz in ``__post_init__``).
-        coarse_frequency_step : float
+        coarse_frequency_step: float
             Coarse frequency step (converted to Hz in ``__post_init__``).
-        stop_frequency : float
+        stop_frequency: float
             Stop frequency (converted to Hz in ``__post_init__``).
-        fine_frequency_step : float
+        fine_frequency_step: float
             Fine frequency step (converted to Hz in ``__post_init__``).
-        num_small_steps_in_scan : int
+        num_small_steps_in_scan: int
             Number of small frequency steps (negative => no multiplexing).
-        phase_code : int
+        phase_code: int
             Phase code field describing pulse/phase behaviour.
-        option_code : int
+        option_code: int
             Option code (antenna selection, polarization flags, etc.).
-        number_of_samples : int
+        number_of_samples: int
             Encoded number of samples.
-        pulse_repetition_rate : int
+        pulse_repetition_rate: int
             Pulse repetition rate (pps).
-        range_start : int
+        range_start: int
             Range start in km.
-        range_increment : int or float
+        range_increment: int or float
             Range increment (km); common encoded values are converted in
             ``__post_init__`` (e.g. 2 -> 2.5).
-        number_of_heights : int
+        number_of_heights: int
             Number of heights configured in the scan.
-        delay : int
+        delay: int
             Delay in 15 km units.
-        base_gain : int
+        base_gain: int
             Base gain code (dB-like representation with special bits).
-        frequency_search : int
+        frequency_search: int
             Frequency search enabled flag.
-        operating_mode : int
+        operating_mode: int
             Operating mode code.
-        data_format : int
+        data_format: int
             Data format code (MMM, Drift, PGH, RSF, etc.).
-        printer_output : int
+        printer_output: int
             Printer output setting (none, b/w, color).
-        threshold : int or float
+        threshold: int or float
             Threshold level (converted to dB-like value in ``__post_init__``).
-        constant_gain : int
+        constant_gain: int
             Constant gain code (bitfield describing fixed gain settings).
-        cit_length : int
+        cit_length: int
             CIT length in ms.
-        journal : str
+        journal: str
             Journal / flags string (parser-specific meaning).
-        bottom_height_window : int
+        bottom_height_window: int
             Bottom height window (km).
-        top_height_window : int
+        top_height_window: int
             Top height window (km).
-        number_of_heights_stored : int
+        number_of_heights_stored: int
             Number of height bins actually stored.
-        spare : bytes
+        spare: bytes
             Spare/reserved bytes from header.
-        number_of_frequency_groups : int
+        number_of_frequency_groups: int
             Number of frequency groups that follow the header.
-        date : datetime.datetime
+        date: datetime.datetime
             Python datetime synthesized from the timestamp fields in
             ``__post_init__``.
     """
@@ -221,31 +221,31 @@ class RsfFreuencyGroup:
 
     Attributes:
         ----------
-        pol : str
+        pol: str
             Polarization identifier.
-        group_size : int
+        group_size: int
             Encoded group size (parser-specific meaning).
-        frequency_reading : float
+        frequency_reading: float
             Frequency reading (converted to Hz by ``setup``).
-        offset : int or str
+        offset: int or str
             Offset code (converted to Hz or descriptive string by ``setup``).
-        additional_gain : float
+        additional_gain: float
             Additional gain (converted to dB by ``setup``).
-        seconds : int
+        seconds: int
             Seconds timestamp for the group.
-        mpa : float
+        mpa: float
             Most probable amplitude (mpa) marker.
-        amplitude : np.array
+        amplitude: np.array
             Amplitude array for the frequency group's heights/samples.
-        dop_num : np.array
+        dop_num: np.array
             Doppler index array for each sample.
-        phase : np.array
+        phase: np.array
             Phase array (converted to degrees by ``setup``).
-        azimuth : np.array
+        azimuth: np.array
             Azimuth array (converted to degrees by ``setup``).
-        height : np.array
+        height: np.array
             Height array corresponding to amplitude samples.
-        azm_directions : list
+        azm_directions: list
             Human-readable azimuth direction labels produced by ``setup``.
 
     Notes: The ``setup`` method mutates numeric arrays to convert them to
@@ -342,9 +342,9 @@ class RsfDataUnit:
     """Represents a single RSF block containing header + frequency groups.
 
     Attributes:
-        header : RsfHeader
+        header: RsfHeader
             Header instance with block-level metadata.
-        frequency_groups : List[RsfFreuencyGroup]
+        frequency_groups: List[RsfFreuencyGroup]
             List of frequency-group :class:`RsfFreuencyGroup` objects parsed for this block.
 
     Note: Calling ``setup`` on the data unit will iterate through the
@@ -377,7 +377,7 @@ class RsfDataFile:
     """Container representing the contents of an RSF file.
 
     Attributes:
-        rsf_data_units : List[RsfDataUnit]
+        rsf_data_units: List[RsfDataUnit]
             List of RSF data units (:class:`RsfDataUnit` blocks) contained in the file.
     """
 

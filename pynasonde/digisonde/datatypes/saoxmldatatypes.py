@@ -19,30 +19,30 @@ class URSI:
     """Represents a single URSI characteristic entry.
 
     Attributes:
-        ID : Any
+        ID: Any
             Identifier of the URSI parameter (as read from XML).
-        Val : float
+        Val: float
             Numeric value; coerced to a float in ``__post_init__`` for
             downstream consumers.
-        Name : Optional[str]
+        Name: Optional[str]
             Optional human-readable name for the parameter.
-        Units : Optional[str]
+        Units: Optional[str]
             Units string for the value where provided.
-        QL : Optional[str]
+        QL: Optional[str]
             Quality level metadata (parser-specific).
-        DL : Optional[str]
+        DL: Optional[str]
             Detection level metadata (parser-specific).
-        SigFig : Optional[str]
+        SigFig: Optional[str]
             Significant-figures metadata.
-        UpperBound : Optional[str]
+        UpperBound: Optional[str]
             Upper bound metadata from XML.
-        LowerBound : Optional[str]
+        LowerBound: Optional[str]
             Lower bound metadata from XML.
-        Bound : Optional[str]
+        Bound: Optional[str]
             Bound metadata.
-        BoundaryType : Optional[str]
+        BoundaryType: Optional[str]
             Boundary type metadata.
-        Flag : Optional[str]
+        Flag: Optional[str]
             Optional flag or marker from the XML.
     """
 
@@ -70,15 +70,15 @@ class Modeled:
     """Represents a modeled parameter entry in the SAO XML.
 
     Attributes:
-        Name : str
+        Name: str
             Parameter name.
-        Val : str
+        Val: str
             Parameter value (string as represented in XML).
-        Units : str
+        Units: str
             Units string for the value.
-        ModelName : Optional[str]
+        ModelName: Optional[str]
             Optional model name used to derive the value.
-        ModelOptions : Optional[str]
+        ModelOptions: Optional[str]
             Optional model options string.
     """
 
@@ -94,25 +94,25 @@ class Custom:
     """Represents a custom parameter entry included in SAO XML.
 
     Attributes:
-        Name : str
+        Name: str
             Parameter name.
-        Val : str
+        Val: str
             Parameter value.
-        Units : str
+        Units: str
             Units string for the value.
-        Description : str
+        Description: str
             Human-readable description of the parameter.
-        SigFig : Optional[str]
+        SigFig: Optional[str]
             Significant figures metadata.
-        UpperBound : Optional[str]
+        UpperBound: Optional[str]
             Upper bound metadata.
-        LowerBound : Optional[str]
+        LowerBound: Optional[str]
             Lower bound metadata.
-        Bound : Optional[str]
+        Bound: Optional[str]
             Bound metadata.
-        BoundaryType : Optional[str]
+        BoundaryType: Optional[str]
             Boundary type metadata.
-        Flag : Optional[str]
+        Flag: Optional[str]
             Optional flag or marker.
     """
 
@@ -133,13 +133,13 @@ class CharacteristicList:
     """Container for URSI/Modeled/Custom characteristic sub-elements.
 
     Attributes:
-        URSI : List[URSI]
+        URSI: List[URSI]
             List of :class:`URSI` entries.
-        Modeled : List[Modeled]
+        Modeled: List[Modeled]
             List of :class:`Modeled` parameter entries.
-        Custom : List[Custom]
+        Custom: List[Custom]
             List of :class:`Custom parameter entries.
-        Num : Optional[int]
+        Num: Optional[int]
             Optional count attribute from the XML (coerced to int in
             ``__post_init__`` when present).
     """
@@ -160,19 +160,19 @@ class TraceValueList:
     """Represents a list of trace values for a Trace element.
 
     Attributes:
-        Name : str
+        Name: str
             Name of the trace value list.
-        Type : Optional[str]
+        Type: Optional[str]
             Optional type attribute.
-        SigFig : Optional[str]
+        SigFig: Optional[str]
             Significant-figures metadata.
-        Units : Optional[str]
+        Units: Optional[str]
             Units for the values.
-        NoValue : Optional[str]
+        NoValue: Optional[str]
             Marker used for missing values.
-        Description : Optional[str]
+        Description: Optional[str]
             Optional description string.
-        values : List[str]
+        values: List[str]
             List of string values (converted to floats by the parser functions
             when appropriate).
     """
@@ -192,21 +192,21 @@ class Trace:
     associated TraceValueList entries.
 
     Attributes:
-        FrequencyList : List[float]
+        FrequencyList: List[float]
             Frequency axis values for the trace.
-        RangeList : List[float]
+        RangeList: List[float]
             Range/height axis values for the trace.
-        TraceValueList : List[TraceValueList]
+        TraceValueList: List[TraceValueList]
             List of :class:`TraceValueList` objects containing measured values.
-        Type : Optional[str]
+        Type: Optional[str]
             Trace type (defaults to "standard").
-        Layer : str
+        Layer: str
             Layer name or identifier.
-        Multiple : Optional[str]
+        Multiple: Optional[str]
             Multiplexing indicator when present.
-        Polarization : str
+        Polarization: str
             Polarization string for the trace.
-        Num : str
+        Num: str
             Optional numeric identifier string.
     """
 
@@ -225,9 +225,9 @@ class TraceList:
     """Container for a list of Trace objects.
 
     Attributes:
-        Trace : List[Trace]
+        Trace: List[Trace]
             List of :class:`Trace` entries.
-        Num : Optional[str]
+        Num: Optional[str]
             Optional count attribute from XML.
     """
 
@@ -241,19 +241,19 @@ class ProfileValueList:
     profile data.
 
     Attributes:
-        Name : str
+        Name: str
             Name of the profile value list.
-        Type : Optional[str]
+        Type: Optional[str]
             Optional type attribute.
-        SigFig : Optional[str]
+        SigFig: Optional[str]
             Significant-figures metadata.
-        Units : Optional[str]
+        Units: Optional[str]
             Units for the values.
-        NoValue : Optional[str]
+        NoValue: Optional[str]
             Missing-value marker.
-        Description : Optional[str]
+        Description: Optional[str]
             Description string.
-        values : List[str]
+        values: List[str]
             Numeric values (parser converts to floats when appropriate).
     """
 
@@ -272,11 +272,11 @@ class Tabulated:
     lists.
 
     Attributes:
-        Num : str
+        Num: str
             Optional count or identifier.
-        AltitudeList : List[float]
+        AltitudeList: List[float]
             Altitude (height) axis values.
-        ProfileValueList : List[ProfileValueList]
+        ProfileValueList: List[ProfileValueList]
             List of profile :class:`ProfileValueList` value lists for each parameter.
     """
 
@@ -291,15 +291,15 @@ class Profile:
     included in the SAO output.
 
     Attributes:
-        Algorithm : str
+        Algorithm: str
             Name of the profile algorithm used.
-        AlgorithmVersion : str
+        AlgorithmVersion: str
             Version string for the algorithm.
-        Type : Optional[str]
+        Type: Optional[str]
             Profile type (defaults to "vertical").
-        Description : Optional[str]
+        Description: Optional[str]
             Optional description text.
-        Tabulated : Optional[Tabulated]
+        Tabulated: Optional[Tabulated]
             Tabulated data for the profile when present (:class:`Tabulated`).
     """
 
@@ -316,9 +316,9 @@ class ProfileList:
     """Container for Profile entries.
 
     Attributes:
-        Profile : List[Profile]
+        Profile: List[Profile]
             List of :class:`Profiles`.
-        Num : Optional[str]
+        Num: Optional[str]
             Optional count attribute from XML.
     """
 
@@ -331,9 +331,9 @@ class SystemInfo:
     """Partial mapping of system-level metadata reported in SAO XML.
 
     Attributes:
-        UMLStationID : Optional[str]
+        UMLStationID: Optional[str]
             UML station identifier when present.
-        IUWDSCode : Optional[str]
+        IUWDSCode: Optional[str]
             IUWDS code when present.
     """
 
@@ -348,31 +348,31 @@ class SAORecord:
 
     Attributes
     ----------
-    SystemInfo : Optional[SystemInfo]
+    SystemInfo: Optional[SystemInfo]
         System-level metadata object when present.
-    CharacteristicList : CharacteristicList
+    CharacteristicList: CharacteristicList
         Characteristic lists (URSI/Modeled/Custom) describing the record.
-    TraceList : Optional[TraceList]
+    TraceList: Optional[TraceList]
         Optional list of Trace elements providing ionogram traces.
-    ProfileList : Optional[ProfileList]
+    ProfileList: Optional[ProfileList]
         Optional profiles included in the record.
-    FormatVersion : str
+    FormatVersion: str
         SAO format version (defaults to "5.0").
-    StartTimeUTC : str
+    StartTimeUTC: str
         Start time string in UTC as provided by the XML.
-    URSICode : str
+    URSICode: str
         URSI code associated with the record.
-    StationName : str
+    StationName: str
         Station name string.
-    GeoLatitude : str
+    GeoLatitude: str
         Latitude string representation.
-    GeoLongitude : str
+    GeoLongitude: str
         Longitude string representation.
-    Source : str
+    Source: str
         Source identifier (defaults to "Ionosonde").
-    SourceType : str
+    SourceType: str
         Source type string.
-    ScalerType : str
+    ScalerType: str
         Scaler type string.
     """
 
@@ -397,7 +397,7 @@ class SAORecordList:
     SAO XML file.
 
     Attributes:
-        SAORecord : List[SAORecord]
+        SAORecord: List[SAORecord]
             List of parsed :class:`SAORecord` objects.
     """
 
