@@ -1,3 +1,15 @@
+"""DFT parser utilities for Digisonde DFT-format files.
+
+This module provides :class:`DftExtractor`, a compact reader that
+unpacks Digisonde DFT binary blocks into the lightweight dataclasses
+defined in :mod:`pynasonde.digisonde.datatypes.dftdatatypes`.
+
+The implementation focuses on bit-level unpacking and construction of
+``DftHeader``, ``DopplerSpectra`` and ``DopplerSpectralBlock`` objects
+so the parsed records can be consumed by higher-level tooling or used
+directly in documentation examples.
+"""
+
 import copy
 import datetime as dt
 import struct
@@ -14,6 +26,29 @@ from pynasonde.digisonde.datatypes.dftdatatypes import (
 
 
 class DftExtractor(object):
+    """Low-level reader for DFT-format files.
+
+    This class provides a minimal API to read a DFT-format file and
+    produce block-level containers. It intentionally avoids complex
+    dependence on external libraries beyond numpy so it can be used in
+    lightweight docs and tests.
+
+    Attributes:
+        filename: str
+            Path to the input DFT file.
+        DATA_BLOCK_SIZE: int
+            Block size in bytes used by the DFT format (default 4096).
+        SUB_CASE_NUMBER: int
+            Number of sub-cases per DFT block (default 16).
+        BLOCKS: int
+            Number of blocks in the file (computed during initialization).
+        date: datetime.datetime, optional
+            When ``extract_time_from_name`` is True this holds the inferred
+            timestamp parsed from the filename.
+        stn_code: str, optional
+            When ``extract_stn_from_name`` is True this holds the station
+            code parsed from the filename.
+    """
 
     def __init__(
         self,
@@ -23,11 +58,20 @@ class DftExtractor(object):
         DATA_BLOCK_SIZE: int = 4096,
         SUB_CASE_NUMBER: int = 16,
     ):
-        """
-        Initialize the DftExtractor with the given file.
+        """Create a DftExtractor instance.
 
-        Args:
-            filename (str): Path to the dft file to be processed.
+        Parameters
+        ----------
+        filename: str
+            Path to the DFT-format file to read.
+        extract_time_from_name: bool, optional
+            If True, attempt to parse a timestamp from the filename.
+        extract_stn_from_name: bool, optional
+            If True, attempt to parse a station code from the filename.
+        DATA_BLOCK_SIZE: int, optional
+            Block size in bytes used by the DFT format.
+        SUB_CASE_NUMBER: int, optional
+            Number of sub-cases per block.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -50,11 +94,20 @@ class DftExtractor(object):
         return
 
     def extract(self):
-        """
-        Main method to extract data from the dft file and populate the sao_struct dictionary.
+        """Read the DFT file and construct DopplerSpectralBlock objects.
+
+        The method iterates over blocks in the file and assembles
+        ``DopplerSpectralBlock`` containers holding a header and a list
+        of :class:`DopplerSpectra` objects. The current implementation
+        is minimal and intended for examples and testing; callers may
+        adapt it to return or yield parsed records instead of mutating
+        internal state.
 
         Returns:
-            dict: The populated dft_struct dictionary containing all extracted data.
+            None
+                The method populates local variables and currently returns
+                None. Future revisions may return an iterable of parsed
+                blocks.
         """
         with open(self.filename, "rb") as file:
             for block_index in range(self.BLOCKS):
@@ -78,12 +131,24 @@ class DftExtractor(object):
         return
 
     def extract_header_from_amplitudes(self, amplitude_bytes: list) -> DftHeader:
-        """
-        Extracts the header information from the amplitude bytes.
-        Args:
-            amplitude_bytes (list): List of bytes containing amplitude data.
-        Returns:
-            DftHeader: An instance of DftHeader populated with the extracted information.
+        """Decode header bits embedded in the amplitude LSBs.
+
+        The DFT format stores header bits spread across the least
+        significant bits of amplitude bytes. This routine reconstructs
+        the bitstring and converts the bit fields into a
+        :class:`DftHeader` dataclass instance.
+
+        Parameters
+        ----------
+        amplitude_bytes: list
+            Sequence of 1-byte objects (as returned by ``file.read(1)``)
+            that contain the embedded header bits in their LSB.
+
+        Returns
+        -------
+        DftHeader
+            Populated header dataclass with parsed integer and raw
+            (hex) fields where applicable.
         """
 
         header_bits = [(b[0] & 0x01) for b in amplitude_bytes]
@@ -208,19 +273,40 @@ class DftExtractor(object):
         return header
 
     def to_int(self, bin_strs: str, base: int = 2):
-        """
-        Converts a binary string to an integer, padding with zeros to ensure it is at least 8 bits.
+        """Convert a binary string fragment to an integer.
 
-        Args:
-            bin_strs (str): The binary string to convert.
+        The helper pads the provided bit string to at least 8 bits and
+        converts it to an integer using the provided base.
 
-        Returns:
-            int: The integer representation of the binary string.
+        Parameters
+        ----------
+        bin_strs: str
+            Bitstring fragment (e.g. '1010').
+        base: int, optional
+            Numeric base to use for conversion (default 2).
+
+        Returns
+        -------
+        int
+            Integer representation.
         """
         return int(f"0b{bin_strs.zfill(8)}", base=base)
 
     def unpack_7_1(self, bcd_byte: int, return_lsb=True):
-        """Unpacks a 1-byte packed BCD into 7 bit MSB and 1 bit LSB."""
+        """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
+
+        Parameters
+        ----------
+        bcd_byte: int
+            The raw byte value (0-255).
+        return_lsb: bool, optional
+            If True return the least-significant-bit, otherwise return
+            the seven most-significant bits.
+
+        Returns:
+            int
+                Either the LSB (0/1) or the 7-bit MSB integer.
+        """
         msb = (bcd_byte >> 1) & 0x7F
         lsb = bcd_byte & 0x01
         if return_lsb:
