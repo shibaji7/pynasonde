@@ -138,7 +138,7 @@ class SaoExtractor(object):
     def extract_xml(self) -> None:
         """Load XML SAO data into: attr:`sao` using: class:`SAORecordList`.
 
-        The optional: attr:`dtd_file` is used for validation when provided.
+        The optional attr:`dtd_file` is used for validation when provided.
         """
         self.sao = SAORecordList.load_from_xml(
             xml_path=self.filename, dtd_path=self.dtd_file
@@ -149,13 +149,11 @@ class SaoExtractor(object):
         """Extract height profile and trace DataFrames from loaded XML SAO.
 
         Parameters:
-        plot_ionogram:  str or None, optional
-            Optional filename to save an ionogram plot. If provided, a
-            plot is generated using: class:`SaoSummaryPlots`.
+            plot_ionogram:  str or None, optional
+                Optional filename to save an ionogram plot. If provided, a
+                plot is generated using: class:`SaoSummaryPlots`.
 
-        Returns
-        -------
-        tuple[pandas.DataFrame, pandas.DataFrame]
+        Returns:
             (profile_df, trace_df) extracted from the XML records. Both
                 DataFrames include ``datetime`` and ``local_datetime`` columns
                 when station metadata is available.
@@ -516,8 +514,8 @@ class SaoExtractor(object):
         """Return scaled dataset fields from parsed legacy SAO as a DataFrame.
 
         Parameters:
-        asdf:  bool, optional
-            Placeholder parameter retained for API compatibility.
+            asdf:  bool, optional
+                Placeholder parameter retained for API compatibility.
 
         Returns:
             Single-row DataFrame containing scaled parameters with
@@ -539,15 +537,13 @@ class SaoExtractor(object):
         """Return the height profile DataFrame extracted from the parsed SAO.
 
         Parameters:
-        asdf:  bool, optional
-            Placeholder kept for API compatibility.
-        plot_ionogram:  bool, optional
-            If True, generate and save an ionogram plot alongside the
-            returned DataFrame.
+            asdf:  bool, optional
+                Placeholder kept for API compatibility.
+            plot_ionogram:  bool, optional
+                If True, generate and save an ionogram plot alongside the
+                returned DataFrame.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             DataFrame with columns for height (`th`), plasma frequency
                 (`pf`), electron density (`ed`) and timestamps when
                 available.
