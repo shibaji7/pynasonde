@@ -1,4 +1,4 @@
-## DigiPlots (plotting helpers)
+## Digi Plots (plotting helpers)
 
 The `pynasonde.digisonde.digi_plots` module provides higher-level
 plotting helpers used across the Digisonde parsers and tools. Below are
