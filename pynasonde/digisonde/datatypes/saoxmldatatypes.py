@@ -346,34 +346,33 @@ class SystemInfo:
 class SAORecord:
     """Top-level representation of an SAO record exported as XML.
 
-    Attributes
-    ----------
-    SystemInfo: Optional[SystemInfo]
-        System-level metadata object when present.
-    CharacteristicList: CharacteristicList
-        Characteristic lists (URSI/Modeled/Custom) describing the record.
-    TraceList: Optional[TraceList]
-        Optional list of Trace elements providing ionogram traces.
-    ProfileList: Optional[ProfileList]
-        Optional profiles included in the record.
-    FormatVersion: str
-        SAO format version (defaults to "5.0").
-    StartTimeUTC: str
-        Start time string in UTC as provided by the XML.
-    URSICode: str
-        URSI code associated with the record.
-    StationName: str
-        Station name string.
-    GeoLatitude: str
-        Latitude string representation.
-    GeoLongitude: str
-        Longitude string representation.
-    Source: str
-        Source identifier (defaults to "Ionosonde").
-    SourceType: str
-        Source type string.
-    ScalerType: str
-        Scaler type string.
+    Attributes:
+        SystemInfo: Optional[SystemInfo]
+            System-level metadata object when present.
+        CharacteristicList: CharacteristicList
+            Characteristic lists (URSI/Modeled/Custom) describing the record.
+        TraceList: Optional[TraceList]
+            Optional list of Trace elements providing ionogram traces.
+        ProfileList: Optional[ProfileList]
+            Optional profiles included in the record.
+        FormatVersion: str
+            SAO format version (defaults to "5.0").
+        StartTimeUTC: str
+            Start time string in UTC as provided by the XML.
+        URSICode: str
+            URSI code associated with the record.
+        StationName: str
+            Station name string.
+        GeoLatitude: str
+            Latitude string representation.
+        GeoLongitude: str
+            Longitude string representation.
+        Source: str
+            Source identifier (defaults to "Ionosonde").
+        SourceType: str
+            Source type string.
+        ScalerType: str
+            Scaler type string.
     """
 
     SystemInfo: Optional["SystemInfo"] = None
