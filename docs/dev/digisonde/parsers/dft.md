@@ -2,7 +2,7 @@
 
 Parses DFT-format digisonde outputs.
 
-::: pynasonde.digisonde.parsers.dft
+::: pynasonde.digisonde.parsers.dft.DftExtractor
     handler: python
     options:
         show_root_heading: true
