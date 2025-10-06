@@ -81,8 +81,8 @@ nav:
                         - Digisonde Parsers:
                                 - SAO: dev/digisonde/parsers/sao.md
                                 - SKY: dev/digisonde/parsers/sky.md
-                                - SBF: dev/digisonde/parsers/sbf.md
-                                - MMM: dev/digisonde/parsers/mmm.md
+                                # - SBF: dev/digisonde/parsers/sbf.md
+                                # - MMM: dev/digisonde/parsers/mmm.md
                                 - DFT: dev/digisonde/parsers/dft.md
                                 - RSF: dev/digisonde/parsers/rsf.md
                                 - EDP: dev/digisonde/parsers/edp.md
@@ -90,10 +90,22 @@ nav:
                         - Digisonde Datatypes:
                                 - SAO XML: dev/digisonde/datatypes/saoxmldatatypes.md
                                 - SBF:  dev/digisonde/datatypes/sbfdatatypes.md
-                                - MMM: dev/digisonde/datatypes/mmmdatatypes.md
+                                # - MMM: dev/digisonde/datatypes/mmmdatatypes.md
                                 - DFT: dev/digisonde/datatypes/dftdatatypes.md
                                 - RSF: dev/digisonde/datatypes/rsfdatatypes.md
                         - Raw Digisonde:
                                 - Parser: dev/digisonde/raw/parse.md
                                 - IQ: dev/digisonde/raw/iqstream_afrl.md
                                 - Plot Utils: dev/digisonde/raw/raw_plots.md
+                - VIPIR:
+                        - VIPIR Ionogram:
+                            - Utils: dev/vipir/ngi/scale.md
+                            - Source: dev/vipir/ngi/source.md
+                            - Scale: dev/vipir/ngi/scale.md
+                        - VIPIR RIQ Parsers:
+                                - Trace: dev/vipir/riq/parsers/trace.md
+                                - Read RIQ: dev/vipir/riq/parsers/read_riq.md
+                                - Utils: dev/vipir/riq/utils.md
+                        - VIPIR RIQ Datatypes:
+                                - SCT: dev/vipir/riq/datatypes/sct.md
+                                - PCT: dev/vipir/riq/datatypes/pct.md

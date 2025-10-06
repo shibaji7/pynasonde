@@ -113,7 +113,7 @@ class SaoExtractor(object):
             logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         return
 
-    def read_file(self)->None:
+    def read_file(self) -> List[str]:
         """Read the file and return a list of lines without trailing newline.
 
         Returns:
@@ -123,10 +123,10 @@ class SaoExtractor(object):
             SAOarch = [line.rstrip("\n") for line in f]
             return SAOarch
 
-    def pad(self, s, length, pad_char=" "):
+    def pad(self, s, length, pad_char=" ") -> str:
         return s.ljust(length, pad_char)
 
-    def parse_line(self, line, fmt, num_ch):
+    def parse_line(self, line, fmt, num_ch) -> List:
         """Parse a fixed-width chunked line according to a format token.
 
         Parameters:
@@ -144,7 +144,7 @@ class SaoExtractor(object):
         """
         results = []
         for i in range(0, len(line), num_ch):
-            chunk = line[i:  i + num_ch]
+            chunk = line[i : i + num_ch]
             if fmt in ["%1c", "%120c"]:
                 results.append(chunk)
             elif fmt in ["%1d", "%2d", "%3d", "%7.3f", "%8.3f", "%11.6f", "%20.12f"]:
@@ -506,13 +506,13 @@ class SaoExtractor(object):
             if var_cell[i0] != "Scaled":
                 self.SAOstruct[var_cell[i0]] = []
                 for i1 in range(expected_items):
-                    chunk = line_in[num_ch * i1:  num_ch * (i1 + 1)]
+                    chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
                     aux_out = self.parse_line(chunk, fmt, num_ch)
                     self.SAOstruct[var_cell[i0]].append(aux_out[0] if aux_out else None)
             else:
                 self.SAOstruct[var_cell[i0]] = {}
                 for i1 in range(expected_items):
-                    chunk = line_in[num_ch * i1:  num_ch * (i1 + 1)]
+                    chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
                     aux_out = self.parse_line(chunk, fmt, num_ch)
                     self.SAOstruct[var_cell[i0]][scal_cell[i1]] = (
                         aux_out[0] if aux_out else None
