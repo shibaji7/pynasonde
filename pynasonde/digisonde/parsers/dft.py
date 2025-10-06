@@ -57,7 +57,7 @@ class DftExtractor(object):
         extract_stn_from_name: bool = False,
         DATA_BLOCK_SIZE: int = 4096,
         SUB_CASE_NUMBER: int = 16,
-    )->None:
+    ) -> None:
         """Create a DftExtractor instance.
 
         Parameters:
@@ -92,7 +92,7 @@ class DftExtractor(object):
             logger.info(f"Station code: {self.stn_code}")
         return
 
-    def extract(self)->None:
+    def extract(self) -> None:
         """Read the DFT file and construct DopplerSpectralBlock objects.
 
         The method iterates over blocks in the file and assembles
@@ -284,7 +284,7 @@ class DftExtractor(object):
         """
         return int(f"0b{bin_strs.zfill(8)}", base=base)
 
-    def unpack_7_1(self, bcd_byte: int, return_lsb=True)->int:
+    def unpack_7_1(self, bcd_byte: int, return_lsb=True) -> int:
         """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
 
         Parameters:

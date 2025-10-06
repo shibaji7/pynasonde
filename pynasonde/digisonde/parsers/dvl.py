@@ -30,28 +30,6 @@ class DvlExtractor(object):
     of whitespace-separated fields (see :attr:`key_order`). It parses the
     record into a structured dictionary (:attr:`dvl_struct`) and provides
     convenience static methods for batch-loading into pandas.
-
-    Attributes:
-        filename: str
-            Path to the input DVL file.
-        date: datetime.datetime
-            Timestamp parsed from the filename when ``extract_time_from_name`` is
-            True.
-        stn_code: str
-            Station code parsed from the filename when
-            ``extract_stn_from_name`` is True.
-        stn_info: dict
-            Station metadata obtained via :func:`get_digisonde_info` when
-            requested.
-        local_time: datetime.datetime
-            Local time converted from UTC using station coordinates.
-        key_order: list
-            Canonical ordering of fields expected in each DVL record.
-        dvl_struct: dict
-            Parsed record dictionary populated by :meth:`extract`.
-        dvl: types.SimpleNamespace
-            A namespace wrapper around :attr:`dvl_struct` added by
-            :meth:`extract`.
     """
 
     def __init__(
@@ -166,8 +144,7 @@ class DvlExtractor(object):
         cast to the type of the corresponding entry in :attr:`dvl_struct`.
 
         Returns:
-            The populated dictionary of parsed fields (also available as
-            :attr:`dvl_struct`).
+            The populated dictionary of parsed fields (also available as :attr:`dvl_struct`).
         """
         # Read file lines
         dvl_arch = self.read_file()
@@ -191,7 +168,7 @@ class DvlExtractor(object):
         file: str,
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
-    )-> pd.DataFrame:
+    ) -> pd.DataFrame:
         """Convenience wrapper to extract a single file into a pandas row.
 
         Parameters:
@@ -203,8 +180,7 @@ class DvlExtractor(object):
                 See :meth:`__init__`.
 
         Returns:
-            A 1-row DataFrame containing the parsed DVL record and two
-            timestamp columns: ``datetime`` (UTC) and ``local_datetime``.
+            A 1-row DataFrame containing the parsed DVL record and two timestamp columns: ``datetime`` (UTC) and ``local_datetime``.
         """
         extractor = DvlExtractor(file, extract_time_from_name, extract_stn_from_name)
         df = pd.DataFrame.from_records([extractor.extract()])
@@ -219,7 +195,7 @@ class DvlExtractor(object):
         n_procs: int = 4,
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Recursively load DVL files from folders into a single DataFrame.
 
         Parameters:
@@ -235,8 +211,7 @@ class DvlExtractor(object):
                 See :meth:`__init__`.
 
         Returns:
-            Concatenated DataFrame containing parsed rows for all files
-            discovered under the provided folders.
+            Concatenated DataFrame containing parsed rows for all files discovered under the provided folders.
         """
         collections = []
         for folder in folders:

@@ -237,7 +237,7 @@ class ModMaxDataUnit:
 
     Attributes:
         header: `ModMaxHeader` object containing block-level metadata.
-        frequency_groups: List of parsed frequency-group `ModMaxFreuencyGroup` 
+        frequency_groups: List of parsed frequency-group `ModMaxFreuencyGroup`
             sub-blocks belonging to this unit.
     """
 
