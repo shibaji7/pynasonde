@@ -199,7 +199,7 @@ class RsfExtractor:
                 self.rsf_data.rsf_data_units.append(rsf_data_unit)
         return
 
-    def add_dicts_selected_keys(self, d0, du, keys=None) -> dict:
+    def add_dicts_selected_keys(self, d0:dict, du: dict, keys:List[str]=None) -> dict:
         """Merge two dictionaries, optionally selecting keys from the second.
 
         Parameters:
