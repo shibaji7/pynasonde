@@ -2,6 +2,13 @@
 
 Dataclasses for SBF-format records and frequency groups.
 
+
+::: pynasonde.digisonde.datatypes.sbfdatatypes
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: false
+
 ::: pynasonde.digisonde.datatypes.sbfdatatypes.SbfDataFile
     handler: python
     options:

@@ -410,7 +410,7 @@ class SAORecordList:
         ``dtd_path`` or the packaged resource), then recursively maps XML
         elements to the dataclass hierarchy defined in this module.
 
-        Args:
+        Parameters:
             xml_path: Path to the SAO XML file to parse.
             dtd_path: Optional path to a DTD file for validation.
 
