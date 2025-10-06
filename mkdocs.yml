@@ -75,11 +75,11 @@ nav:
             - stackplot: tools/stackplot.md
             - trace: tools/trace.md
     - API Documentation: 
-            - Digisonde: 
-                - Utils: dev/digisonde/digi_utils.md
-                - Plottting Utils: dev/digisonde/digi_plots.md
-                - Digisonde Parsers: #dev/digisonde/parsers/index.md
-                    - SAO: dev/digisonde/parsers/sao.md
+                - Digisonde: 
+                        - Utils: dev/digisonde/digi_utils.md
+                        - Plottting Utils: dev/digisonde/digi_plots.md
+                        - Digisonde Parsers:
+                                - SAO: dev/digisonde/parsers/sao.md
             #         - dev/digisonde/parsers/sky.md
             #         - dev/digisonde/parsers/sbf.md
             #         - dev/digisonde/parsers/mmm.md
