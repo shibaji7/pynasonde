@@ -41,27 +41,6 @@ class SaoExtractor(object):
       dictionary (``sao_struct``), and
     - XML exports validated and loaded via the datatypes loader
       (``SAORecordList``).
-
-    Attributes
-    ----------
-    filename:  str
-        Path to the input SAO or XML file.
-    xml_file:  bool
-        True when the input file extension indicates an XML file.
-    dtd_file:  str or None
-        Optional path to a DTD file used for XML validation.
-    sao_struct:  dict
-        Raw dictionary populated when parsing legacy SAO text files.
-    sao:  types.SimpleNamespace or SAORecordList
-        Namespace or dataclass representation of parsed content.
-    stn_code:  str
-        Station code inferred from the filename when requested.
-    date:  datetime.datetime
-        Timestamp parsed from the filename when requested.
-    stn_info:  dict
-        Station metadata (LAT/LONG) when ``extract_stn_from_name`` is used.
-    local_time:  datetime.datetime
-        Local time converted from UTC using station coordinates.
     """
 
     def __init__(
@@ -70,18 +49,18 @@ class SaoExtractor(object):
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
         dtd_file: str = None,
-    ):
+    )->None:
         """Create an extractor for the provided file.
 
         Parameters:
-        filename:  str
-            Path to the SAO or XML file to parse.
-        extract_time_from_name:  bool, optional
-            If True, attempt to parse a timestamp from the filename.
-        extract_stn_from_name:  bool, optional
-            If True, fetch station metadata and compute local time.
-        dtd_file:  str, optional
-            Optional DTD file used to validate XML inputs.
+            filename:  str
+                Path to the SAO or XML file to parse.
+            extract_time_from_name:  bool, optional
+                If True, attempt to parse a timestamp from the filename.
+            extract_stn_from_name:  bool, optional
+                If True, fetch station metadata and compute local time.
+            dtd_file:  str, optional
+                Optional DTD file used to validate XML inputs.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -156,7 +135,7 @@ class SaoExtractor(object):
                 results.append(chunk)
         return results
 
-    def extract_xml(self):
+    def extract_xml(self) -> None:
         """Load XML SAO data into: attr:`sao` using: class:`SAORecordList`.
 
         The optional: attr:`dtd_file` is used for validation when provided.
@@ -178,8 +157,8 @@ class SaoExtractor(object):
         -------
         tuple[pandas.DataFrame, pandas.DataFrame]
             (profile_df, trace_df) extracted from the XML records. Both
-            DataFrames include ``datetime`` and ``local_datetime`` columns
-            when station metadata is available.
+                DataFrames include ``datetime`` and ``local_datetime`` columns
+                when station metadata is available.
         """
         profile, trace = pd.DataFrame(), dict(RangeList=[], FrequencyList=[])
         for sao_record in self.sao.SAORecord:
@@ -236,13 +215,11 @@ class SaoExtractor(object):
         Parameters:
         params:  list[str], optional
             List of characteristic names to extract. Defaults to common
-            scaled parameters like 'foF2', 'hmF2', etc.
+                scaled parameters like 'foF2', 'hmF2', etc.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             One-row-per-record DataFrame with extracted characteristic
-            values; missing parameters are filled with NaN.
+                values; missing parameters are filled with NaN.
         """
         df = []
         for sao_record in self.sao.SAORecord:
@@ -263,7 +240,7 @@ class SaoExtractor(object):
             )
         return df
 
-    def extract(self):
+    def extract(self)->dict:
         """Parse a legacy fixed-width SAO text file into a structured dict.
 
         Behavior
@@ -273,11 +250,9 @@ class SaoExtractor(object):
         of the file concatenating fixed-width lines into fields. The
         output is stored in: attr:`SAOstruct` and: attr:`sao`.
 
-        Returns
-        -------
-        dict
+        Returns:
             The raw dictionary of parsed SAO fields (same as
-           : attr:`SAOstruct`).
+                : attr:`SAOstruct`).
         """
         # Read file lines
         SAOarch, self.SAOstruct = self.read_file(), dict()
@@ -537,18 +512,16 @@ class SaoExtractor(object):
         self.sao = to_namespace(self.SAOstruct)
         return self.SAOstruct
 
-    def get_scaled_datasets(self, asdf=True):
+    def get_scaled_datasets(self, asdf=True)->pd.DataFrame:
         """Return scaled dataset fields from parsed legacy SAO as a DataFrame.
 
         Parameters:
         asdf:  bool, optional
             Placeholder parameter retained for API compatibility.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             Single-row DataFrame containing scaled parameters with
-            datetime/local_datetime columns when available.
+                datetime/local_datetime columns when available.
         """
         for key in vars(self.sao.Scaled).keys():
             if type(vars(self.sao.Scaled)[key]) == str:
@@ -562,7 +535,7 @@ class SaoExtractor(object):
             o["local_datetime"] = self.local_time
         return o
 
-    def get_height_profile(self, asdf=True, plot_ionogram=False):
+    def get_height_profile(self, asdf=True, plot_ionogram=False)->pd.DataFrame:
         """Return the height profile DataFrame extracted from the parsed SAO.
 
         Parameters:
@@ -576,8 +549,8 @@ class SaoExtractor(object):
         -------
         pandas.DataFrame
             DataFrame with columns for height (`th`), plasma frequency
-            (`pf`), electron density (`ed`) and timestamps when
-            available.
+                (`pf`), electron density (`ed`) and timestamps when
+                available.
         """
         o = pd.DataFrame()
         if (
@@ -608,7 +581,7 @@ class SaoExtractor(object):
                 sao_plot.close()
         return o
 
-    def display_struct(self):
+    def display_struct(self)->None:
         """Log the raw parsed SAO structure.
 
         This is a lightweight helper used for debugging and quick
@@ -623,24 +596,22 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    ):
+    )->pd.DataFrame:
         """Convenience function to extract a single SAO/XML file into a DataFrame.
 
         Parameters:
-        file:  str
-            Path to the SAO or XML file.
-        extract_time_from_name:  bool, optional
-            If True, infer timestamps from the filename.
-        extract_stn_from_name:  bool, optional
-            If True, infer station and compute local time.
-        func_name:  str, optional
-            Which view to return: ``'height_profile'`` or ``'scaled'``.
+            file:  str
+                Path to the SAO or XML file.
+            extract_time_from_name:  bool, optional
+                If True, infer timestamps from the filename.
+            extract_stn_from_name:  bool, optional
+                If True, infer station and compute local time.
+            func_name:  str, optional
+                Which view to return: ``'height_profile'`` or ``'scaled'``.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             DataFrame corresponding to the requested view. For XML inputs
-            both the scaled and height_profile views are supported.
+                both the scaled and height_profile views are supported.
         """
         extractor = SaoExtractor(file, extract_time_from_name, extract_stn_from_name)
         if extractor.xml_file:
@@ -669,26 +640,24 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    ):
+    )->pd.DataFrame:
         """Load fixed-width SAO files from folders into a single DataFrame.
 
         Parameters:
-        folders:  list[str], optional
-            List of folders to search for files.
-        ext:  str, optional
-            Glob pattern to match files (default ``'*.SAO'``).
-        n_procs:  int, optional
-            Number of worker processes used for parallel extraction.
-        extract_time_from_name:  bool, optional
-            See: meth:`extract_SAO`.
-        extract_stn_from_name:  bool, optional
-            See: meth:`extract_SAO`.
-        func_name:  str, optional
-            View to extract (``'height_profile'`` or ``'scaled'``).
+            folders:  list[str], optional
+                List of folders to search for files.
+            ext:  str, optional
+                Glob pattern to match files (default ``'*.SAO'``).
+            n_procs:  int, optional
+                Number of worker processes used for parallel extraction.
+            extract_time_from_name:  bool, optional
+                See: meth:`extract_SAO`.
+            extract_stn_from_name:  bool, optional
+                See: meth:`extract_SAO`.
+            func_name:  str, optional
+                View to extract (``'height_profile'`` or ``'scaled'``).
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             Concatenated DataFrame of all extracted rows.
         """
         collections = []
@@ -724,7 +693,7 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    ):
+    )->pd.DataFrame:
         """Load XML SAO files from folders into a single DataFrame.
 
         Same behaviour as: meth:`load_SAO_files` but matches XML file

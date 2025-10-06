@@ -55,8 +55,6 @@ class EdpExtractor(object):
 
     def __update_tz__(self) -> None:
         """Update station timezone information from parsed F2 metadata.
-        Returns:
-            None
         """
         self.stn_info = dict(
             LAT=self.edp_struct["f2"]["lat"], LONG=self.edp_struct["f2"]["lon"]
