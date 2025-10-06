@@ -1,4 +1,4 @@
-## PCT datatypes
+## SCT datatypes
 
 Dataclasses modeling VIPIR SCT header-format header block.
 
