@@ -28,21 +28,3 @@ Designed as a comprehensive toolbox, Pynasonde empowers researchers to process r
 The library source code can be found on the [pynasonde GitHub](https://github.com/shibaji7/pynasonde) repository. 
 
 If you have any questions or concerns please submit an **Issue** on the [pynasonde GitHub](https://github.com/shibaji7/pynasonde) repository. 
-
-## Table of Contents 
-  - [Installation](user/install.md)
-  - [Ionosonde Data Access](user/ionosonde.md)
-  - [Citing](user/citing.md)
-  - [Authors](user/authors.md)
-  - Toolbox
-    - [isca](tools/isca.md)
-    - [fti](tools/fti.md)
-    - [ionogram](tools/ionogram.md)
-    - [skymaps](tools/skymaps.md)
-    - [stackplot](tools/stackplot.md)
-  - Tutorials
-  - [VIPIR](user/vipir.md)
-  - [DIGISONDE](user/digisonde.md)
-  - Code Documentation
-      - [Scaling VIPIR: scale.py](dev/vipir/ngi/scale.md)
-      - [Utils(ngi): utils.py](dev/vipir/ngi/utils.md)
