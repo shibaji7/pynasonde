@@ -327,9 +327,9 @@ class SbfDataUnit:
 
     Attributes:
         header: SbfHeader
-            Header instance with block-level metadata in :class:`SbfHeader`.
+            Header instance with block-level metadata in `SbfHeader`.
         frequency_groups: List[SbfFreuencyGroup]
-            List of frequency-group :class:`SbfFreuencyGroup` objects parsed for this block.
+            List of frequency-group `SbfFreuencyGroup` objects parsed for this block.
 
     Notes: After parsing, call ``setup`` to populate group-derived attributes like
     the `height` arrays for each frequency group.
@@ -361,7 +361,7 @@ class SbfDataFile:
 
     Attributes:
         sbf_data_units: List[SbfDataUnit]
-            List of parsed SBF data units (:class:`SbfDataUnit` blocks) contained in the file.
+            List of parsed SBF data units (`SbfDataUnit` blocks) contained in the file.
     """
 
     sbf_data_units: List[SbfDataUnit] = None

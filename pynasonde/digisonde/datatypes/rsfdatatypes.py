@@ -345,7 +345,7 @@ class RsfDataUnit:
         header: RsfHeader
             Header instance with block-level metadata.
         frequency_groups: List[RsfFreuencyGroup]
-            List of frequency-group :class:`RsfFreuencyGroup` objects parsed for this block.
+            List of frequency-group `RsfFreuencyGroup` objects parsed for this block.
 
     Note: Calling ``setup`` on the data unit will iterate through the
     ``frequency_groups`` and populate per-group derived fields (height
@@ -378,7 +378,7 @@ class RsfDataFile:
 
     Attributes:
         rsf_data_units: List[RsfDataUnit]
-            List of RSF data units (:class:`RsfDataUnit` blocks) contained in the file.
+            List of RSF data units (`RsfDataUnit` blocks) contained in the file.
     """
 
     rsf_data_units: List[RsfDataUnit] = None

@@ -240,10 +240,8 @@ class ModMaxDataUnit:
     """Container for a full MMM data block.
 
     Attributes:
-        header: ModMaxHeader
-            Header object containing block-level metadata.
-        frequency_groups: List[ModMaxFreuencyGroup]
-            List of parsed frequency-group :class:`ModMaxFreuencyGroup` 
+        header: `ModMaxHeader` object containing block-level metadata.
+        frequency_groups: List of parsed frequency-group `ModMaxFreuencyGroup` 
             sub-blocks belonging to this unit.
     """
 

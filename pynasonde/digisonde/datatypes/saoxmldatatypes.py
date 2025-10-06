@@ -134,11 +134,11 @@ class CharacteristicList:
 
     Attributes:
         URSI: List[URSI]
-            List of :class:`URSI` entries.
+            List of `URSI` entries.
         Modeled: List[Modeled]
-            List of :class:`Modeled` parameter entries.
+            List of `Modeled` parameter entries.
         Custom: List[Custom]
-            List of :class:`Custom parameter entries.
+            List of `Custom parameter entries.
         Num: Optional[int]
             Optional count attribute from the XML (coerced to int in
             ``__post_init__`` when present).
@@ -197,7 +197,7 @@ class Trace:
         RangeList: List[float]
             Range/height axis values for the trace.
         TraceValueList: List[TraceValueList]
-            List of :class:`TraceValueList` objects containing measured values.
+            List of `TraceValueList` objects containing measured values.
         Type: Optional[str]
             Trace type (defaults to "standard").
         Layer: str
@@ -226,7 +226,7 @@ class TraceList:
 
     Attributes:
         Trace: List[Trace]
-            List of :class:`Trace` entries.
+            List of `Trace` entries.
         Num: Optional[str]
             Optional count attribute from XML.
     """
@@ -277,7 +277,7 @@ class Tabulated:
         AltitudeList: List[float]
             Altitude (height) axis values.
         ProfileValueList: List[ProfileValueList]
-            List of profile :class:`ProfileValueList` value lists for each parameter.
+            List of profile `ProfileValueList` value lists for each parameter.
     """
 
     Num: str
@@ -300,7 +300,7 @@ class Profile:
         Description: Optional[str]
             Optional description text.
         Tabulated: Optional[Tabulated]
-            Tabulated data for the profile when present (:class:`Tabulated`).
+            Tabulated data for the profile when present (`Tabulated`).
     """
 
     Algorithm: str
@@ -317,7 +317,7 @@ class ProfileList:
 
     Attributes:
         Profile: List[Profile]
-            List of :class:`Profiles`.
+            List of `Profiles`.
         Num: Optional[str]
             Optional count attribute from XML.
     """
@@ -398,7 +398,7 @@ class SAORecordList:
 
     Attributes:
         SAORecord: List[SAORecord]
-            List of parsed :class:`SAORecord` objects.
+            List of parsed `SAORecord` objects.
     """
 
     SAORecord: List["SAORecord"] = field(default_factory=list)

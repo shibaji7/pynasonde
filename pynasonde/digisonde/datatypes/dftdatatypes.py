@@ -137,7 +137,7 @@ class DftHeader:
         start_gain: int
             Start gain setting for the receiver.
         subcases: List[SubCaseHeader]
-            Optional list of :class:`SubCaseHeader` entries describing
+            Optional list of `SubCaseHeader` entries describing
             per-frequency subcases within this DFT block.
 
     Note: Many additional fields present in the original format are kept as
@@ -232,8 +232,8 @@ class DopplerSpectralBlock:
     """Top-level block containing a DFT header and associated spectra.
 
     Attributes:
-        header: :class:`DftHeader` instance describing block-level metadata.
-        spectra_line: List of :class:`DopplerSpectra` instances (one per
+        header: `DftHeader` instance describing block-level metadata.
+        spectra_line: List of `DopplerSpectra` instances (one per
             height/frequency sample) contained in the block.
     """
 
