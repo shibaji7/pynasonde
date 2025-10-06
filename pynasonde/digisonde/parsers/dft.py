@@ -251,7 +251,7 @@ class DftExtractor(object):
         print(sub, header_bitstring[312:316][::-1])
         return header
 
-    def to_int(self, bin_strs: str, base: int = 2)->int:
+    def to_int(self, bin_strs: str, base: int = 2) -> int:
         """Convert a binary string fragment to an integer.
 
         The helper pads the provided bit string to at least 8 bits and
@@ -268,7 +268,7 @@ class DftExtractor(object):
         """
         return int(f"0b{bin_strs.zfill(8)}", base=base)
 
-    def unpack_7_1(self, bcd_byte: int, return_lsb:bool=True) -> int:
+    def unpack_7_1(self, bcd_byte: int, return_lsb: bool = True) -> int:
         """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
 
         Parameters:

@@ -89,10 +89,10 @@ class RsfExtractor:
     def extract(self):
         """Read and parse the RSF binary file into dataclass containers.
 
-        The method iterates over all data blocks, constructs header and
-        frequency-group objects and appends them to the
-       :attr:`rsf_data` container. No value conversion to pandas occurs
-        here; use:meth:`to_pandas` for that.
+         The method iterates over all data blocks, constructs header and
+         frequency-group objects and appends them to the
+        :attr:`rsf_data` container. No value conversion to pandas occurs
+         here; use:meth:`to_pandas` for that.
         """
         self.rsf_data = RsfDataFile(rsf_data_units=[])
         with open(self.filename, "rb") as file:
@@ -199,7 +199,9 @@ class RsfExtractor:
                 self.rsf_data.rsf_data_units.append(rsf_data_unit)
         return
 
-    def add_dicts_selected_keys(self, d0:dict, du: dict, keys:List[str]=None) -> dict:
+    def add_dicts_selected_keys(
+        self, d0: dict, du: dict, keys: List[str] = None
+    ) -> dict:
         """Merge two dictionaries, optionally selecting keys from the second.
 
         Parameters:
@@ -218,10 +220,10 @@ class RsfExtractor:
     def to_pandas(self) -> pd.DataFrame:
         """Convert parsed RSF records into a pandas DataFrame.
 
-        The returned DataFrame contains one row per range bin per
-        frequency-group including amplitude, Doppler index and derived
-        height and azimuth metadata. The DataFrame is stored on
-       :attr:`records` for later reference.
+         The returned DataFrame contains one row per range bin per
+         frequency-group including amplitude, Doppler index and derived
+         height and azimuth metadata. The DataFrame is stored on
+        :attr:`records` for later reference.
         """
         records = []
         for du in self.rsf_data.rsf_data_units:

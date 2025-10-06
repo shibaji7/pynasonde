@@ -64,7 +64,7 @@ class IonogramImageExtractor(object):
             thresh=180, maxval=255, type=cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
         ),
         OCR_custom_config: str = r"--oem 3 --psm 6",
-    )->str:
+    ) -> str:
         """Extract text from a cropped region of the image using Tesseract OCR.
 
         Parameters:
@@ -83,7 +83,7 @@ class IonogramImageExtractor(object):
         # Crop the left table region (adjust these values as needed)
         # These coordinates are (y1:y2, x1:x2)
         cropped = img[
-            crop_axis[0, 0]: crop_axis[0, 1], crop_axis[1, 0]: crop_axis[1, 1]
+            crop_axis[0, 0] : crop_axis[0, 1], crop_axis[1, 0] : crop_axis[1, 1]
         ]
         # Optional: Convert to grayscale and apply threshold for better OCR
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -104,7 +104,7 @@ class IonogramImageExtractor(object):
         OCR_custom_config: str = r"--oem 3 --psm 6",
         lines_to_extracted: int = -8,
         word_filtes_for_table_values: dict = {"N/A": "nan", ":": "."},
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Parse a left-side artist-parameters table from the ionogram image.
 
         The function OCRs a cropped region, extracts line-wise
@@ -156,7 +156,7 @@ class IonogramImageExtractor(object):
         ),
         OCR_custom_config: str = r"--oem 3 --psm 6",
         word_filtes_for_table_values: dict = {",": "", ":": "."},
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Extract and parse header fields from an ionogram image.
 
         Parameters:
@@ -198,6 +198,7 @@ class IonogramImageExtractor(object):
                         ],
                     )
                 record = dict(zip(header_columns, header_values))
+
     record = pd.DataFrame.from_dict([record])
     logger.info(f"Parsed records: \n {record}")
     return record

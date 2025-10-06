@@ -32,7 +32,6 @@ def get_indent(line: str) -> int:
 
 
 class SkyExtractor(object):
-
     """Parser for SKY-format files.
 
     The :class:`SkyExtractor` reads text files produced by Digisonde's
@@ -49,7 +48,7 @@ class SkyExtractor(object):
         extract_stn_from_name: bool = False,
         n_fft: int = 2048,
         delta_freq: float = 50,  # in Hz
-    )-> None:
+    ) -> None:
         """Create a SkyExtractor.
 
         Parameters:

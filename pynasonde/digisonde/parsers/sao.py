@@ -49,7 +49,7 @@ class SaoExtractor(object):
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
         dtd_file: str = None,
-    )->None:
+    ) -> None:
         """Create an extractor for the provided file.
 
         Parameters:
@@ -238,7 +238,7 @@ class SaoExtractor(object):
             )
         return df
 
-    def extract(self)->dict:
+    def extract(self) -> dict:
         """Parse a legacy fixed-width SAO text file into a structured dict.
 
         Behavior
@@ -510,7 +510,7 @@ class SaoExtractor(object):
         self.sao = to_namespace(self.SAOstruct)
         return self.SAOstruct
 
-    def get_scaled_datasets(self, asdf=True)->pd.DataFrame:
+    def get_scaled_datasets(self, asdf=True) -> pd.DataFrame:
         """Return scaled dataset fields from parsed legacy SAO as a DataFrame.
 
         Parameters:
@@ -533,7 +533,7 @@ class SaoExtractor(object):
             o["local_datetime"] = self.local_time
         return o
 
-    def get_height_profile(self, asdf=True, plot_ionogram=False)->pd.DataFrame:
+    def get_height_profile(self, asdf=True, plot_ionogram=False) -> pd.DataFrame:
         """Return the height profile DataFrame extracted from the parsed SAO.
 
         Parameters:
@@ -577,7 +577,7 @@ class SaoExtractor(object):
                 sao_plot.close()
         return o
 
-    def display_struct(self)->None:
+    def display_struct(self) -> None:
         """Log the raw parsed SAO structure.
 
         This is a lightweight helper used for debugging and quick
@@ -592,7 +592,7 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Convenience function to extract a single SAO/XML file into a DataFrame.
 
         Parameters:
@@ -636,7 +636,7 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Load fixed-width SAO files from folders into a single DataFrame.
 
         Parameters:
@@ -689,7 +689,7 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
-    )->pd.DataFrame:
+    ) -> pd.DataFrame:
         """Load XML SAO files from folders into a single DataFrame.
 
         Same behaviour as: meth:`load_SAO_files` but matches XML file
