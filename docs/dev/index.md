@@ -8,9 +8,9 @@ Welcome to the pynasonde developer docs!
 - Run tests: `pytest`
 
 ## Directory Structure
-- `code/` - Main source code
+- `pynasonde/` - Main source code
 - `docs/` - Documentation
-- `tests/` - Unit tests
+- `examples/` - Unit tests
 
 ## Contributing
 - Fork the repository
@@ -19,8 +19,8 @@ Welcome to the pynasonde developer docs!
 
 ## Useful Commands
 - Build: `python setup.py build`
-- Install: `pip install .`
+- [Install](../user/install.md): `pip install .`
 - Test: `pytest`
 
 ## Contact
-For questions, open an issue or contact the maintainers.
+For questions, open an issue or contact the [maintainers/authors](../user/authors.md).
