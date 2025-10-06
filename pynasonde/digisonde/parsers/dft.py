@@ -57,7 +57,7 @@ class DftExtractor(object):
         extract_stn_from_name: bool = False,
         DATA_BLOCK_SIZE: int = 4096,
         SUB_CASE_NUMBER: int = 16,
-    ):
+    )->None:
         """Create a DftExtractor instance.
 
         Parameters:
@@ -92,7 +92,7 @@ class DftExtractor(object):
             logger.info(f"Station code: {self.stn_code}")
         return
 
-    def extract(self):
+    def extract(self)->None:
         """Read the DFT file and construct DopplerSpectralBlock objects.
 
         The method iterates over blocks in the file and assembles
@@ -103,8 +103,7 @@ class DftExtractor(object):
         internal state.
 
         Returns:
-            None
-                The method populates local variables and currently returns
+            The method populates local variables and currently returns
                 None. Future revisions may return an iterable of parsed
                 blocks.
         """
@@ -143,9 +142,8 @@ class DftExtractor(object):
                 that contain the embedded header bits in their LSB.
 
         Returns:
-            DftHeader
-                Populated header dataclass with parsed integer and raw
-                (hex) fields where applicable.
+            Populated header dataclass with parsed integer and raw
+            (hex) fields where applicable.
         """
 
         header_bits = [(b[0] & 0x01) for b in amplitude_bytes]
@@ -282,12 +280,11 @@ class DftExtractor(object):
                 Numeric base to use for conversion (default 2).
 
         Returns:
-            int
-                Integer representation.
+            Integer representation.
         """
         return int(f"0b{bin_strs.zfill(8)}", base=base)
 
-    def unpack_7_1(self, bcd_byte: int, return_lsb=True):
+    def unpack_7_1(self, bcd_byte: int, return_lsb=True)->int:
         """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
 
         Parameters:
@@ -298,8 +295,7 @@ class DftExtractor(object):
                 the seven most-significant bits.
 
         Returns:
-            int
-                Either the LSB (0/1) or the 7-bit MSB integer.
+            Either the LSB (0/1) or the 7-bit MSB integer.
         """
         msb = (bcd_byte >> 1) & 0x7F
         lsb = bcd_byte & 0x01

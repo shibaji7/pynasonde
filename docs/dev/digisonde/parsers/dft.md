@@ -18,6 +18,4 @@ Parses DFT-format digisonde outputs.
 ```python
 from pynasonde.digisonde.parsers.dft import DftExtractor
 d = DftExtractor('filename.DFT')
-# d.parse(path)
-# df = d.to_pandas()
 ```

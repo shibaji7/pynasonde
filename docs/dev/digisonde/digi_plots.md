@@ -18,6 +18,7 @@ the main helpers with their API rendered below.
         show_root_heading: true
         show_source: true
         members:
+            - __init__
             - get_axes
             - save
             - close
@@ -29,6 +30,7 @@ the main helpers with their API rendered below.
         show_root_heading: true
         show_source: true
         members:
+            - __init__
             - add_TS
             - plot_TS
             - plot_ionogram
@@ -53,13 +55,6 @@ the main helpers with their API rendered below.
         show_root_heading: true
         show_source: true
         members:
+            - __init__
             - add_ionogram
-
-## Example
-
-```python
-from pynasonde.digisonde.digi_plots import SaoSummaryPlots
-plotter = SaoSummaryPlots(fig_title='Example')
-# plotter.add_TS(df)
-```
 
