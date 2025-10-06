@@ -81,7 +81,7 @@ nav:
                         - Digisonde Parsers:
                                 - SAO: dev/digisonde/parsers/sao.md
                                 - SKY: dev/digisonde/parsers/sky.md
-                                # - SBF: dev/digisonde/parsers/sbf.md
+                                - Image: dev/digisonde/parsers/image.md
                                 # - MMM: dev/digisonde/parsers/mmm.md
                                 - DFT: dev/digisonde/parsers/dft.md
                                 - RSF: dev/digisonde/parsers/rsf.md

@@ -1,3 +1,11 @@
+"""Utilities to extract tabular metadata from ionogram image files.
+
+This module contains:class:`IonogramImageExtractor` which uses OpenCV
+and Tesseract OCR to extract textual parameter tables and header
+metadata from ionogram images. The functionality is intentionally
+focused and small so it can be used in documentation examples.
+"""
+
 import datetime as dt
 
 import cv2
@@ -8,18 +16,11 @@ from loguru import logger
 
 
 class IonogramImageExtractor(object):
-    """
-    A class to extract and process data from standard Ionogram image files.
+    """Extractor for ionogram images using OpenCV + Tesseract OCR.
 
-    This class provides methods to extract metadata (such as date and time) from the image filename,
-    and to parse parameter tables from the image using OCR techniques.
-
-    Attributes:
-        filepath (str): The path to the ionogram image file.
-        extract_time_from_name (bool): Whether to extract the timestamp from the filename.
-        date (datetime.datetime): The date and time associated with the image.
-        file_ext (str): The file extension of the image.
-        filestr_date_format (str): The format string to parse the date from the filename.
+    The extractor offers helpers to read date/time information from the
+    filename and to OCR specific regions of the image to parse
+    parameter tables and header fields into pandas DataFrames.
     """
 
     def __init__(
@@ -29,6 +30,21 @@ class IonogramImageExtractor(object):
         date: dt.datetime = None,
         filestr_date_format: str = "ion%y%m%d_%H%M%S.png",
     ):
+        """Create an IonogramImageExtractor.
+
+        Parameters:
+            filepath: str
+                Path to the ionogram image file.
+            extract_time_from_name: bool, optional
+                If True (default), attempt to parse the timestamp from the
+                filename using ``filestr_date_format``.
+            date: datetime.datetime, optional
+                Manually provided date; if None and
+                ``extract_time_from_name`` is True the date will be parsed
+                from the filename.
+            filestr_date_format: str, optional
+                Format string used when parsing the filename timestamp.
+        """
         self.filepath = filepath
         self.extract_time_from_name = extract_time_from_name
         self.date = date
@@ -48,23 +64,26 @@ class IonogramImageExtractor(object):
             thresh=180, maxval=255, type=cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
         ),
         OCR_custom_config: str = r"--oem 3 --psm 6",
-    ):
-        """
-        Extracts text from a specified cropped region of an image using OCR.
-        This method loads an image from the file path specified in the instance, crops a region defined by `crop_axis`, applies grayscale conversion and thresholding for improved OCR accuracy, and then extracts text using Tesseract OCR.
-        Args:
-            crop_axis (np.array, optional): A 2x2 numpy array specifying the crop region in the format [[y1, y2], [x1, x2]]. Defaults to np.array([[50, 650], [0, 220]]).
-            cv_props (dict, optional): Dictionary of OpenCV thresholding parameters, including 'thresh', 'maxval', and 'type'. Defaults to {'thresh': 180, 'maxval': 255, 'type': cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU}.
-            OCR_custom_config (str, optional): Custom configuration string for Tesseract OCR. Defaults to r"--oem 3 --psm 6".
+    )->str:
+        """Extract text from a cropped region of the image using Tesseract OCR.
+
+        Parameters:
+            crop_axis: numpy.ndarray, optional
+                2x2 array specifying the crop region as [[y1, y2], [x1, x2]].
+            cv_props: dict, optional
+                OpenCV thresholding parameters (keys: 'thresh', 'maxval', 'type').
+            OCR_custom_config: str, optional
+                Tesseract configuration string (e.g. '--oem 3 --psm 6').
+
         Returns:
-            str: The text extracted from the specified region of the image.
+            Text extracted from the cropped region.
         """
         # Load the image
         img = cv2.imread(self.filepath)
         # Crop the left table region (adjust these values as needed)
         # These coordinates are (y1:y2, x1:x2)
         cropped = img[
-            crop_axis[0, 0] : crop_axis[0, 1], crop_axis[1, 0] : crop_axis[1, 1]
+            crop_axis[0, 0]: crop_axis[0, 1], crop_axis[1, 0]: crop_axis[1, 1]
         ]
         # Optional: Convert to grayscale and apply threshold for better OCR
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -85,25 +104,30 @@ class IonogramImageExtractor(object):
         OCR_custom_config: str = r"--oem 3 --psm 6",
         lines_to_extracted: int = -8,
         word_filtes_for_table_values: dict = {"N/A": "nan", ":": "."},
-    ):
-        """
-        Parses a table of artist parameters from a specified region of an image file using OCR.
-        This method loads an image from the instance's `filepath`, crops a specified region containing a table,
-        applies preprocessing for optimal OCR (grayscale and thresholding), and extracts parameter names and values
-        from the table using Tesseract OCR. The extracted parameters are cleaned and converted to floats, then
-        returned as a pandas DataFrame.
+    )->pd.DataFrame:
+        """Parse a left-side artist-parameters table from the ionogram image.
+
+        The function OCRs a cropped region, extracts line-wise
+        key/value pairs, applies simple text replacements and converts
+        values to float where possible. The result is returned as a
+        single-row:class:`pandas.DataFrame`.
+
         Parameters:
-            crop_axis (np.array): 2x2 array specifying the crop region as [[y1, y2], [x1, x2]]. Defaults to [[50, 650], [0, 220]].
-            cv_props (dict): Dictionary of OpenCV thresholding properties. Defaults to {'thresh': 180, 'maxval': 255, 'type': cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU}.
-            OCR_custom_config (str): Custom configuration string for Tesseract OCR. Defaults to "--oem 3 --psm 6".
-            lines_to_extracted (int): Number of lines to extract from the OCR output. Defaults to -8 (all but last 8 lines).
-            word_filtes_for_table_values (dict): Dictionary mapping substrings to replace in extracted table values. Defaults to {"N/A": "nan", ":": "."}.
+            crop_axis: numpy.ndarray, optional
+                Crop region as [[y1, y2], [x1, x2]].
+            cv_props: dict, optional
+                OpenCV thresholding parameters.
+            OCR_custom_config: str, optional
+                Tesseract config string.
+            lines_to_extracted: int, optional
+                Number of lines to keep from OCR output (negative values
+                trim from the end).
+            word_filtes_for_table_values: dict, optional
+                Mapping of substrings to replace in extracted values before
+                conversion.
+
         Returns:
-            pd.DataFrame: DataFrame containing the parsed parameter names and their corresponding float values.
-        Logs:
-            Logs the parsed records at the info level.
-        Note:
-            Adjust the crop_axis and cv_props parameters as needed for different image layouts or OCR quality.
+            Single-row DataFrame with parsed parameter names and values.
         """
         text = self.extract_text(crop_axis, cv_props, OCR_custom_config)
         # Extract all individual parameters
@@ -132,22 +156,22 @@ class IonogramImageExtractor(object):
         ),
         OCR_custom_config: str = r"--oem 3 --psm 6",
         word_filtes_for_table_values: dict = {",": "", ":": "."},
-    ):
-        """
-        Extracts header information from an image using OCR and returns it as a pandas DataFrame.
-        This method processes a cropped region of an image, applies computer vision properties for thresholding,
-        and uses OCR to extract text. It then parses the first two lines of the extracted text as header columns
-        and their corresponding values, applies optional word replacements, and constructs a DataFrame from the result.
+    )->pd.DataFrame:
+        """Extract and parse header fields from an ionogram image.
+
         Parameters:
-            crop_axis (np.array, optional): Coordinates for cropping the image before OCR. Defaults to np.array([[0, 50], [100, 800]]).
-            cv_props (dict, optional): Properties for OpenCV thresholding. Defaults to {'thresh': 180, 'maxval': 255, 'type': cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU}.
-            OCR_custom_config (str, optional): Custom configuration string for the OCR engine. Defaults to r"--oem 3 --psm 6".
-            word_filtes_for_table_values (dict, optional): Dictionary of string replacements to apply to header columns and values. Defaults to {",": "", ":": "."}.
+            crop_axis: numpy.ndarray, optional
+                Crop region for the header area.
+            cv_props: dict, optional
+                OpenCV thresholding parameters.
+            OCR_custom_config: str, optional
+                Tesseract config string.
+            word_filtes_for_table_values: dict, optional
+                Mapping of substrings to replace in both header keys and
+                values.
+
         Returns:
-            pd.DataFrame: A DataFrame containing the extracted header information as a single row.
-        Logs:
-            - Extracted text from the image at debug level.
-            - Parsed records as a DataFrame at info level.
+            Single-row DataFrame with header keys and values when found.
         """
         text = self.extract_text(crop_axis, cv_props, OCR_custom_config)
 
@@ -174,9 +198,9 @@ class IonogramImageExtractor(object):
                         ],
                     )
                 record = dict(zip(header_columns, header_values))
-        record = pd.DataFrame.from_dict([record])
-        logger.info(f"Parsed records: \n {record}")
-        return
+    record = pd.DataFrame.from_dict([record])
+    logger.info(f"Parsed records: \n {record}")
+    return record
 
 
 if __name__ == "__main__":
