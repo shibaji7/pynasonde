@@ -7,10 +7,15 @@ theme:
     - content.code.copy
     - content.code.select
     - content.code.annotate
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.path
 
 plugins:
     - search
     - glightbox
+    - awesome-pages
     - mkdocstrings:
         enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
         default_handler: python
@@ -26,7 +31,10 @@ markdown_extensions:
     - extra
     - admonition
     - toc
+    - tables
     - attr_list
+    - toc:
+        permalink: true
     - pymdownx.arithmatex:
         generic: true
     - pymdownx.betterem
@@ -42,6 +50,8 @@ markdown_extensions:
     - pymdownx.inlinehilite
     - pymdownx.snippets
     - pymdownx.superfences
+    - pymdownx.highlight
+    - pymdownx.details
     - footnotes
         
 extra_javascript:
@@ -51,38 +61,38 @@ extra_javascript:
 
 nav:
     - Home: index.md
-    - Installation: user/install.md  
-    - Ionosonde Data Access: user/ionosonde.md
-    - VIPIR: user/vipir.md
-    - DIGISONDE: user/digisonde.md
-    - Citing: user/citing.md
-    - Authors: user/authors.md
-    - Toolbox: 
-            - isca: tools/isca.md
-            - fti: tools/fti.md
-            - ionogram: tools/ionogram.md
-            - skymaps: tools/skymaps.md
-            - stackplot: tools/stackplot.md
-            - trace: tools/trace.md
-    - API Documentation:
-            - Overview: dev/digisonde/README.md
-            - Parsers:
-                - SAO: dev/digisonde/parsers_sao.md
-                - SKY: dev/digisonde/parsers_sky.md
-                - SBF: dev/digisonde/parsers_sbf.md
-                - MMM: dev/digisonde/parsers_mmm.md
-                - DFT: dev/digisonde/parsers_dft.md
-                - RSF: dev/digisonde/parsers_rsf.md
-                - EDP: dev/digisonde/parsers_edp.md
-                - DVL: dev/digisonde/parsers_dvl.md
-            - Datatypes:
-                - Index: dev/digisonde/datatypes.md
-                - SAO XML: dev/digisonde/datatypes_saoxmldatatypes.md
-                - SBF: dev/digisonde/datatypes_sbfdatatypes.md
-                - MMM: dev/digisonde/datatypes_mmmdatatypes.md
-                - DFT: dev/digisonde/datatypes_dftdatatypes.md
-                - RSF: dev/digisonde/datatypes_rsfdatatypes.md
-            - Raw:
-                - Parse: dev/digisonde/raw_parse.md
-                - IQStream AFRL: dev/digisonde/raw_iqstream_afrl.md
-                - Raw plots: dev/digisonde/raw_raw_plots.md
+    # - Installation: user/install.md  
+    # - Ionosonde Data Access: user/ionosonde.md
+    # - VIPIR: user/vipir.md
+    # - DIGISONDE: user/digisonde.md
+    # - Citing: user/citing.md
+    # - Authors: user/authors.md
+    # - Toolbox: 
+    #         - isca: tools/isca.md
+    #         - fti: tools/fti.md
+    #         - ionogram: tools/ionogram.md
+    #         - skymaps: tools/skymaps.md
+    #         - stackplot: tools/stackplot.md
+    #         - trace: tools/trace.md
+    # - API Documentation:
+    #         - Overview: dev/digisonde/README.md
+    #         - Parsers:
+    #             - SAO: dev/digisonde/parsers_sao.md
+    #             - SKY: dev/digisonde/parsers_sky.md
+    #             - SBF: dev/digisonde/parsers_sbf.md
+    #             - MMM: dev/digisonde/parsers_mmm.md
+    #             - DFT: dev/digisonde/parsers_dft.md
+    #             - RSF: dev/digisonde/parsers_rsf.md
+    #             - EDP: dev/digisonde/parsers_edp.md
+    #             - DVL: dev/digisonde/parsers_dvl.md
+    #         - Datatypes:
+    #             - Index: dev/digisonde/datatypes.md
+    #             - SAO XML: dev/digisonde/datatypes_saoxmldatatypes.md
+    #             - SBF: dev/digisonde/datatypes_sbfdatatypes.md
+    #             - MMM: dev/digisonde/datatypes_mmmdatatypes.md
+    #             - DFT: dev/digisonde/datatypes_dftdatatypes.md
+    #             - RSF: dev/digisonde/datatypes_rsfdatatypes.md
+    #         - Raw:
+    #             - Parse: dev/digisonde/raw_parse.md
+    #             - IQStream AFRL: dev/digisonde/raw_iqstream_afrl.md
+    #             - Raw plots: dev/digisonde/raw_raw_plots.md
