@@ -53,7 +53,7 @@ platformdirs==3.0.0
 pycparser==2.21
 pyflakes==3.0.1
 Pygments==2.16.0
-pymdown-extensions==10.0
+pymdown-extensions==10.2
 pyparsing==3.0.9
 pyproj==3.4.1
 pyproject_hooks==1.0.0
