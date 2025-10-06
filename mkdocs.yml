@@ -74,7 +74,7 @@ nav:
             - skymaps: tools/skymaps.md
             - stackplot: tools/stackplot.md
             - trace: tools/trace.md
-    - API Documentation: dev/
+    - API Documentation: dev/index.md
     #         - Overview: dev/digisonde/README.md
     #         - Parsers:
     #             - SAO: dev/digisonde/parsers_sao.md
