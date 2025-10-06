@@ -1,3 +1,12 @@
+"""DVL (drift/velocity) file parser utilities for Digisonde outputs.
+
+This module provides :class:`DvlExtractor` — a small parser for DVL
+records exported by Digisonde software. It focuses on simple text-based
+DVL records where each file contains a single line of whitespace-
+separated fields. The extractor exposes convenience helpers that return
+pandas.DataFrame objects suitable for plotting or downstream analysis.
+"""
+
 import datetime as dt
 import glob
 import os
@@ -15,6 +24,35 @@ from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 class DvlExtractor(object):
+    """Parser for DVL-format records.
+
+    The extractor assumes one DVL record per file containing a fixed set
+    of whitespace-separated fields (see :attr:`key_order`). It parses the
+    record into a structured dictionary (:attr:`dvl_struct`) and provides
+    convenience static methods for batch-loading into pandas.
+
+    Attributes:
+        filename: str
+            Path to the input DVL file.
+        date: datetime.datetime
+            Timestamp parsed from the filename when ``extract_time_from_name`` is
+            True.
+        stn_code: str
+            Station code parsed from the filename when
+            ``extract_stn_from_name`` is True.
+        stn_info: dict
+            Station metadata obtained via :func:`get_digisonde_info` when
+            requested.
+        local_time: datetime.datetime
+            Local time converted from UTC using station coordinates.
+        key_order: list
+            Canonical ordering of fields expected in each DVL record.
+        dvl_struct: dict
+            Parsed record dictionary populated by :meth:`extract`.
+        dvl: types.SimpleNamespace
+            A namespace wrapper around :attr:`dvl_struct` added by
+            :meth:`extract`.
+    """
 
     def __init__(
         self,
@@ -22,11 +60,18 @@ class DvlExtractor(object):
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
     ):
-        """
-        Initialize the DVLExtractor with the given file.
+        """Create a DvlExtractor instance.
 
-        Args:
-            filename (str): Path to the DVL file to be processed.
+        Parameters:
+            filename: str
+                Path to the DVL-format file to parse.
+            extract_time_from_name: bool, optional
+                If True, attempt to parse a timestamp from the filename
+                (default False). The expected filename format includes a
+                YYYYDDDHHMMSS-like timestamp token at the end.
+            extract_stn_from_name: bool, optional
+                If True, attempt to parse a station code from the filename
+                (default False).
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -104,22 +149,25 @@ class DvlExtractor(object):
         )
         return
 
-    def read_file(self):
+    def read_file(self) -> List[str]:
         """
         Reads the file line by line into a list.
-
         Returns:
-            list: A list of strings, each representing a line from the file.
+            A list of strings, each representing a line from the file.
         """
         with open(self.filename, "r") as f:
             return f.readlines()
 
-    def extract(self):
-        """
-        Main method to extract data from the DVL file and populate the sao_struct dictionary.
+    def extract(self) -> dict:
+        """Parse the DVL file and populate :attr:`dvl_struct`.
+
+        The parser expects a single-line record of whitespace-separated
+        fields in the order given by :attr:`key_order`. Each value is
+        cast to the type of the corresponding entry in :attr:`dvl_struct`.
 
         Returns:
-            dict: The populated dvl_struct dictionary containing all extracted data.
+            The populated dictionary of parsed fields (also available as
+            :attr:`dvl_struct`).
         """
         # Read file lines
         dvl_arch = self.read_file()
@@ -143,7 +191,21 @@ class DvlExtractor(object):
         file: str,
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
-    ):
+    )-> pd.DataFrame:
+        """Convenience wrapper to extract a single file into a pandas row.
+
+        Parameters:
+            file: str
+                Path to the DVL file.
+            extract_time_from_name: bool, optional
+                See :meth:`__init__`.
+            extract_stn_from_name: bool, optional
+                See :meth:`__init__`.
+
+        Returns:
+            A 1-row DataFrame containing the parsed DVL record and two
+            timestamp columns: ``datetime`` (UTC) and ``local_datetime``.
+        """
         extractor = DvlExtractor(file, extract_time_from_name, extract_stn_from_name)
         df = pd.DataFrame.from_records([extractor.extract()])
         df["datetime"] = extractor.date
@@ -157,7 +219,25 @@ class DvlExtractor(object):
         n_procs: int = 4,
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
-    ):
+    )->pd.DataFrame:
+        """Recursively load DVL files from folders into a single DataFrame.
+
+        Parameters:
+            folders: list[str], optional
+                List of folders (globbed) to search for files.
+            ext: str, optional
+                Filename glob pattern to match DVL files.
+            n_procs: int, optional
+                Number of worker processes to use for parallel parsing.
+            extract_time_from_name: bool, optional
+                See :meth:`__init__`.
+            extract_stn_from_name: bool, optional
+                See :meth:`__init__`.
+
+        Returns:
+            Concatenated DataFrame containing parsed rows for all files
+            discovered under the provided folders.
+        """
         collections = []
         for folder in folders:
             logger.info(f"Searching for files under: {os.path.join(folder, ext)}")

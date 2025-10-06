@@ -8,11 +8,17 @@ Parses EDP format files.
         show_root_heading: true
         show_source: false
 
-## Example
-
-```python
-from pynasonde.digisonde.parsers.edp import EdpExtractor
-e = EdpExtractor()
-# e.parse(path)
-# df = e.to_pandas()
-```
+::: pynasonde.digisonde.parsers.edp.EdpExtractor
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: true
+        members:
+            - __init__
+            - __update_tz__
+            - read_file
+            - __check_issues__
+            - __parse_F2_datasets__
+            - extract
+            - extract_EDP
+            - load_EDP_files

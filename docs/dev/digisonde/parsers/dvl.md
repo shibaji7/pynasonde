@@ -8,11 +8,15 @@ Parses DVL-format digisonde outputs.
         show_root_heading: true
         show_source: false
 
-## Example
-
-```python
-from pynasonde.digisonde.parsers.dvl import DvlExtractor
-v = DvlExtractor()
-# v.parse(path)
-# df = v.to_pandas()
-```
+::: pynasonde.digisonde.parsers.dvl.DvlExtractor
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: true
+        members:
+            - __init__
+            - extract
+            - read_file
+            - extract_DVL_pandas
+            - load_DVL_files
+            

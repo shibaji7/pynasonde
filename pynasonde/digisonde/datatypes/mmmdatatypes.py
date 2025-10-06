@@ -4,10 +4,6 @@ This module defines simple dataclasses that represent the header and data
 blocks found in MMM/ModMax-format files. These are small containers that
 help the parser provide structured access to parsed fields and perform
 lightweight unit conversions in ``__post_init__`` where necessary.
-
-Typical usage:
-    header = ModMaxHeader(record_type=1, header_length=256, year=2023)
-    block = ModMaxDataUnit(header=header, frequency_groups=[...])
 """
 
 import datetime as dt
