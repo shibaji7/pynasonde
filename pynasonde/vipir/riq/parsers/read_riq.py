@@ -288,9 +288,9 @@ class RiqDataset:
         threshold: float = None,
         remove_baseline_noise: bool = False,
         bins: int = 100,
-       prominence: float = 100,
-       **kwargs,
-   ) -> Ionogram:
+        prominence: float = 100,
+        **kwargs,
+    ) -> Ionogram:
         """Convert decoded pulses into an averaged ionogram.
 
         Args:
