@@ -1,3 +1,16 @@
+"""SCT (sounder configuration table) datatypes for VIPIR/RIQ.
+
+This module defines the in-memory datatypes used to represent a
+station/sounder configuration (SCT) including station, timing,
+frequency, receiver, exciter and monitor sub-structures. It also
+provides a small helper,: func:`read_dtype`, used by the binary
+readers to populate these dataclasses from VIPIR binary files.
+
+The docstrings in this module are written to be machine-readable for
+documentation generation (mkdocstrings) and to give callers clear
+contracts for the read/clean helpers.
+"""
+
 from cmath import rect  # For complex numbers
 from dataclasses import dataclass, field
 from typing import List
@@ -18,6 +31,28 @@ from pynasonde.vipir.riq.utils import trim_null
 
 
 def read_dtype(dtype, obj, fp, unicode: str = "latin-1"):
+    """Read a typed field from a binary file according to ``dtype``.
+
+    The ``dtype`` descriptor is a small tuple describing the target
+    attribute name, numpy dtype or special 'S4' string handling and a
+    shape/count specification. This helper centralizes the repetitive
+    logic used by the SCT readers.
+
+    Parameters:
+        dtype:tuple
+            Descriptor tuple (name, type, shape_or_count) coming from the
+            factory descriptions.
+        obj:object
+            Target object whose attribute will receive the parsed value.
+        fp:file-like
+            Open binary file-like object.
+        unicode:str, optional
+            Encoding used when decoding fixed-width ASCII fields (default
+            'latin-1').
+
+    Returns:
+        The input ``obj`` with the requested attribute set.
+    """
     if len(dtype) == 3:
         if dtype[1] == "S4":
             if len(dtype[2]) == 1:
@@ -58,6 +93,72 @@ def read_dtype(dtype, obj, fp, unicode: str = "latin-1"):
 
 @dataclass
 class StationType:
+    """Station metadata and antenna layout.
+
+    Holds station-level configuration such as coordinates, antenna
+    counts and arrays of per-antenna properties. The
+    ``read_station_from_file_pointer`` method populates these fields
+    from a binary SCT block.
+
+    Parameters:
+        file_id:  str
+            Name of station settings file.
+        ursi_id:  str
+            URSI standard station ID code.
+        rx_name:  str
+            Receiver station name.
+        rx_latitude:  np.float64
+            Receive array reference latitude (degrees North).
+        rx_longitude:  np.float64
+            Receive array reference longitude (degrees East).
+        rx_altitude:  np.float64
+            Receive array altitude (m above mean sea level).
+        rx_count:  np.int32
+            Number of defined receive antennas.
+        rx_antenna_type:  List[str]
+            Text descriptors for each receive antenna.
+        rx_position:  List[List[float]]
+            3xN list of X,Y,Z positions (East,North,Up) for each Rx (m).
+        rx_direction:  List[List[float]]
+            3xN list of direction vectors for each Rx (unitless / m).
+        rx_height:  List[float]
+            Height above ground for each Rx (m).
+        rx_cable_length:  List[float]
+            Physical length of receive cables (m).
+        frontend_atten:  np.float64
+            Front-end attenuator setting (dB or unitless depending on device).
+        tx_name:  str
+            Transmitter station name.
+        tx_latitude:  np.float64
+            Transmit antenna latitude (degrees North).
+        tx_longitude:  np.float64
+            Transmit antenna longitude (degrees East).
+        tx_altitude:  np.float64
+            Transmit antenna altitude (m).
+        tx_antenna_type:  str
+            Text descriptor for transmit antenna type.
+        tx_vector:  List[float]
+            Transmit antenna direction vector (3 elements).
+        tx_height:  np.float64
+            Transmit antenna height above reference ground (m).
+        tx_cable_length:  np.float64
+            Physical length of transmit cables (m).
+        drive_band_count:  np.int32
+            Number of antenna drive bands defined.
+        drive_band_bounds:  List[List[float]]
+            List of start/stop frequency bounds for each drive band (kHz).
+        drive_band_atten:  List[float]
+            Antenna drive attenuation per band (dB).
+        rf_control:  np.int32
+            RF control mode (-1=none, 0=drive/quiet, 1=full, 2=only quiet, 3=only atten).
+        ref_type:  str
+            Reference oscillator type description.
+        clock_type:  str
+            Source of absolute UT timing description.
+        user:  str
+            Spare/user-defined information field.
+    """
+
     file_id: str = ""  # Name of station settings file
     ursi_id: str = ""  # URSI standard station ID code
     rx_name: str = ""  # Receiver Station Name
@@ -114,12 +215,26 @@ class StationType:
     user: str = ""  # Spare space for user-defined information
 
     def read_station_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Populate station fields by reading binary data from ``fp``.
+
+        Parameters:
+            fp:file-like
+                Open binary file positioned at the start of the Station block.
+            unicode:str, optional
+                Encoding used for fixed-width ASCII fields.
+        """
         for i, dtype in enumerate(Station_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         self.clean()
         return
 
     def clean(self):
+        """Trim fixed-size arrays to the configured channel/count sizes.
+
+        After reading a binary block many arrays are initialized to a
+        maximum size; this helper trims them to the actual configured
+        channel or band counts for convenience.
+        """
         n_chan = self.rx_count
         self.rx_antenna_type = self.rx_antenna_type[:n_chan]
         self.rx_position = self.rx_position[:n_chan]
@@ -133,8 +248,59 @@ class StationType:
 
 @dataclass
 class TimingType:
-    """
-    Time values are in microseonds unless otherwise indicated
+    """Timing configuration for the radar/sounder.
+
+    Time values are expressed in microseconds unless stated otherwise.
+    The timing block includes PRI, gate definitions and waveform memory
+    used when decoding PCT payloads.
+
+    Parameters:
+        file_id:  str
+            Name of the timing settings file.
+        pri:  np.float64
+            Pulse Repetition Interval (microseconds).
+        pri_count:  np.int32
+            Number of PRIs in the measurement.
+        ionogram_count:  np.int32
+            Repeat count for ionogram within same data file.
+        holdoff:  np.float64
+            Time between GPS 1 pps and start (us).
+        range_gate_offset:  np.float64
+            True range to gate 0 (us).
+        gate_count:  np.int32
+            Number of range gates.
+        gate_start:  np.float64
+            Start gate placement (us).
+        gate_end:  np.float64
+            End gate placement (us).
+        gate_step:  np.float64
+            Range delta between gates (us).
+        data_start:  np.float64
+            Data range placement start (us).
+        data_width:  np.float64
+            Data pulse baud width (us).
+        data_baud_count:  np.int32
+            Number of samples in data baud pattern.
+        data_wave_file:  str
+            Filename of the data baud pattern.
+        data_baud:  List[complex]
+            Complex waveform samples for data baud pattern.
+        data_pairs:  np.int32
+            Number of IQ pairs in waveform memory.
+        cal_start:  np.float64
+            Calibration pulse start (us).
+        cal_width:  np.float64
+            Calibration pulse width (us).
+        cal_baud_count:  np.int32
+            Number of samples in cal baud pattern.
+        cal_wave_file:  str
+            Filename of calibration baud pattern.
+        cal_baud:  List[complex]
+            Complex waveform samples for calibration baud pattern.
+        cal_pairs:  np.int32
+            Number of IQ pairs in calibration waveform memory.
+        user:  str
+            Spare/user-defined information field.
     """
 
     file_id: str = ""  # Name of the timing settings file
@@ -166,12 +332,16 @@ class TimingType:
     user: str = ""  # Spare space for user-defined information
 
     def read_timing_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Read TimingType fields from a binary file pointer using the
+        timing factory descriptors.
+        """
         for i, dtype in enumerate(Timing_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         self.clean()
         return
 
     def clean(self):
+        """Trim waveform arrays to their configured lengths."""
         self.data_baud = self.data_baud[: self.data_baud_count]
         self.cal_baud = self.cal_baud[: self.cal_baud_count]
         return
@@ -179,8 +349,45 @@ class TimingType:
 
 @dataclass
 class FrequencyType:
-    """
-    Values are in kilohertz unless otherwise indicated
+    """Frequency sweep and tuning table configuration.
+
+    Frequencies are expressed in kilohertz unless noted otherwise.
+
+    Parameters:
+        file_id:  str
+            Frequency settings filename.
+        base_start:  np.float64
+            Initial base frequency (kHz).
+        base_end:  np.float64
+            Final base frequency (kHz).
+        base_steps:  np.int32
+            Number of base frequency steps.
+        tune_type:  np.int32
+            Tuning type flag (1=log, 2=linear, 3=table, 4=Log+Fixed ShuffleMode).
+        base_table:  List[float]
+            Nominal/base frequency table values.
+        linear_step:  np.float64
+            Linear frequency step (kHz).
+        log_step:  np.float64
+            Logarithmic frequency step (percent).
+        freq_table_id:  str
+            Manual tuning table filename.
+        tune_steps:  np.int32
+            Pre-ramp repeat count for tuned frequencies.
+        pulse_count:  np.int32
+            Length of pulse frequency vector.
+        pulse_pattern:  List[int]
+            Pulse frequency pattern indices.
+        pulse_offset:  np.float64
+            Pulse offset (kHz).
+        ramp_steps:  np.int32
+            Steps per B-mode ramp.
+        ramp_repeats:  np.int32
+            Repeat count of B-mode ramps.
+        drive_table:  List[float]
+            Drive attenuation/silent table for base frequencies.
+        user:  str
+            Spare/user-defined information field.
     """
 
     file_id: str = ""  # Frequency settings file
@@ -212,12 +419,14 @@ class FrequencyType:
     user: str = ""  # Spare space for user-defined information
 
     def read_frequency_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Read FrequencyType fields from a binary file pointer."""
         for i, dtype in enumerate(Frequency_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         self.clean()
         return
 
     def clean(self):
+        """Trim tables to their configured lengths."""
         self.base_table = self.base_table[: self.base_steps]
         self.drive_table = self.drive_table[: self.base_steps]
         self.pulse_pattern = self.pulse_pattern[: self.pulse_count]
@@ -226,6 +435,44 @@ class FrequencyType:
 
 @dataclass
 class RecieverType:
+    """Receiver configuration and processing parameters.
+
+    Includes word format, decimation and filter coefficients used by
+    the receiver DSP path.
+
+    Parameters:
+        file_id:  str
+            Frequency/receiver settings filename.
+        rx_chan:  np.int32
+            Number of receiver channels.
+        rx_map:  List[int]
+            Mapping of receivers to antenna indices.
+        word_format:  np.int32
+            Word format flag (0=big endian fixed, 1=little endian, 2=floating_point, 3=32-bit little int).
+        cic2_dec:  np.int32
+            CIC filter decimation factor (stage 2).
+        cic2_interp:  np.int32
+            CIC filter interpolation factor (stage 2).
+        cic2_scale:  np.int32
+            CIC filter scale (stage 2).
+        cic5_dec:  np.int32
+            CIC filter decimation factor (stage 5).
+        cic5_scale:  np.int32
+            CIC filter scale (stage 5).
+        rcf_type:  str
+            Text descriptor of the receiver FIR filter block.
+        rcf_dec:  np.int32
+            Decimation factor for the FIR block.
+        rcf_taps:  np.int32
+            Number of taps in the FIR filter.
+        coefficients:  List[int]
+            Receiver FIR coefficients array.
+        analog_delay:  np.float64
+            Analog delay of the receiver (us).
+        user:  str
+            Spare/user-defined information field.
+    """
+
     file_id: str = ""  # Frequency settings file
     rx_chan: np.int32 = 0  # Number of receivers
     rx_map: List[int] = field(
@@ -249,6 +496,7 @@ class RecieverType:
     user: str = ""  # Spare space for user-defined information
 
     def read_reciever_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Read receiver parameters from a binary file pointer."""
         for i, dtype in enumerate(Reciever_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         return
@@ -256,6 +504,33 @@ class RecieverType:
 
 @dataclass
 class ExciterType:
+    """Exciter (transmitter) configuration including DAC/DUC filters.
+
+    Parameters:
+        file_id:  str
+            Exciter/frequency settings filename.
+        cic_scale:  np.int32
+            CIC scale factor.
+        cic2_dec:  np.int32
+            CIC stage 2 decimation.
+        cic2_interp:  np.int32
+            CIC stage 2 interpolation.
+        cic5_interp:  np.int32
+            CIC stage 5 interpolation.
+        rcf_type:  str
+            Text descriptor of the exciter FIR filter block.
+        rcf_taps:  np.int32
+            Number of taps in the exciter FIR filter.
+        rcf_taps_phase:  np.int32
+            Number of phase taps in exciter FIR.
+        coefficients:  List[int]
+            Exciter FIR coefficients.
+        analog_delay:  np.float64
+            Analog delay of exciter/transmitter (us).
+        user:  str
+            Spare/user-defined information field.
+    """
+
     file_id: str = ""  # Frequency settings file
     cic_scale: np.int32 = 0  # DUC filter block
     cic2_dec: np.int32 = 0  # DUC filter block
@@ -271,6 +546,7 @@ class ExciterType:
     user: str = ""  # Spare space for user-defined information
 
     def read_exciter_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Read exciter parameters from a binary file pointer."""
         for i, dtype in enumerate(Exciter_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         self.clean()
@@ -283,6 +559,23 @@ class ExciterType:
 
 @dataclass
 class MonitorType:
+    """Built-in test / monitor values captured at time of sounding.
+
+    Parameters:
+        balun_currents:  List[int]
+            Balun current readings as read prior to ionogram.
+        balun_status:  List[int]
+            Balun status flags as read prior to ionogram.
+        front_end_status:  List[int]
+            Front-end status words.
+        receiver_status:  List[int]
+            Receiver status indicators.
+        exciter_status:  List[int]
+            Exciter status indicators.
+        user:  str
+            Spare/user-defined information field.
+    """
+
     balun_currents: List[int] = field(
         default_factory=lambda: [0] * 8
     )  # As read prior to ionogram
@@ -301,6 +594,7 @@ class MonitorType:
     user: str = ""  # Spare space for user-defined information
 
     def read_monitor_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Read monitor values from a binary file pointer."""
         for i, dtype in enumerate(Monitor_default_factory):
             self = read_dtype(dtype, self, fp, unicode)
         return
@@ -308,6 +602,61 @@ class MonitorType:
 
 @dataclass
 class SctType:
+    """Top-level sounder configuration (SCT) structure.
+
+    This dataclass aggregates the station, timing, frequency, receiver,
+    exciter and monitor sub-structures that fully describe the
+    configuration necessary to decode and interpret VIPIR binary data.
+
+    Parameters:
+        magic:  np.int32
+            Format magic number for SCT records.
+        sounding_table_size:  np.int32
+            Bytes in the sounder configuration structure.
+        pulse_table_size:  np.int32
+            Bytes in the pulse configuration structure.
+        raw_data_size:  np.int32
+            Bytes in the raw data block for one PRI.
+        struct_version:  np.float64
+            Format version number.
+        start_year:  np.int32
+            Start year of the measurement (UTC).
+        start_daynumber:  np.int32
+            Day number within the year.
+        start_month:  np.int32
+            Start month.
+        start_day:  np.int32
+            Start day of the month.
+        start_hour:  np.int32
+            Start hour (UTC).
+        start_minute:  np.int32
+            Start minute (UTC).
+        start_second:  np.int32
+            Start second (UTC).
+        start_epoch:  np.int32
+            Epoch time of the measurement start.
+        readme:  str
+            Operator comment on this measurement.
+        decimation_method:  np.int32
+            Decimation/processing method flag.
+        decimation_threshold:  np.float64
+            Threshold value for processing method.
+        user:  str
+            Spare/user-defined information field.
+        station:  StationType
+            Station information sub-structure.
+        timing:  TimingType
+            Radar timing sub-structure.
+        frequency:  FrequencyType
+            Frequency sweep sub-structure.
+        receiver:  RecieverType
+            Receiver settings sub-structure.
+        exciter:  ExciterType
+            Exciter settings sub-structure.
+        monitor:  MonitorType
+            Built-in test/monitor sub-structure.
+    """
+
     magic: np.int32 = (
         0x51495200  # Magic number 0x51495200 (/nullRIQ) {POSSIBLY BYTE REVERSED}
     )
@@ -349,6 +698,11 @@ class SctType:
     )  # Built In Test values substructure
 
     def read_sct_from_file_pointer(self, fp, unicode: str = "latin-1") -> None:
+        """Populate this SCT by reading binary fields from ``fp``.
+
+        The logic mirrors the default factory descriptors and decodes
+        fixed-width ASCII fields as needed.
+        """
         logger.info(f"Reading SCT ....")
         for i, dtype in enumerate(SCT_default_factory):
             if (len(dtype) == 3) and (dtype[1] == "S4"):
@@ -359,6 +713,11 @@ class SctType:
         return
 
     def fix_SCT_strings(self) -> None:
+        """Trim null padding from all fixed-width string fields.
+
+        This is a convenience to make textual fields nicer for display
+        and downstream processing after binary reads.
+        """
         logger.info("Fixing SCT strings...")
         self.user = trim_null(self.user)
         self.readme = trim_null(self.readme)
@@ -390,6 +749,13 @@ class SctType:
         return
 
     def dump_sct(self, to_file: str = None) -> None:
+        """Return or write a human-readable SCT summary.
+
+        Parameters:
+            to_file:str or None, optional
+                If provided, write the summary to the given filename. When
+                None the summary is logged at INFO level.
+        """
         # self.fix_SCT_strings()
         txt = "General:\n"
         txt += f"sct.magic: 0x{self.magic:X}\n"

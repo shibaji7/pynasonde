@@ -21,7 +21,7 @@ plugins:
         default_handler: python
         handlers:
           python:
-            paths: ["pynasonde"]  
+            paths: [".."]  
             options:
               show_root_heading: true
               show_source: true
