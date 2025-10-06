@@ -3,7 +3,7 @@
 Welcome to the pynasonde developer docs!
 
 ## Getting Started
-- Clone the repository: `git clone <repo-url>`
+- Clone the repository: `git clone https://github.com/shibaji7/pynasonde`
 - Install dependencies: `pip install .`
 - Run tests: `pytest`
 
