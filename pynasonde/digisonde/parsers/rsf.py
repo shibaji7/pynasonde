@@ -1,3 +1,13 @@
+"""RSF (range-spectral-format) binary parser utilities for Digisonde.
+
+This module exposes:class:`RsfExtractor`, a low-level reader that
+unpacks RSF-format binary blocks into dataclasses defined in
+``pynasonde.digisonde.datatypes.rsfdatatypes``. The extractor focuses on
+binary unpacking and construction of frequency-group objects and
+provides helpers to convert parsed records into pandas.DataFrame for
+analysis and plotting.
+"""
+
 import copy
 import datetime as dt
 import struct
@@ -24,6 +34,14 @@ RSF_IONOGRAM_SETTINGS = {
 
 
 class RsfExtractor:
+    """Low-level reader for RSF-format files.
+
+    The extractor reads RSF binary blocks, decodes headers and
+    frequency-groups and constructs an:class:`RsfDataFile` object
+    composed of:class:`RsfDataUnit` entries. Use:meth:`to_pandas`
+    to obtain a flattened pandas.DataFrame suitable for plotting.
+    """
+
     def __init__(
         self,
         filename: str,
@@ -31,6 +49,18 @@ class RsfExtractor:
         extract_stn_from_name: bool = False,
         DATA_BLOCK_SIZE: int = 4096,
     ):
+        """Create a RsfExtractor.
+
+        Parameters:
+            filename: str
+                Path to the RSF-format binary file.
+            extract_time_from_name: bool, optional
+                If True, attempt to parse a timestamp from the filename.
+            extract_stn_from_name: bool, optional
+                If True, attempt to derive station metadata and local time.
+            DATA_BLOCK_SIZE: int, optional
+                Block size in bytes (default 4096).
+        """
         self.filename = filename
         self.DATA_BLOCK_SIZE = DATA_BLOCK_SIZE
         with open(filename, "rb") as f:
@@ -57,6 +87,13 @@ class RsfExtractor:
             logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
 
     def extract(self):
+        """Read and parse the RSF binary file into dataclass containers.
+
+        The method iterates over all data blocks, constructs header and
+        frequency-group objects and appends them to the
+       :attr:`rsf_data` container. No value conversion to pandas occurs
+        here; use:meth:`to_pandas` for that.
+        """
         self.rsf_data = RsfDataFile(rsf_data_units=[])
         with open(self.filename, "rb") as file:
             for n in range(self.BLOCKS):
@@ -163,10 +200,29 @@ class RsfExtractor:
         return
 
     def add_dicts_selected_keys(self, d0, du, keys=None) -> dict:
+        """Merge two dictionaries, optionally selecting keys from the second.
+
+        Parameters:
+            d0: dict
+                Base dictionary.
+            du: dict
+                Dictionary to merge from.
+            keys: list[str] or None, optional
+                If provided only these keys are copied from ``du``.
+
+        Returns:
+            Merged dictionary (shallow merge).
+        """
         return d0 | (du if keys is None else {k: du[k] for k in keys})
 
     def to_pandas(self) -> pd.DataFrame:
-        """Converts the extracted RSF data to a pandas DataFrame."""
+        """Convert parsed RSF records into a pandas DataFrame.
+
+        The returned DataFrame contains one row per range bin per
+        frequency-group including amplitude, Doppler index and derived
+        height and azimuth metadata. The DataFrame is stored on
+       :attr:`records` for later reference.
+        """
         records = []
         for du in self.rsf_data.rsf_data_units:
             for fg in du.frequency_groups:
@@ -214,10 +270,28 @@ class RsfExtractor:
 
     @staticmethod
     def unpack_5_3(bcd_byte: int) -> List[int]:
+        """Unpack a byte into 5-bit and 3-bit fields.
+
+        Parameters:
+            bcd_byte: int
+                Single byte value.
+        """
         return [(bcd_byte >> 3) & 0b00011111, bcd_byte & 0b00000111]
 
     @staticmethod
     def unpack_bcd(bcd_byte: int, format: str = "int") -> int | tuple:
+        """Unpack a BCD-encoded byte.
+
+        Parameters:
+            bcd_byte: int
+                Byte encoded in BCD (two decimal digits: high nibble and low nibble).
+            format: {'int', 'tuple'}, optional
+                If ``'int'`` (default) returns the combined decimal integer;
+                if ``'tuple'`` returns the two nibbles as (high, low).
+
+        Returns:
+            Decoded integer or tuple of two nibbles.
+        """
         high, low = (bcd_byte >> 4) & 0x0F, bcd_byte & 0x0F
         if format == "int":
             return 10 * high + low

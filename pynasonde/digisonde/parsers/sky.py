@@ -1,3 +1,12 @@
+"""Skymap/sky-format file parser utilities for Digisonde.
+
+This module contains :class:`SkyExtractor`, a compact parser for
+skymap/sky-format outputs (both skymap and velocity-style datasets).
+The extractor reads simple text files, parses nested fixed-format
+blocks and exposes helpers to convert parsed content into pandas
+DataFrames suitable for plotting with :class:`SkySummaryPlots`.
+"""
+
 import datetime as dt
 
 import pandas as pd
@@ -9,22 +18,29 @@ from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 def get_indent(line: str) -> int:
-    """
-    Get the indentation level of a line.
-    Args:
-        line (str): The line to check.
+    """Return the number of leading spaces in a line.
+
+    Parameters:
+        line : str
+            Input text line.
+
     Returns:
-        int: The indentation level (number of leading spaces).
+        Number of leading space characters. This helper assumes spaces
+         are used for indentation (not tabs).
     """
-    # Count the number of leading spaces in the line
-    # This assumes that the line is indented with spaces, not tabs
-    # and that the indentation level is consistent
-    # (e.g., 4 spaces per level)
-    # You can adjust the number of spaces per level as needed
     return len(line) - len(line.lstrip())
 
 
 class SkyExtractor(object):
+
+    """Parser for SKY-format files.
+
+    The :class:`SkyExtractor` reads text files produced by Digisonde's
+    skymap/sky output. It parses nested blocks (data header, frequency
+    headers, source sky-data) into a lightweight dictionary
+    (:attr:`sky_struct`) and provides :meth:`to_pandas` to convert the
+    parsed records into a flattened pandas.DataFrame.
+    """
 
     def __init__(
         self,
@@ -33,12 +49,22 @@ class SkyExtractor(object):
         extract_stn_from_name: bool = False,
         n_fft: int = 2048,
         delta_freq: float = 50,  # in Hz
-    ):
-        """
-        Initialize the SkyExtractor with the given file.
+    )-> None:
+        """Create a SkyExtractor.
 
-        Args:
-            filename (str): Path to the sky file to be processed.
+        Parameters:
+            filename : str
+                Path to the SKY-format file to parse.
+            extract_time_from_name : bool, optional
+                If True, attempt to parse a timestamp token from the
+                filename (default False).
+            extract_stn_from_name : bool, optional
+                If True, attempt to determine station code and local
+                timezone information (default False).
+            n_fft : int, optional
+                FFT length used to compute Doppler frequency scaling.
+            delta_freq : float, optional
+                Frequency step in Hz used by :meth:`get_doppler_freq`.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -67,16 +93,29 @@ class SkyExtractor(object):
         return
 
     def read_file(self):
-        """
-        Reads the file line by line into a list.
+        """Read the input file and return a list of lines.
 
         Returns:
-            list: A list of strings, each representing a line from the file.
+            File lines including their trailing newline characters.
         """
         with open(self.filename, "r") as f:
             return f.readlines()
 
     def parse_line(self, sky_arch_list, _i):
+        """Parse a single line from the raw lines list.
+
+        Parameters:
+            sky_arch_list : list[str]
+                List of file lines as returned by :meth:`read_file`.
+            _i : int
+                Index of the line to parse.
+
+        Returns:
+            (indent_level, token_list) where ``indent_level`` is the
+                number of leading spaces and ``token_list`` is the
+                whitespace-split tokens from the line with 'D' markers
+                removed when present.
+        """
         sky_arch = sky_arch_list[_i]
         if "D" in sky_arch:
             sky_arch = sky_arch.replace("D", "")
@@ -86,14 +125,15 @@ class SkyExtractor(object):
         return line_indent, sky_arch
 
     def parse_data_header(self, sky_arch):
-        """
-        Parses a single line of input and extracts its data header components.
+        """Parse a data-header line into a dictionary of fields.
 
-        Args:
-            sky_arch (str): The input line to parse.
+        Parameters:
+            sky_arch : list[str]
+                Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
-            dict: Parsed values organized in a dictionary.
+            Parsed header fields including type, version, number of
+                spectrums and other control fields.
         """
         parsed_data_header = dict(
             # Data Format Type (1 Skymap) (2 Velocity) (3 Quality control)
@@ -112,14 +152,15 @@ class SkyExtractor(object):
         return parsed_data_header
 
     def parse_freq_header(self, sky_arch):
-        """
-        Parses a single line of input and extracts its freq header components.
+        """Parse a frequency/height header line into a dict of fields.
 
-        Args:
-            sky_arch (str): The input line to parse.
+        Parameters:
+            sky_arch : list[str]
+                Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
-            dict: Parsed values organized in a dictionary.
+            Parsed frequency/height header fields including sampling
+                frequency, group range, polarization and number of sources.
         """
         parsed_freq_header = dict(
             # Frequcncy number (DGS) / Height spectrum number (DPS)
@@ -152,11 +193,15 @@ class SkyExtractor(object):
         return parsed_freq_header
 
     def extract(self):
-        """
-        Main method to extract data from the sky file and populate the sky_struct dictionary.
+        """Parse the SKY file into :attr:`sky_struct`.
+
+        The parser walks the file line-by-line, identifies data headers
+        (indentation 1 or 2), then parses frequency headers and nested
+        sky-data blocks for each detected source. The final structure is
+        wrapped into :attr:`sky` (a namespace) and returned.
 
         Returns:
-            dict: The populated sky_struct dictionary containing all extracted data.
+            Namespace wrapper around the parsed ``sky_struct`` dictionary.
         """
         self.sky_struct = dict(dataset=[])
         # Read file lines and set the datastructure by indent
@@ -195,9 +240,27 @@ class SkyExtractor(object):
         return self.sky
 
     def parse_sky_data(self, sky_arch_list, _i, n_sources):
-        # add next line to above to this nest (previous while loop)
-        # we need to add 5 more lines to main index
+        """Parse a nested sky-data block belonging to a frequency header.
 
+        The sky-data block encodes coordinates and spectral arrays across
+        multiple following lines. Depending on ``n_sources`` the block may
+        wrap to multiple groups of five lines.
+
+        Parameters:
+            sky_arch_list : list[str]
+                Full list of file lines.
+            _i : int
+                Current index in the file (frequency header line index).
+            n_sources : int
+                Number of sky sources to extract; determines how many lines
+                to consume.
+
+        Returns:
+            (data_dict, new_index) where ``data_dict`` contains keys
+                ``y_coords``, ``x_coords``, ``spect_amp``, ``spect_dop`` and
+                ``rms_error`` and ``new_index`` points to the last consumed
+                input index.
+        """
         # if n_sources <= 26 then they are in 1 line otherwise check on _i+5 lines
         import re
 
@@ -211,7 +274,6 @@ class SkyExtractor(object):
         spect_dop = [float(d) for d in spect_dop]
         rms_error = re.findall(r"-?\d+(?:\.\d+)?", sky_arch_list[_i + 5].strip())
         rms_error = [float(r) for r in rms_error]
-        print(y_coords, x_coords, spect_amp, spect_dop, rms_error)
         data = dict(
             y_coords=y_coords,  # Y coordinate
             x_coords=x_coords,  # X coordinate
@@ -223,17 +285,26 @@ class SkyExtractor(object):
         return data, _i
 
     def get_doppler_freq(self, L: float) -> float:
-        """
-        Convert Doppler frequency to MHz.
-        Args:
-            L (float): The Doppler frequency in Hz.
+        """Convert a Doppler bin index to Doppler frequency in MHz.
+
+        Parameters:
+            L : float
+                Doppler bin index (integer or float) returned by the skymap
+                processing.
+
         Returns:
-            float: The Doppler frequency in MHz.
+            Doppler frequency in MHz computed as ``L * delta_freq / n_fft``.
         """
         return L * self.delta_freq / self.n_fft
 
     def to_pandas(self) -> pd.DataFrame:
-        """Convert dataset to pandas dataframe"""
+        """Flatten parsed sky records into a pandas DataFrame.
+
+        Returns:
+            One row per sky-source with columns for coordinates,
+                amplitudes, Doppler values (and Doppler frequency), RMS error
+                and timestamps where available.
+        """
         df = pd.DataFrame()
         for ds in self.sky.dataset:
             for fh in ds.freq_headers:
