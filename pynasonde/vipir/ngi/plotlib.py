@@ -1,3 +1,5 @@
+"""Plotting helpers for visualizing VIPIR NGI ionograms and time-series data."""
+
 import datetime as dt
 from types import SimpleNamespace
 from typing import List, Union
@@ -29,6 +31,17 @@ COLOR_MAPS = SimpleNamespace(
 
 
 class Ionogram(object):
+    """Convenience wrapper around a Matplotlib figure for VIPIR ionograms.
+
+    Attributes:
+        dates: Optional list of timestamps associated with the plotted data.
+        ncols: Number of subplot columns requested at construction.
+        nrows: Number of subplot rows requested at construction.
+        fig: Matplotlib figure hosting the subplots.
+        axes: Flattened array of Matplotlib axes corresponding to each slot.
+        fig_title: Title drawn on the first subplot.
+        font_size: Base font size used throughout the figure.
+    """
 
     def __init__(
         self,
@@ -39,6 +52,16 @@ class Ionogram(object):
         font_size: float = 10,
         figsize: tuple = (6, 3),
     ):
+        """Initialize the figure canvas and subplot grid.
+
+        Args:
+            dates: Optional timestamp(s) used when labeling plots.
+            fig_title: Title added above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size applied through `utils.setsize`.
+            figsize: Base width/height (in inches) of a single subplot.
+        """
         self.dates = dates
         self.ncols = ncols
         self.nrows = nrows
@@ -74,6 +97,28 @@ class Ionogram(object):
         text: str = None,
         del_ticks: bool = True,
     ) -> None:
+        """Render a single ionogram heatmap into the next subplot slot.
+
+        Args:
+            frequency: Plasma frequency axis (MHz).
+            height: Virtual height axis (km).
+            value: 2-D power array aligned with `frequency` × `height`.
+            mode: Descriptor used in the colorbar label (e.g., O or X).
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: Y-axis limits (km).
+            xlim: Frequency limits (MHz).
+            add_cbar: Whether to append a colorbar for this axes.
+            cbar_label: Format string used for the colorbar title.
+            cmap: Matplotlib colormap or name.
+            prange: Min/max bounds (dB) applied to the power field.
+            xticks: Explicit tick positions shown when `del_ticks` is False.
+            text: Optional annotation placed inside the axes.
+            del_ticks: Remove axis ticks for a cleaner grid layout.
+
+        Returns:
+            Matplotlib axes instance that received the plot.
+        """
         ax = self._add_axis(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
@@ -127,6 +172,27 @@ class Ionogram(object):
         color: str = "r",
         ax=None,
     ) -> None:
+        """Overlay traced ionogram echoes as point markers.
+
+        Args:
+            frequency: Frequency coordinates (MHz) of the traced points.
+            height: Virtual heights (km) for each trace sample.
+            mode: Descriptor used in on-plot text (e.g., O or X).
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: Y-axis limits (km).
+            xlim: Frequency limits (MHz).
+            xticks: Tick positions when `del_ticks` is False.
+            text: Optional annotation inside the axes; defaults to timestamp.
+            del_ticks: Remove ticks for cleaner multipanel layouts.
+            alpha: Marker transparency.
+            ms: Marker size.
+            color: Base color (combined with "." marker).
+            ax: Optional axes to draw on (defaults to the next subplot).
+
+        Returns:
+            Matplotlib axes instance that received the plot.
+        """
         ax = ax if ax else self._add_axis(del_ticks)
         ax.set_xlim(np.log10(xlim))
         ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
@@ -154,6 +220,7 @@ class Ionogram(object):
         return ax
 
     def _add_axis(self, del_ticks=True):
+        """Return the next available subplot axis, optionally stripping ticks."""
         ax = (
             self.axes[self._num_subplots_created]
             if type(self.axes) == np.ndarray or type(self.axes) == list
@@ -193,6 +260,28 @@ class Ionogram(object):
         xtick_locator: mdates.HourLocator = mdates.HourLocator(interval=4),
         xdate_lims: List[dt.datetime] = None,
     ):
+        """Plot mode-specific interval statistics on a time/height grid.
+
+        Args:
+            df: DataFrame containing time, range, and power columns.
+            mode: Mode prefix (O/X/etc.) used to select DataFrame columns.
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: Limits for the height axis.
+            xlim: Optional datetime bounds passed to `set_xlim`.
+            add_cbar: Whether to include a colorbar for the filled contour.
+            cbar_label: Format string applied to the colorbar label.
+            cmap: Matplotlib colormap name.
+            prange: Minimum/maximum dB values shown in the contour.
+            noise_scale: Multiplier applied to the noise floor when masking.
+            date_format: Matplotlib datetime formatter string.
+            del_ticks: Remove ticks before plotting, if desired.
+            xtick_locator: Locator used for primary x-axis ticks.
+            xdate_lims: Optional override for the x-axis limits.
+
+        Returns:
+            Matplotlib axes instance containing the interval plot.
+        """
         xlim = xlim if xlim is not None else [df.time.min(), df.time.max()]
         ax = self._add_axis(del_ticks=del_ticks)
         ax.set_xlim(xlim)
@@ -265,6 +354,25 @@ class Ionogram(object):
             byminute=range(0, 60, 30)
         ),
     ):
+        """Plot a time-series curve (e.g., foF2) in the next subplot slot.
+
+        Args:
+            time: Sequence of timestamps corresponding to `ys`.
+            ys: Values to plot.
+            ms: Marker size.
+            alpha: Marker transparency.
+            ylim: Optional y-axis limits; defaults to data min/max.
+            xlim: Optional x-axis limits.
+            ylabel: Y-axis label text.
+            xlabel: X-axis label text.
+            color: Matplotlib color specification.
+            marker: Marker style for the scatter plot.
+            major_locator: Locator for major ticks on the time axis.
+            minor_locator: Locator for minor ticks on the time axis.
+
+        Returns:
+            Matplotlib axes instance that received the plot.
+        """
         ylim = ylim if ylim else [np.min(ys), np.max(ys)]
         ax = self._add_axis(del_ticks=False)
         ax.set_xlim(xlim)
@@ -278,8 +386,13 @@ class Ionogram(object):
         return ax
 
     def _add_colorbar(self, im, fig, ax, label=""):
-        """
-        Add a colorbar to the right of an axis.
+        """Attach a vertical colorbar to the right of the supplied axis.
+
+        Args:
+            im: Mappable returned by a Matplotlib plotting call.
+            fig: Parent figure.
+            ax: Axis the colorbar aligns with.
+            label: Text label applied to the colorbar.
         """
         pos = ax.get_position()
         cpos = [
@@ -294,10 +407,12 @@ class Ionogram(object):
         return
 
     def save(self, filepath):
+        """Persist the assembled figure to disk."""
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
     def close(self):
+        """Release Matplotlib resources associated with the figure."""
         self.fig.clf()
         plt.close()
         return

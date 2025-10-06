@@ -1,3 +1,10 @@
+"""Data ingestion helpers for VIPIR NGI ionogram datasets.
+
+Provides structures to represent scaled traces (`Trace`), the full NGI dataset
+(`Dataset`), and a `DataSource` orchestrator that loads raw NGI files, extracts
+plots, and writes scaled diagnostics.
+"""
+
 import bz2
 import datetime as dt
 import glob
@@ -20,6 +27,13 @@ from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 @dataclass
 class Trace:
+    """Container for scaled trace parameters extracted from NGI files.
+
+    Attributes:
+        traces: Data frame of individual trace samples.
+        trace_params: Data frame describing fitted trace parameters.
+    """
+
     traces: pd.DataFrame = None
     trace_params: pd.DataFrame = None
 
@@ -32,6 +46,21 @@ class Trace:
         lat: float = 37.8815,
         long: float = -75.4374,
     ):
+        """Load previously scaled trace parameters from NetCDF files.
+
+        Args:
+            folder: Directory containing saved scaling products.
+            extension: File extension glob (default ``*.nc``).
+            mode: Wave mode prefix (e.g., ``'O'`` or ``'X'``).
+            local_tz: Optional local timezone name. If omitted the value is
+                inferred from latitude/longitude.
+            lat: Station latitude in degrees.
+            long: Station longitude in degrees.
+
+        Returns:
+            Pandas DataFrame with time, local time, solar zenith angle, and
+            fitted frequency/height pairs.
+        """
         files = glob.glob(os.path.join(folder, mode + extension))
         files.sort()
         traces = {
@@ -59,6 +88,8 @@ class Trace:
 
 @dataclass
 class Dataset:
+    """Representation of a single NGI dataset and its derived traces."""
+
     URSI: str = ""
     StationName: str = ""
     year: int = 1970  # UTC
@@ -113,6 +144,15 @@ class Dataset:
     Has_Coherence: int = 0  # flag
 
     def __initialize__(self, ds, unicode: str = "latin-1"):
+        """Populate the dataclass fields using an xarray dataset.
+
+        Args:
+            ds: `xarray.Dataset` produced from an NGI NetCDF file.
+            unicode: Encoding used for legacy byte-string attributes.
+
+        Returns:
+            Dataset: The populated instance (also stored as ``self``).
+        """
         key_map = {
             "Has_O_mode_power": "Has_O-mode_power",
             "O_mode_power": "O-mode_power",
@@ -154,6 +194,12 @@ class Dataset:
         return self
 
     def set_traces(self, traces: dict, trace_params: dict) -> None:
+        """Attach fitted trace data produced by the autoscaler.
+
+        Args:
+            traces: Mapping of cluster labels to extracted trace samples.
+            trace_params: Mapping of cluster labels to metadata dictionaries.
+        """
         self.trace = Trace()
         self.trace.traces = pd.concat([traces[k] for k in list(traces.keys())])
         self.trace.trace_params = pd.DataFrame.from_records(
@@ -162,6 +208,11 @@ class Dataset:
         return
 
     def get_n_traces(self):
+        """Return the number of trace parameter sets currently stored.
+
+        Returns:
+            int: Number of available traces (zero when none were set).
+        """
         _n = 0
         if hasattr(self, "trace"):
             _n = len(self.trace.trace_params)
@@ -169,7 +220,7 @@ class Dataset:
 
 
 class DataSource(object):
-    """ """
+    """Manage discovery and loading of NGI ionogram files."""
 
     def __init__(
         self,
@@ -178,6 +229,14 @@ class DataSource(object):
         file_names: List[str] = [],
         needs_decompression: bool = False,
     ):
+        """Configure the datasource to point at a folder or explicit files.
+
+        Args:
+            source_folder: Directory containing NGI files.
+            file_ext: Filename glob to match ionogram products.
+            file_names: Explicit list of filenames (optional).
+            needs_decompression: Force decompression even if extension differs.
+        """
         self.source_folder = source_folder
         self.file_ext = file_ext
         self.file_names = file_names
@@ -197,7 +256,13 @@ class DataSource(object):
         return
 
     def load_data_sets(self, load_start=0, load_end=-1, n_jobs=-1):
-        """Parallel loading of datasets using joblib."""
+        """Populate `self.datasets` with NGI records from disk.
+
+        Args:
+            load_start: Start index when slicing the discovered file list.
+            load_end: End index (non-inclusive) for the slice; ``-1`` means all.
+            n_jobs: Parallelism level passed to `joblib.Parallel`.
+        """
 
         self.datasets = []
         compress = lambda fc, fd: shutil.copyfileobj(
@@ -232,6 +297,12 @@ class DataSource(object):
         return
 
     def extract_ionograms(self, folder: str = "tmp/", mode: str = "O") -> None:
+        """Render quick-look ionograms for each dataset to PNG files.
+
+        Args:
+            folder: Destination directory for PNG images.
+            mode: Wave mode to visualize (``'O'`` or ``'X'``).
+        """
         os.makedirs(folder, exist_ok=True)
         for ds in self.datasets:
             time = dt.datetime(ds.year, ds.month, ds.day, ds.hour, ds.minute, ds.second)
@@ -252,6 +323,17 @@ class DataSource(object):
         mode: str = "O",
         noise_scale: float = 1.0,
     ) -> pd.DataFrame:
+        """Extract frequency–time ionogram summary points for each dataset.
+
+        Args:
+            rlim: Height limits (km) used when scanning for maxima.
+            flim: Optional frequency limits (MHz) for filtering results.
+            mode: Ionogram mode to process.
+            noise_scale: Multiplier applied to the noise threshold.
+
+        Returns:
+            DataFrame of RTI points with timestamp, frequency, power, and range.
+        """
         logger.info(f"Extract FTI/RTI, based on {rlim}km")
         rti = []
         for ds in self.datasets:
@@ -299,6 +381,30 @@ class DataSource(object):
         del_ticks: bool = False,
         xdate_lims: List[dt.datetime] = None,
     ) -> pd.DataFrame:
+        """Generate power RTI plots and return the underlying dataframe.
+
+        Args:
+            folder: Directory where the PNG plot will be written.
+            rlim: Range limits (km) kept in the dataset.
+            flim: Frequency limits (MHz) used to narrow the data.
+            mode: Ionogram mode (``'O'`` or ``'X'``).
+            fname: Optional filename for the saved figure.
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            xlim: Datetime limits applied to the plot.
+            add_cbar: Whether to include a colorbar.
+            cbar_label: Format string for the colorbar label.
+            cmap: Matplotlib colormap name.
+            xtick_locator: Locator controlling x-axis tick frequency.
+            prange: Min/max dB levels displayed.
+            noise_scale: Multiplier applied to the noise floor when masking.
+            date_format: Major tick label format.
+            del_ticks: Remove axis ticks before plotting (useful for grids).
+            xdate_lims: Override for x-axis limits.
+
+        Returns:
+            DataFrame containing the filtered RTI samples.
+        """
         logger.info(f"Extract Power/RTI, based on {flim}MHz {rlim}km")
         rti = pd.DataFrame()
         for ds in self.datasets:
@@ -362,6 +468,11 @@ class DataSource(object):
         return rti
 
     def save_scaled_dataset(self, params=["hmF2", "foF2"]):
+        """Persist selected scaled parameters to a CSV file.
+
+        Args:
+            params: Sequence of attribute names to extract per dataset.
+        """
         records = []
         for ds in self.datasets:
             rec = dict()
@@ -374,6 +485,12 @@ class DataSource(object):
         return
 
     def save_scaled_parameters(self, attr: dict = dict(), mode: str = "O"):
+        """Write trace parameters into per-epoch NetCDF files.
+
+        Args:
+            attr: Extra dataset-level attributes to store in each NetCDF file.
+            mode: Mode suffix applied to the output filenames.
+        """
         folder = os.path.join(self.source_folder, "scaled")
         os.makedirs(folder, exist_ok=True)
         for ds in self.datasets:

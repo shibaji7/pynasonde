@@ -1,3 +1,5 @@
+"""Automatic ionogram scaling utilities for VIPIR NGI datasets."""
+
 import traceback
 from typing import List, Tuple
 
@@ -17,6 +19,12 @@ def parabola(x, a, b, c):
 
 
 class NoiseProfile(object):
+    """Encapsulate the noise amplification profile applied during scaling.
+
+    Attributes:
+        type: Descriptive name of the profile (currently unused).
+        profile: Scalar or array multiplier applied to the dataset noise floor.
+    """
 
     def __init__(self, type="exp", constant=1.5):
         self.type = type
@@ -24,11 +32,27 @@ class NoiseProfile(object):
         return
 
     def get_exp_profile(self, x: np.array, a0: float, b0: float, x0: float):
+        """Evaluate an exponential decay profile and store it in `profile`."""
         self.profile = a0 * np.exp(-b0 * x / x0)
         return self.profile
 
 
 class AutoScaler(object):
+    """Pipeline that filters, segments, and extracts traces from an ionogram.
+
+    Attributes:
+        ds: Source dataset containing power/noise arrays and metadata.
+        noise_profile: Instance describing how to scale the noise floor.
+        mode: Mode (O, X, etc.) currently processed.
+        filter: Bounds applied during preprocessing (frequency/height).
+        apply_filter: Whether the filter mask is used.
+        segmentation_method: Name of the segmentation routine.
+        image2d: Working copy of the mode power array.
+        filtered_2D_image: Median-filtered version of `image2d`.
+        binary_image: Binary segmentation mask.
+        traces: Mapping of cluster labels to sampled trace points.
+        trace_params: Metadata derived from fitted parabolic traces.
+    """
 
     def __init__(
         self,
@@ -42,6 +66,7 @@ class AutoScaler(object):
         apply_filter: bool = True,
         segmentation_method: str = "k-means",
     ):
+        """Instantiate the scaler and immediately extract the mode-specific view."""
         self.ds = ds
         self.noise_profile = noise_profile
         self.mode = mode
@@ -52,6 +77,7 @@ class AutoScaler(object):
         return
 
     def extract(self, mode: str = None):
+        """Prepare filtered power arrays and metadata for the requested mode."""
         mode = mode if mode else self.mode
         logger.info(f"Run {mode}-Mode Scaler")
         self.param_name = f"{mode}_mode_power"
@@ -84,6 +110,7 @@ class AutoScaler(object):
         tau: int = 4,
         kernel: np.array = np.array([[1, 2, 1], [2, 5, 2], [1, 2, 1]]),
     ):
+        """Apply a weighted median filter to suppress sparse noise."""
         self.filtered_2D_image = np.zeros_like(self.image2d)
         med_filt_data = np.copy(self.image2d)
         shape = med_filt_data.shape
@@ -103,6 +130,7 @@ class AutoScaler(object):
     def image_segmentation(
         self, segmentation_method: str = None, data: np.array = None, **kwargs
     ):
+        """Run the configured image segmentation routine on the provided data."""
         if data is None:
             data = np.copy(self.filtered_2D_image)
         segmentation_method = (
@@ -120,6 +148,7 @@ class AutoScaler(object):
         criteria: Tuple = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 0.1),
         center_selection: int = cv2.KMEANS_PP_CENTERS,
     ):
+        """Cluster the ionogram using OpenCV's K-means implementation."""
         pixels = np.float32(image)
         pixels = pixels.reshape((-1, 3))
         attempts = criteria[1]
@@ -137,6 +166,7 @@ class AutoScaler(object):
         return
 
     def fit_parabola(self, tr, label):
+        """Fit a parabolic trace model to the provided cluster samples."""
         if len(tr) > 10:
             try:
                 logger.info("Identified region, fitting parabola")
@@ -175,6 +205,7 @@ class AutoScaler(object):
             sza_thresh=90.0,
         ),
     ):
+        """Convert segmented ionogram data into clustered traces and fits."""
         import pandas as pd
         from skimage.filters import threshold_otsu
         from sklearn.cluster import DBSCAN
@@ -256,6 +287,7 @@ class AutoScaler(object):
         font_size: float = 10,
         figsize: tuple = (6, 3),
     ):
+        """Generate a multi-panel figure showing intermediate scaling outputs."""
         ion = Ionogram(
             fig_title=f"{self.ds.StationName.strip()} / {self.ds.time.strftime('%H:%M:%S UT %d %b %Y')} / {self.mode}-Mode",
             font_size=font_size,

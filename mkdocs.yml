@@ -99,9 +99,10 @@ nav:
                         #         - Plot Utils: dev/digisonde/raw/raw_plots.md
                 - VIPIR:
                         - VIPIR Ionogram:
-                            - Utils: dev/vipir/ngi/scale.md
-                            - Source: dev/vipir/ngi/source.md
-                            - Scale: dev/vipir/ngi/scale.md
+                                - Utils: dev/vipir/ngi/utils.md
+                                - Source: dev/vipir/ngi/source.md
+                                - Scale: dev/vipir/ngi/scale.md
+                                - Plot Utils: dev/vipir/ngi/plotlib.md
                         - VIPIR RIQ Parsers:
                                 - Trace: dev/vipir/riq/parsers/trace.md
                                 - Read RIQ: dev/vipir/riq/parsers/read_riq.md
