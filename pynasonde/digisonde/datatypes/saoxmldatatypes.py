@@ -18,33 +18,32 @@ from typing import Any, Dict, List, Optional
 class URSI:
     """Represents a single URSI characteristic entry.
 
-    Attributes
-    ----------
-    ID : Any
-        Identifier of the URSI parameter (as read from XML).
-    Val : float
-        Numeric value; coerced to a float in ``__post_init__`` for
-        downstream consumers.
-    Name : Optional[str]
-        Optional human-readable name for the parameter.
-    Units : Optional[str]
-        Units string for the value where provided.
-    QL : Optional[str]
-        Quality level metadata (parser-specific).
-    DL : Optional[str]
-        Detection level metadata (parser-specific).
-    SigFig : Optional[str]
-        Significant-figures metadata.
-    UpperBound : Optional[str]
-        Upper bound metadata from XML.
-    LowerBound : Optional[str]
-        Lower bound metadata from XML.
-    Bound : Optional[str]
-        Bound metadata.
-    BoundaryType : Optional[str]
-        Boundary type metadata.
-    Flag : Optional[str]
-        Optional flag or marker from the XML.
+    Attributes:
+        ID : Any
+            Identifier of the URSI parameter (as read from XML).
+        Val : float
+            Numeric value; coerced to a float in ``__post_init__`` for
+            downstream consumers.
+        Name : Optional[str]
+            Optional human-readable name for the parameter.
+        Units : Optional[str]
+            Units string for the value where provided.
+        QL : Optional[str]
+            Quality level metadata (parser-specific).
+        DL : Optional[str]
+            Detection level metadata (parser-specific).
+        SigFig : Optional[str]
+            Significant-figures metadata.
+        UpperBound : Optional[str]
+            Upper bound metadata from XML.
+        LowerBound : Optional[str]
+            Lower bound metadata from XML.
+        Bound : Optional[str]
+            Bound metadata.
+        BoundaryType : Optional[str]
+            Boundary type metadata.
+        Flag : Optional[str]
+            Optional flag or marker from the XML.
     """
 
     ID: Any
@@ -70,18 +69,17 @@ class URSI:
 class Modeled:
     """Represents a modeled parameter entry in the SAO XML.
 
-    Attributes
-    ----------
-    Name : str
-        Parameter name.
-    Val : str
-        Parameter value (string as represented in XML).
-    Units : str
-        Units string for the value.
-    ModelName : Optional[str]
-        Optional model name used to derive the value.
-    ModelOptions : Optional[str]
-        Optional model options string.
+    Attributes:
+        Name : str
+            Parameter name.
+        Val : str
+            Parameter value (string as represented in XML).
+        Units : str
+            Units string for the value.
+        ModelName : Optional[str]
+            Optional model name used to derive the value.
+        ModelOptions : Optional[str]
+            Optional model options string.
     """
 
     Name: str
@@ -95,28 +93,27 @@ class Modeled:
 class Custom:
     """Represents a custom parameter entry included in SAO XML.
 
-    Attributes
-    ----------
-    Name : str
-        Parameter name.
-    Val : str
-        Parameter value.
-    Units : str
-        Units string for the value.
-    Description : str
-        Human-readable description of the parameter.
-    SigFig : Optional[str]
-        Significant figures metadata.
-    UpperBound : Optional[str]
-        Upper bound metadata.
-    LowerBound : Optional[str]
-        Lower bound metadata.
-    Bound : Optional[str]
-        Bound metadata.
-    BoundaryType : Optional[str]
-        Boundary type metadata.
-    Flag : Optional[str]
-        Optional flag or marker.
+    Attributes:
+        Name : str
+            Parameter name.
+        Val : str
+            Parameter value.
+        Units : str
+            Units string for the value.
+        Description : str
+            Human-readable description of the parameter.
+        SigFig : Optional[str]
+            Significant figures metadata.
+        UpperBound : Optional[str]
+            Upper bound metadata.
+        LowerBound : Optional[str]
+            Lower bound metadata.
+        Bound : Optional[str]
+            Bound metadata.
+        BoundaryType : Optional[str]
+            Boundary type metadata.
+        Flag : Optional[str]
+            Optional flag or marker.
     """
 
     Name: str
@@ -135,17 +132,16 @@ class Custom:
 class CharacteristicList:
     """Container for URSI/Modeled/Custom characteristic sub-elements.
 
-    Attributes
-    ----------
-    URSI : List[URSI]
-        List of URSI entries.
-    Modeled : List[Modeled]
-        List of modeled parameter entries.
-    Custom : List[Custom]
-        List of custom parameter entries.
-    Num : Optional[int]
-        Optional count attribute from the XML (coerced to int in
-        ``__post_init__`` when present).
+    Attributes:
+        URSI : List[URSI]
+            List of :class:`URSI` entries.
+        Modeled : List[Modeled]
+            List of :class:`Modeled` parameter entries.
+        Custom : List[Custom]
+            List of :class:`Custom parameter entries.
+        Num : Optional[int]
+            Optional count attribute from the XML (coerced to int in
+            ``__post_init__`` when present).
     """
 
     URSI: List["URSI"] = field(default_factory=list)
@@ -163,23 +159,22 @@ class CharacteristicList:
 class TraceValueList:
     """Represents a list of trace values for a Trace element.
 
-    Attributes
-    ----------
-    Name : str
-        Name of the trace value list.
-    Type : Optional[str]
-        Optional type attribute.
-    SigFig : Optional[str]
-        Significant-figures metadata.
-    Units : Optional[str]
-        Units for the values.
-    NoValue : Optional[str]
-        Marker used for missing values.
-    Description : Optional[str]
-        Optional description string.
-    values : List[str]
-        List of string values (converted to floats by the parser functions
-        when appropriate).
+    Attributes:
+        Name : str
+            Name of the trace value list.
+        Type : Optional[str]
+            Optional type attribute.
+        SigFig : Optional[str]
+            Significant-figures metadata.
+        Units : Optional[str]
+            Units for the values.
+        NoValue : Optional[str]
+            Marker used for missing values.
+        Description : Optional[str]
+            Optional description string.
+        values : List[str]
+            List of string values (converted to floats by the parser functions
+            when appropriate).
     """
 
     Name: str
@@ -196,24 +191,23 @@ class Trace:
     """Represents a single Trace element with frequency/range axes and
     associated TraceValueList entries.
 
-    Attributes
-    ----------
-    FrequencyList : List[float]
-        Frequency axis values for the trace.
-    RangeList : List[float]
-        Range/height axis values for the trace.
-    TraceValueList : List[TraceValueList]
-        List of TraceValueList objects containing measured values.
-    Type : Optional[str]
-        Trace type (defaults to "standard").
-    Layer : str
-        Layer name or identifier.
-    Multiple : Optional[str]
-        Multiplexing indicator when present.
-    Polarization : str
-        Polarization string for the trace.
-    Num : str
-        Optional numeric identifier string.
+    Attributes:
+        FrequencyList : List[float]
+            Frequency axis values for the trace.
+        RangeList : List[float]
+            Range/height axis values for the trace.
+        TraceValueList : List[TraceValueList]
+            List of :class:`TraceValueList` objects containing measured values.
+        Type : Optional[str]
+            Trace type (defaults to "standard").
+        Layer : str
+            Layer name or identifier.
+        Multiple : Optional[str]
+            Multiplexing indicator when present.
+        Polarization : str
+            Polarization string for the trace.
+        Num : str
+            Optional numeric identifier string.
     """
 
     FrequencyList: List[float]
@@ -230,12 +224,11 @@ class Trace:
 class TraceList:
     """Container for a list of Trace objects.
 
-    Attributes
-    ----------
-    Trace : List[Trace]
-        List of Trace entries.
-    Num : Optional[str]
-        Optional count attribute from XML.
+    Attributes:
+        Trace : List[Trace]
+            List of :class:`Trace` entries.
+        Num : Optional[str]
+            Optional count attribute from XML.
     """
 
     Trace: List["Trace"] = field(default_factory=list)
@@ -247,22 +240,21 @@ class ProfileValueList:
     """Represents a named list of profile values used inside Tabulated
     profile data.
 
-    Attributes
-    ----------
-    Name : str
-        Name of the profile value list.
-    Type : Optional[str]
-        Optional type attribute.
-    SigFig : Optional[str]
-        Significant-figures metadata.
-    Units : Optional[str]
-        Units for the values.
-    NoValue : Optional[str]
-        Missing-value marker.
-    Description : Optional[str]
-        Description string.
-    values : List[str]
-        Numeric values (parser converts to floats when appropriate).
+    Attributes:
+        Name : str
+            Name of the profile value list.
+        Type : Optional[str]
+            Optional type attribute.
+        SigFig : Optional[str]
+            Significant-figures metadata.
+        Units : Optional[str]
+            Units for the values.
+        NoValue : Optional[str]
+            Missing-value marker.
+        Description : Optional[str]
+            Description string.
+        values : List[str]
+            Numeric values (parser converts to floats when appropriate).
     """
 
     Name: str
@@ -279,14 +271,13 @@ class Tabulated:
     """Holds tabulated profile data with altitude axis and named value
     lists.
 
-    Attributes
-    ----------
-    Num : str
-        Optional count or identifier.
-    AltitudeList : List[float]
-        Altitude (height) axis values.
-    ProfileValueList : List[ProfileValueList]
-        List of profile value lists for each parameter.
+    Attributes:
+        Num : str
+            Optional count or identifier.
+        AltitudeList : List[float]
+            Altitude (height) axis values.
+        ProfileValueList : List[ProfileValueList]
+            List of profile :class:`ProfileValueList` value lists for each parameter.
     """
 
     Num: str
@@ -299,18 +290,17 @@ class Profile:
     """Represents a computed or tabulated electron density profile
     included in the SAO output.
 
-    Attributes
-    ----------
-    Algorithm : str
-        Name of the profile algorithm used.
-    AlgorithmVersion : str
-        Version string for the algorithm.
-    Type : Optional[str]
-        Profile type (defaults to "vertical").
-    Description : Optional[str]
-        Optional description text.
-    Tabulated : Optional[Tabulated]
-        Tabulated data for the profile when present.
+    Attributes:
+        Algorithm : str
+            Name of the profile algorithm used.
+        AlgorithmVersion : str
+            Version string for the algorithm.
+        Type : Optional[str]
+            Profile type (defaults to "vertical").
+        Description : Optional[str]
+            Optional description text.
+        Tabulated : Optional[Tabulated]
+            Tabulated data for the profile when present (:class:`Tabulated`).
     """
 
     Algorithm: str
@@ -325,12 +315,11 @@ class Profile:
 class ProfileList:
     """Container for Profile entries.
 
-    Attributes
-    ----------
-    Profile : List[Profile]
-        List of profiles.
-    Num : Optional[str]
-        Optional count attribute from XML.
+    Attributes:
+        Profile : List[Profile]
+            List of :class:`Profiles`.
+        Num : Optional[str]
+            Optional count attribute from XML.
     """
 
     Profile: List["Profile"] = field(default_factory=list)
@@ -341,12 +330,11 @@ class ProfileList:
 class SystemInfo:
     """Partial mapping of system-level metadata reported in SAO XML.
 
-    Attributes
-    ----------
-    UMLStationID : Optional[str]
-        UML station identifier when present.
-    IUWDSCode : Optional[str]
-        IUWDS code when present.
+    Attributes:
+        UMLStationID : Optional[str]
+            UML station identifier when present.
+        IUWDSCode : Optional[str]
+            IUWDS code when present.
     """
 
     UMLStationID: Optional[str] = None
@@ -408,10 +396,9 @@ class SAORecordList:
     """Top-level container for a list of SAORecord instances parsed from an
     SAO XML file.
 
-    Attributes
-    ----------
-    SAORecord : List[SAORecord]
-        List of parsed SAORecord objects.
+    Attributes:
+        SAORecord : List[SAORecord]
+            List of parsed :class:`SAORecord` objects.
     """
 
     SAORecord: List["SAORecord"] = field(default_factory=list)
