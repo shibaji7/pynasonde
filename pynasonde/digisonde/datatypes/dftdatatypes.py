@@ -59,13 +59,85 @@ class DftHeader:
     types and may require interpretation by the consumer (units are
     parser-dependent).
 
-    Attributes (selected):
-        record_type: Numeric record type identifier.
-        year, doy, hour, minute, second: Timestamp components for the block.
-        number_of_heights: Number of height bins in the block.
-        start_frequency, end_frequency: Frequency scan bounds.
-        num_doppler_lines: Number of doppler spectral lines per sample.
-        subcases: Optional list of :class:`SubCaseHeader` entries describing
+    Attributes:
+        record_type: int
+            Numeric record type identifier.
+        year: int
+            Year of the measurement.
+        doy: int
+            Day-of-year timestamp component.
+        hour: int
+            Hour of day.
+        minute: int
+            Minute component of timestamp.
+        second: int
+            Second component of timestamp.
+        schdule: int
+            (Parser-specific) schedule or run identifier.
+        program: int
+            Program id or code recorded in the header.
+        drift_data_flag: hex
+            Drift-data flag field (raw representation).
+        journal: hex
+            Journal / log field (raw representation).
+        first_height_sampling_winodw: int
+            First height sampling window index (raw).
+        height_resolution: int
+            Height resolution or bin size.
+        number_of_heights: int
+            Number of height bins contained in the block.
+        start_frequency: int
+            Start frequency of the scan (format-dependent units).
+        disk_io: hex
+            Disk I/O flag or raw indicator.
+        freq_search_enabled: bin
+            Frequency-search enabled flag (raw/bin representation).
+        fine_frequency_step: int
+            Fine frequency step value.
+        number_small_steps_scan_abs: int
+            Absolute number of small frequency steps.
+        number_small_steps_scan: int
+            Number of small steps in the scan.
+        start_frequency_case: int
+            Case-specific start frequency index.
+        coarse_frequency_step: int
+            Coarse frequency step value.
+        end_frequency: int
+            End frequency of the scan (format-dependent units).
+        bottom_height: int
+            Bottom height index or value for the block.
+        top_height: int
+            Top height index or value for the block.
+        unused: int
+            Reserved / unused field.
+        stn_id: int
+            Station identifier.
+        phase_code: int
+            Phase code or modulation identifier.
+        multi_antenna_sequence: int
+            Multi-antenna sequencing flag/identifier.
+        cit_length: int
+            CIT (control info) length field.
+        num_doppler_lines: int
+            Number of Doppler spectral lines per sample.
+        pulse_repeat_rate: int
+            Pulse repeat rate of the measurement.
+        waveform_type: int
+            Waveform type identifier.
+        delay: int
+            Inter-pulse or processing delay.
+        frequency_search_offset: int
+            Frequency search offset used during scanning.
+        auto_gain: int
+            Automatic gain control setting.
+        heights_to_output: int
+            Number of heights to output or include.
+        num_of_polarizations: int
+            Number of polarization channels recorded.
+        start_gain: int
+            Start gain setting for the receiver.
+        subcases: List[SubCaseHeader]
+            Optional list of :class:`SubCaseHeader` entries describing
             per-frequency subcases within this DFT block.
 
     Note: Many additional fields present in the original format are kept as

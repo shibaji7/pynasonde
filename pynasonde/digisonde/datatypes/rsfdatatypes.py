@@ -19,6 +19,95 @@ class RsfHeader:
     Many fields are parser-specific and reflect the original RSF format
     header. The ``__post_init__`` method converts frequency and time
     related fields to more convenient units (Hz, Python datetime).
+
+    Attributes
+    ----------
+    record_type : int
+        Numeric record type identifier.
+    header_length : int
+        Length of the header in bytes.
+    version_maker : int
+        Version/maker code (raw integer).
+    year : int
+        Year of the measurement.
+    doy : int
+        Day-of-year component.
+    month : int
+        Month component.
+    dom : int
+        Day-of-month component.
+    hour : int
+        Hour component.
+    minute : int
+        Minute component.
+    second : int
+        Second component.
+    stn_code_rx : str
+        Receiver station code.
+    stn_code_tx : str
+        Transmitter station code.
+    schedule : int
+        Schedule code.
+    program : int
+        Program code.
+    start_frequency : float
+        Start frequency (converted to Hz in ``__post_init__``).
+    coarse_frequency_step : float
+        Coarse frequency step (converted to Hz in ``__post_init__``).
+    stop_frequency : float
+        Stop frequency (converted to Hz in ``__post_init__``).
+    fine_frequency_step : float
+        Fine frequency step (converted to Hz in ``__post_init__``).
+    num_small_steps_in_scan : int
+        Number of small frequency steps (negative => no multiplexing).
+    phase_code : int
+        Phase code field describing pulse/phase behaviour.
+    option_code : int
+        Option code (antenna selection, polarization flags, etc.).
+    number_of_samples : int
+        Encoded number of samples.
+    pulse_repetition_rate : int
+        Pulse repetition rate (pps).
+    range_start : int
+        Range start in km.
+    range_increment : int or float
+        Range increment (km); common encoded values are converted in
+        ``__post_init__`` (e.g. 2 -> 2.5).
+    number_of_heights : int
+        Number of heights configured in the scan.
+    delay : int
+        Delay in 15 km units.
+    base_gain : int
+        Base gain code (dB-like representation with special bits).
+    frequency_search : int
+        Frequency search enabled flag.
+    operating_mode : int
+        Operating mode code.
+    data_format : int
+        Data format code (MMM, Drift, PGH, RSF, etc.).
+    printer_output : int
+        Printer output setting (none, b/w, color).
+    threshold : int or float
+        Threshold level (converted to dB-like value in ``__post_init__``).
+    constant_gain : int
+        Constant gain code (bitfield describing fixed gain settings).
+    cit_length : int
+        CIT length in ms.
+    journal : str
+        Journal / flags string (parser-specific meaning).
+    bottom_height_window : int
+        Bottom height window (km).
+    top_height_window : int
+        Top height window (km).
+    number_of_heights_stored : int
+        Number of height bins actually stored.
+    spare : bytes
+        Spare/reserved bytes from header.
+    number_of_frequency_groups : int
+        Number of frequency groups that follow the header.
+    date : datetime.datetime
+        Python datetime synthesized from the timestamp fields in
+        ``__post_init__``.
     """
 
     # Header fields
@@ -131,10 +220,40 @@ class RsfHeader:
 class RsfFreuencyGroup:
     """A single frequency-group carrying arrays of spectral values.
 
-    Attributes include arrays for amplitude, doppler indices, phase and
-    azimuth. The ``setup`` method converts array units (e.g., amplitude to
-    dB, phase units to degrees) and synthesizes derived fields like
-    height arrays and azimuth direction labels.
+    Attributes
+    ----------
+    pol : str
+        Polarization identifier.
+    group_size : int
+        Encoded group size (parser-specific meaning).
+    frequency_reading : float
+        Frequency reading (converted to Hz by ``setup``).
+    offset : int or str
+        Offset code (converted to Hz or descriptive string by ``setup``).
+    additional_gain : float
+        Additional gain (converted to dB by ``setup``).
+    seconds : int
+        Seconds timestamp for the group.
+    mpa : float
+        Most probable amplitude (mpa) marker.
+    amplitude : np.array
+        Amplitude array for the frequency group's heights/samples.
+    dop_num : np.array
+        Doppler index array for each sample.
+    phase : np.array
+        Phase array (converted to degrees by ``setup``).
+    azimuth : np.array
+        Azimuth array (converted to degrees by ``setup``).
+    height : np.array
+        Height array corresponding to amplitude samples.
+    azm_directions : list
+        Human-readable azimuth direction labels produced by ``setup``.
+
+    Notes
+    -----
+    The ``setup`` method mutates numeric arrays to convert them to
+    SI-friendly units (Hz, degrees, dB) and synthesizes derived fields
+    such as ``height`` and ``azm_directions``.
     """
 
     # Frequency group fields
@@ -225,9 +344,18 @@ class RsfFreuencyGroup:
 class RsfDataUnit:
     """Represents a single RSF block containing header + frequency groups.
 
-    The `setup` method populates group-specific derived fields such as the
-    height vector for each frequency group based on the header's range
-    start and increment.
+    Attributes
+    ----------
+    header : RsfHeader
+        Header instance with block-level metadata.
+    frequency_groups : List[RsfFreuencyGroup]
+        List of frequency-group objects parsed for this block.
+
+    Notes
+    -----
+    Calling ``setup`` on the data unit will iterate through the
+    ``frequency_groups`` and populate per-group derived fields (height
+    vectors, unit conversions).
     """
 
     header: RsfHeader = None
@@ -252,8 +380,12 @@ class RsfDataUnit:
 
 @dataclass
 class RsfDataFile:
-    """
-    Class to represent the data of an RSF file.
+    """Container representing the contents of an RSF file.
+
+    Attributes
+    ----------
+    rsf_data_units : List[RsfDataUnit]
+        List of RSF data units (blocks) contained in the file.
     """
 
     rsf_data_units: List[RsfDataUnit] = None

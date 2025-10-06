@@ -1,30 +1,22 @@
 # MMM datatypes
 
-::: pynasonde.digisonde.datatypes.mmmdatatypes
+Dataclasses modeling MMM-format headers and spectral blocks.
+
+::: pynasonde.digisonde.datatypes.mmmdatatypes.ModMaxHeader
     handler: python
     options:
         show_root_heading: true
         show_source: false
 
-## Example
-
-```python
-## MMM / ModMax datatypes
-
-Dataclasses used by the MMM/ModMax parser.
-
-::: pynasonde.digisonde.datatypes.mmmdatatypes
+::: pynasonde.digisonde.datatypes.mmmdatatypes.ModMaxFreuencyGroup
     handler: python
     options:
         show_root_heading: true
         show_source: false
 
-## Example
+::: pynasonde.digisonde.datatypes.mmmdatatypes.ModMaxDataUnit
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: false
 
-```python
-from pynasonde.digisonde.datatypes.mmmdatatypes import ModMaxHeader, ModMaxDataUnit
-hdr = ModMaxHeader(record_type=1, header_length=128)
-block = ModMaxDataUnit(header=hdr)
-```
-
-```
