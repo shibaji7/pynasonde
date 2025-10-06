@@ -6,17 +6,17 @@ Dataclasses modeling MMM-format headers and spectral blocks.
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
 
 ::: pynasonde.digisonde.datatypes.mmmdatatypes.ModMaxFreuencyGroup
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
 
 ::: pynasonde.digisonde.datatypes.mmmdatatypes.ModMaxDataUnit
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
 

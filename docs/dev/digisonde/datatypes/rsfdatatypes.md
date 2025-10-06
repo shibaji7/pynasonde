@@ -1,29 +1,27 @@
 # RSF datatypes
 
-::: pynasonde.digisonde.datatypes.rsfdatatypes
+Dataclasses modeling RSF-format headers and spectral blocks.
+
+::: pynasonde.digisonde.datatypes.rsfdatatypes.RsfHeader
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
 
-## Example
-
-```python
-## RSF datatypes
-
-Dataclasses for RSF-format records and frequency groups.
-
-::: pynasonde.digisonde.datatypes.rsfdatatypes
+::: pynasonde.digisonde.datatypes.rsfdatatypes.RsfFreuencyGroup
     handler: python
     options:
         show_root_heading: true
-        show_source: false
+        show_source: true
 
-## Example
+::: pynasonde.digisonde.datatypes.rsfdatatypes.RsfDataUnit
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: true
 
-```python
-from pynasonde.digisonde.datatypes.rsfdatatypes import RsfHeader, RsfDataUnit
-hdr = RsfHeader(year=2024, start_frequency=10.0)
-unit = RsfDataUnit(header=hdr, frequency_groups=[])
-```
-```
+::: pynasonde.digisonde.datatypes.rsfdatatypes.RsfDataFile
+    handler: python
+    options:
+        show_root_heading: true
+        show_source: true

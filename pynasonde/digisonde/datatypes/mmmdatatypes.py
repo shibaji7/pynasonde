@@ -21,92 +21,89 @@ import numpy as np
 class ModMaxHeader:
     """Header for an MMM/ModMax data block.
 
-    Attributes
-    ----------
-    record_type : int
-        Numeric record type identifier.
-    header_length : int
-        Length of the header in bytes.
-    version_maker : hex
-        Version/maker code (raw representation).
-    year : int
-        Year of the measurement.
-    doy : int
-        Day-of-year timestamp component.
-    hour : int
-        Hour component of timestamp.
-    minute : int
-        Minute component of timestamp.
-    second : int
-        Second component of timestamp.
-    program_set : hex
-        Program set identifier (raw).
-    program_type : hex
-        Program type identifier (raw).
-    journal : List[int]
-        Journal bits/flags (parser-specific meaning).
-    nom_frequency : float
-        Nominal frequency (converted to Hz in ``__post_init__``).
-    tape_ctrl : hex
-        Tape write control flags (raw).
-    print_ctrl : hex
-        Printer control flags (raw).
-    mmm_opt : hex
-        MMM options bitfield (raw).
-    print_clean_ctrl : hex
-        Printer clean control (raw).
-    print_gain_lev : hex
-        Printer gain level (raw).
-    ctrl_intm_tx : hex
-        Control for intermittent transmitter (raw).
-    drft_use : hex
-        Drift usage flag (raw).
-    start_frequency : float
-        Start frequency (converted to Hz in ``__post_init__``).
-    freq_step : float
-        Frequency step (converted to Hz in ``__post_init__``).
-    stop_frequency : float
-        Stop frequency (converted to Hz in ``__post_init__``).
-    trg : hex
-        Trigger flags (raw).
-    ch_a : hex
-        Channel A flags/identifier (raw).
-    ch_b : hex
-        Channel B flags/identifier (raw).
-    sta_id : str
-        Station identifier string.
-    phase_code : int
-        Phase code or modulation identifier.
-    ant_azm : int
-        Antenna azimuth.
-    ant_scan : int
-        Antenna scan setting.
-    ant_opt : int
-        Antenna options / Doppler spacing.
-    num_samples : int
-        Number of samples recorded.
-    rep_rate : int
-        Pulse repetition rate.
-    pwd_code : int
-        Password/code field (parser-specific meaning).
-    time_ctrl : int
-        Time control flags.
-    freq_cor : int
-        Frequency correction value.
-    gain_cor : int
-        Gain correction value.
-    range_inc : int
-        Range increment value.
-    range_start : int
-        Starting range value.
-    f_search : int
-        Frequency search parameter/flag.
-    nom_gain : int
-        Nominal gain setting.
+    Attributes:
+        record_type : int
+            Numeric record type identifier.
+        header_length : int
+            Length of the header in bytes.
+        version_maker : hex
+            Version/maker code (raw representation).
+        year : int
+            Year of the measurement.
+        doy : int
+            Day-of-year timestamp component.
+        hour : int
+            Hour component of timestamp.
+        minute : int
+            Minute component of timestamp.
+        second : int
+            Second component of timestamp.
+        program_set : hex
+            Program set identifier (raw).
+        program_type : hex
+            Program type identifier (raw).
+        journal : List[int]
+            Journal bits/flags (parser-specific meaning).
+        nom_frequency : float
+            Nominal frequency (converted to Hz in ``__post_init__``).
+        tape_ctrl : hex
+            Tape write control flags (raw).
+        print_ctrl : hex
+            Printer control flags (raw).
+        mmm_opt : hex
+            MMM options bitfield (raw).
+        print_clean_ctrl : hex
+            Printer clean control (raw).
+        print_gain_lev : hex
+            Printer gain level (raw).
+        ctrl_intm_tx : hex
+            Control for intermittent transmitter (raw).
+        drft_use : hex
+            Drift usage flag (raw).
+        start_frequency : float
+            Start frequency (converted to Hz in ``__post_init__``).
+        freq_step : float
+            Frequency step (converted to Hz in ``__post_init__``).
+        stop_frequency : float
+            Stop frequency (converted to Hz in ``__post_init__``).
+        trg : hex
+            Trigger flags (raw).
+        ch_a : hex
+            Channel A flags/identifier (raw).
+        ch_b : hex
+            Channel B flags/identifier (raw).
+        sta_id : str
+            Station identifier string.
+        phase_code : int
+            Phase code or modulation identifier.
+        ant_azm : int
+            Antenna azimuth.
+        ant_scan : int
+            Antenna scan setting.
+        ant_opt : int
+            Antenna options / Doppler spacing.
+        num_samples : int
+            Number of samples recorded.
+        rep_rate : int
+            Pulse repetition rate.
+        pwd_code : int
+            Password/code field (parser-specific meaning).
+        time_ctrl : int
+            Time control flags.
+        freq_cor : int
+            Frequency correction value.
+        gain_cor : int
+            Gain correction value.
+        range_inc : int
+            Range increment value.
+        range_start : int
+            Starting range value.
+        f_search : int
+            Frequency search parameter/flag.
+        nom_gain : int
+            Nominal gain setting.
 
-    Notes
-    -----
-    The ``__post_init__`` method performs unit conversions for a subset
+    Note: "The ``__post_init__`` method performs unit conversions for a subset
     of fields (for example frequency fields are converted to Hz). The
     attributes here reflect the raw-parsed fields before or after those
     lightweight conversions.
@@ -205,22 +202,21 @@ class ModMaxHeader:
 class ModMaxFreuencyGroup:
     """Represents a single frequency group (sub-block) inside an MMM block.
 
-    Attributes
-    ----------
-    blk_type : int
-        Block type identifier (e.g. 1 or 2).
-    frequency : int
-        Frequency value (MHz in raw header; may be converted by parsers).
-    frequency_k : int
-        Frequency expressed in kHz.
-    frequency_search : int
-        Frequency-search parameter/flag.
-    gain_param : int
-        Gain parameter for this group.
-    sec : int
-        Time-of-second for this group (timing information).
-    mpa : float
-        Most probable amplitude value for the group.
+    Attributes:
+        blk_type : int
+            Block type identifier (e.g. 1 or 2).
+        frequency : int
+            Frequency value (MHz in raw header; may be converted by parsers).
+        frequency_k : int
+            Frequency expressed in kHz.
+        frequency_search : int
+            Frequency-search parameter/flag.
+        gain_param : int
+            Gain parameter for this group.
+        sec : int
+            Time-of-second for this group (timing information).
+        mpa : float
+            Most probable amplitude value for the group.
     """
 
     # Block type (1,2)
@@ -243,12 +239,12 @@ class ModMaxFreuencyGroup:
 class ModMaxDataUnit:
     """Container for a full MMM data block.
 
-    Attributes
-    ----------
-    header : ModMaxHeader
-        Header object containing block-level metadata.
-    frequency_groups : List[ModMaxFreuencyGroup]
-        List of parsed frequency-group sub-blocks belonging to this unit.
+    Attributes:
+        header : ModMaxHeader
+            Header object containing block-level metadata.
+        frequency_groups : List[ModMaxFreuencyGroup]
+            List of parsed frequency-group :class:`ModMaxFreuencyGroup` 
+            sub-blocks belonging to this unit.
     """
 
     header: ModMaxHeader = None
