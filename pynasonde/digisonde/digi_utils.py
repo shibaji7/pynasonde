@@ -14,13 +14,6 @@ parsers and plotting code. Key functions include:
 - ``load_dtd_file``: helper to construct an lxml XMLParser optionally
     configured for DTD validation.
 
-Example
--------
->>> from pynasonde.digisonde import digi_utils as du
->>> ns = du.to_namespace({'a': {'b': 1}})
->>> ns.a.b
-1
-
 The functions here are lightweight and intended to be used by the
 parsers and plotting helpers under ``pynasonde.digisonde``.
 """
@@ -49,7 +42,7 @@ def to_namespace(d: object) -> SimpleNamespace:
         lists, or the original value for primitives.
 
     Example:
-        >>> to_namespace({'a': 1, 'b': {'c': 2}}).b.c
+        > to_namespace({'a': 1, 'b': {'c': 2}}).b.c
         2
     """
     if isinstance(d, dict):

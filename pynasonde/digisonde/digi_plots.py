@@ -10,12 +10,6 @@ parsers and analyses. The main classes are:
 
 Each class accepts pandas DataFrames produced by the library parsers and
 offers simple, documented methods for common visualizations.
-
-Quick example
--------------
->>> from pynasonde.digisonde.digi_plots import SaoSummaryPlots
->>> plotter = SaoSummaryPlots(fig_title='Example', nrows=1, ncols=1)
->>> # plotter.add_TS(df)
 """
 
 import datetime as dt
