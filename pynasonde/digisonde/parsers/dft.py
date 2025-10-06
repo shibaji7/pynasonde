@@ -60,18 +60,17 @@ class DftExtractor(object):
     ):
         """Create a DftExtractor instance.
 
-        Parameters
-        ----------
-        filename: str
-            Path to the DFT-format file to read.
-        extract_time_from_name: bool, optional
-            If True, attempt to parse a timestamp from the filename.
-        extract_stn_from_name: bool, optional
-            If True, attempt to parse a station code from the filename.
-        DATA_BLOCK_SIZE: int, optional
-            Block size in bytes used by the DFT format.
-        SUB_CASE_NUMBER: int, optional
-            Number of sub-cases per block.
+        Parameters:
+            filename: str
+                Path to the DFT-format file to read.
+            extract_time_from_name: bool, optional
+                If True, attempt to parse a timestamp from the filename.
+            extract_stn_from_name: bool, optional
+                If True, attempt to parse a station code from the filename.
+            DATA_BLOCK_SIZE: int, optional
+                Block size in bytes used by the DFT format.
+            SUB_CASE_NUMBER: int, optional
+                Number of sub-cases per block.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -138,17 +137,15 @@ class DftExtractor(object):
         the bitstring and converts the bit fields into a
         :class:`DftHeader` dataclass instance.
 
-        Parameters
-        ----------
-        amplitude_bytes: list
-            Sequence of 1-byte objects (as returned by ``file.read(1)``)
-            that contain the embedded header bits in their LSB.
+        Parameters:
+            amplitude_bytes: list
+                Sequence of 1-byte objects (as returned by ``file.read(1)``)
+                that contain the embedded header bits in their LSB.
 
-        Returns
-        -------
-        DftHeader
-            Populated header dataclass with parsed integer and raw
-            (hex) fields where applicable.
+        Returns:
+            DftHeader
+                Populated header dataclass with parsed integer and raw
+                (hex) fields where applicable.
         """
 
         header_bits = [(b[0] & 0x01) for b in amplitude_bytes]
@@ -278,30 +275,27 @@ class DftExtractor(object):
         The helper pads the provided bit string to at least 8 bits and
         converts it to an integer using the provided base.
 
-        Parameters
-        ----------
-        bin_strs: str
-            Bitstring fragment (e.g. '1010').
-        base: int, optional
-            Numeric base to use for conversion (default 2).
+        Parameters:
+            bin_strs: str
+                Bitstring fragment (e.g. '1010').
+            base: int, optional
+                Numeric base to use for conversion (default 2).
 
-        Returns
-        -------
-        int
-            Integer representation.
+        Returns:
+            int
+                Integer representation.
         """
         return int(f"0b{bin_strs.zfill(8)}", base=base)
 
     def unpack_7_1(self, bcd_byte: int, return_lsb=True):
         """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
 
-        Parameters
-        ----------
-        bcd_byte: int
-            The raw byte value (0-255).
-        return_lsb: bool, optional
-            If True return the least-significant-bit, otherwise return
-            the seven most-significant bits.
+        Parameters:
+            bcd_byte: int
+                The raw byte value (0-255).
+            return_lsb: bool, optional
+                If True return the least-significant-bit, otherwise return
+                the seven most-significant bits.
 
         Returns:
             int

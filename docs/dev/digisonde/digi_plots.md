@@ -40,6 +40,7 @@ the main helpers with their API rendered below.
         show_root_heading: true
         show_source: true
         members:
+            - __init__
             - convert_to_rt
             - plot_skymap
             - plot_doppler_waterfall
