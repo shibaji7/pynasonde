@@ -1,3 +1,9 @@
+"""Signal-processing helpers for extracting echo traces from VIPIR IQ pulse data.
+
+Functions here are reused by the RIQ parsers to normalize raw I/Q samples,
+select candidate echo ranges, and derive phase-related diagnostics.
+"""
+
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
@@ -7,6 +13,15 @@ from pynasonde.vipir.riq.datatypes.sct import SctType
 
 
 def compute_phase(i, q):
+    """Return wrapped phase angles for the provided I/Q samples.
+
+    Args:
+        i: In-phase component array.
+        q: Quadrature component array.
+
+    Returns:
+        Array of phase angles wrapped to the ``[0, 2π)`` interval.
+    """
     return np.arctan2(q, i) % (2 * np.pi)
 
 
@@ -18,6 +33,20 @@ def get_clean_iq_by_heights(
     # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
     range_dev: Optional[float] = 1.5,
 ):
+    """Slice the pulse data to focus on a selectable height band.
+
+    Args:
+        pulse_i: Full I-channel pulse data (frequency × range × receiver).
+        pulse_q: Full Q-channel pulse data.
+        f1_range_low: Lower bound of the height window (km).
+        f1_range_high: Upper bound of the height window (km).
+        range_dev: Conversion factor from km to gate index (default 1.5).
+
+    Returns:
+        Tuple `(pulse_i_range, pulse_q_range, power, n_pulses, f1_rlow, f1_rhigh)`
+        containing sliced arrays, computed power, number of pulses, and the
+        index bounds applied.
+    """
     f1_rlow = int(np.floor(f1_range_low / range_dev))
     f1_rhigh = int(np.ceil(f1_range_high / range_dev))
     pulse_i_range, pulse_q_range = (
@@ -40,6 +69,21 @@ def extract_echo_traces(
     # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
     range_dev: Optional[float] = 1.5,
 ):
+    """Identify candidate echo traces that satisfy the configured thresholds.
+
+    Args:
+        sct: SCT metadata describing the capture configuration.
+        pulse_i: I-channel samples (flattened across pulse sets).
+        pulse_q: Q-channel samples (flattened across pulse sets).
+        f1_range_low: Lower height bound used for gating.
+        f1_range_high: Upper height bound used for gating.
+        snr_variance_threshold: Maximum allowed variance across pulses.
+        f2max: Upper frequency limit for valid traces.
+        range_dev: Conversion factor from km to gate index.
+
+    Returns:
+        Indices into the `block_freq` array that passed the selection criteria.
+    """
     (pulse_i_range, pulse_q_range, power, n_pulses, _, _) = get_clean_iq_by_heights(
         pulse_i,
         pulse_q,
@@ -106,6 +150,22 @@ def compute_phase_velocity(
     # range_dev 1.5 because 3km/2 for speed of light back and forth across 10us rangegate
     range_dev: Optional[float] = 1.5,
 ):
+    """Compute per-channel phase velocities at the detected peak gates.
+
+    Args:
+        sct: SCT metadata describing the capture configuration.
+        pulse_i: I-channel samples (flattened across pulse sets).
+        pulse_q: Q-channel samples (flattened across pulse sets).
+        f1_range_low: Lower height bound used for gating.
+        f1_range_high: Upper height bound used for gating.
+        snr_variance_threshold: Maximum allowed variance across pulses.
+        f2max: Upper frequency limit for valid traces.
+        range_dev: Conversion factor from km to gate index.
+
+    Returns:
+        None. The result is currently limited to the intermediate arrays; the
+        function is kept for completeness and future extension.
+    """
     (pulse_i_range, pulse_q_range, power, n_pulses, _, _) = get_clean_iq_by_heights(
         pulse_i,
         pulse_q,

@@ -1,3 +1,11 @@
+"""Helpers and data structures for reading VIPIR RIQ (raw IQ) files.
+
+The routines in this module provide the core logic used to decode raw VIPIR
+records into the higher-level pulse and ionogram representations consumed by
+the rest of the pipeline.  They also supply utility filters that can be reused
+when post-processing ionograms for visualization.
+"""
+
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import List
@@ -27,6 +35,24 @@ VIPIR_VERSION_MAP = load_toml().vipir_data_format_maps
 def find_thresholds(
     data: np.ndarray, bins: int = 100, prominence: float = 100, **kwargs
 ):
+    """Estimate power thresholds by locating valleys in the histogram.
+
+    The signal is sanitized (NaNs, infs removed), histogrammed, and the
+    prominence of the negated counts is inspected.  The first dip is returned
+    as a reasonable power threshold for separating noise from echoes.
+
+    Args:
+        data: Power (dB) samples to analyze.
+        bins: Number of histogram bins.
+        prominence: `scipy.signal.find_peaks` prominence setting applied to the
+            inverted histogram.
+        **kwargs: Forwarded to both `numpy.histogram` and `find_peaks`.
+
+    Returns:
+        Tuple of (`dip_bins`, `first_threshold`) where `dip_bins` contains the
+        bin edges surrounding each detected dip and `first_threshold` is the
+        first element (often used as the working threshold).
+    """
     from scipy.signal import find_peaks
 
     data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0).flatten()
@@ -46,6 +72,19 @@ def remove_morphological_noise(
     kernel_size: tuple = (1, 3),
     parameter: str = "powerdB",
 ):
+    """Morphologically clean low-amplitude noise from an ionogram slice.
+
+    Args:
+        ion: Ionogram in-place modified.
+        threshold: Minimum value retained in the output.
+        morf_type: Structuring element shape passed to OpenCV.
+        iterations: Number of open/close passes.
+        kernel_size: Structuring element dimensions.
+        parameter: Ionogram attribute to process (defaults to ``powerdB``).
+
+    Returns:
+        The provided ionogram instance with its `parameter` attribute filtered.
+    """
     data = getattr(ion, parameter)
     img_bin = (data > threshold).astype(np.uint8)
     kernel = cv2.getStructuringElement(morf_type, kernel_size)
@@ -68,6 +107,22 @@ def adaptive_gain_filter(
     parameter: str = "powerdB",
     **kwargs,
 ):
+    """Apply SNR-adaptive gain and optional median filtering to an ionogram.
+
+    Args:
+        ion: Ionogram updated in-place.
+        snr_threshold: Values at or below this level are suppressed.
+        generic_filter_size: Window size provided to `generic_filter`.
+        mode: Padding mode (see `scipy.ndimage.generic_filter`).
+        cval: Constant padding value when ``mode=='constant'``.
+        apply_median_filter: Whether to follow with a median filter.
+        median_filter_size: Median filter window size.
+        parameter: Ionogram attribute to process.
+        **kwargs: Additional arguments forwarded to SciPy filters.
+
+    Returns:
+        The supplied ionogram with its `parameter` attribute smoothed.
+    """
     from scipy.ndimage import generic_filter, median_filter
 
     data = getattr(ion, parameter)
@@ -101,9 +156,16 @@ def adaptive_gain_filter(
 
 @dataclass
 class Pulset:
+    """Container grouping PCT records that share a pulse definition.
+
+    Attributes:
+        pcts: Mutable list of `PctType` entries accumulated for this pulse set.
+    """
+
     pcts: List[PctType] = None
 
     def append(self, pct: PctType) -> None:
+        """Attach a pulse configuration to the group."""
         self.pcts.append(pct)
         return
 
@@ -114,15 +176,16 @@ class Pulset:
 
 @dataclass
 class RiqDataset:
-    """
-    Represents an RQI dataset containing SCT, PCT, PRI, and pulse information.
+    """Aggregate view of an RIQ capture (SCT tables, pulses, ionograms).
 
     Attributes:
-        fname (str): The file name of the dataset.
-        sct (SctType): SCT (System Configuration Table) data.
-        pcts (List[PctType]): List of PCT (Pulse Configuration Table) data.
-        pulset (List[List]): Grouped pulse data.
-        unicode (str): Encoding format for reading the file.
+        fname: Source filename for the dataset.
+        sct: System configuration structure populated from the file.
+        pcts: Flat list of all PCT entries parsed from the capture.
+        pulset: Sequence of grouped pulse sets honoring tune conditions.
+        swap_frequency: Active swap frequency used when `tune_type >= 4`.
+        swap_pulset: Collected pulses that match the swap frequency.
+        unicode: Encoding used for textual fields.
     """
 
     fname: str
@@ -140,16 +203,15 @@ class RiqDataset:
         unicode="latin-1",
         vipir_config: SimpleNamespace = VIPIR_VERSION_MAP.configs[0],
     ):
-        """
-        Factory method to create an RiqDataset instance from a file.
+        """Create a dataset by parsing the given RIQ file.
 
         Args:
-            fname (str): The file name to load the dataset from.
-            unicode (str): Encoding format for reading the file. Default is "latin-1".
-            vipir_config (dict): VIPIR version configuration. Default is VIPIR_VERSION_MAP.configs[0].
+            fname: Path to the RIQ capture.
+            unicode: Encoding used when reading text fields.
+            vipir_config: Version-specific mapping loaded from TOML metadata.
 
         Returns:
-            RiqDataset: An instance of the RiqDataset class.
+            RiqDataset: Parsed dataset including SCT and pulse information.
         """
         # Initialize the dataset
         riq = cls(fname)
@@ -226,9 +288,21 @@ class RiqDataset:
         threshold: float = None,
         remove_baseline_noise: bool = False,
         bins: int = 100,
-        prominence: float = 100,
-        **kwargs,
-    ) -> Ionogram:
+       prominence: float = 100,
+       **kwargs,
+   ) -> Ionogram:
+        """Convert decoded pulses into an averaged ionogram.
+
+        Args:
+            threshold: Optional lower bound applied to the resulting power (dB).
+            remove_baseline_noise: Whether to subtract the median baseline.
+            bins: Histogram bins for automatic thresholding.
+            prominence: Prominence value used by `find_thresholds`.
+            **kwargs: Extra options forwarded to `find_thresholds`.
+
+        Returns:
+            Ionogram constructed from the dataset's pulse data.
+        """
         ion = Ionogram()
         ion.frequency = (
             np.array([psets.pcts[0].frequency for psets in self.pulsets]) / 1e3
