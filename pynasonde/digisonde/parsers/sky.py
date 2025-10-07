@@ -205,7 +205,7 @@ class SkyExtractor(object):
         _i = 0
         while _i < len(sky_arch_list):
             line_indent, sky_arch = self.parse_line(sky_arch_list, _i)
-            print(">", _i, line_indent, sky_arch)
+            # print(">", _i, line_indent, sky_arch)
             if line_indent in [1, 2]:  # Consider it first 'Data Header'
                 ds = dict(
                     data_header=self.parse_data_header(sky_arch),

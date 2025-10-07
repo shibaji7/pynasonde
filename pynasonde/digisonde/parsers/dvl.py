@@ -54,7 +54,13 @@ class DvlExtractor(object):
         # Initialize the data structure to hold extracted data
         self.filename = filename
         if extract_time_from_name:
-            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
+            date = (
+                self.filename.split("_")[-1]
+                .replace(".SAO", "")
+                .replace(".sao", "")
+                .replace(".DVL", "")
+                .replace(".dvl", "")
+            )
             self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
                 int(date[4:7]) - 1
             )
