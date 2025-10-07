@@ -1,4 +1,4 @@
-"""Quick-start example for loading RSF (range spread-F) files with `pynasonde`.
+"""Quick-start example for loading RSF files with `pynasonde`.
 
 Follow the steps:
 

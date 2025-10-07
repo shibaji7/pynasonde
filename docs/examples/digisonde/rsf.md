@@ -1,4 +1,4 @@
-# DIGISONDE RSF (Range Spread-F) Example
+# DIGISONDE RSF Example
 
 This short walkthrough explains how to ingest DIGISONDE `.RSF` files with
 `pynasonde`. The sample uses data from the 14 October 2023 Great American Annular
@@ -6,15 +6,6 @@ Eclipse and highlights how to inspect the structured contents of an RSF product.
 The runnable script lives at [`examples/digisonde/rsf.py`](https://github.com/shibaji7/pynasonde/examples/digisonde/rsf.py),
 and the extractor implementation resides in
 [`pynasonde/digisonde/parsers/rsf.py`](https://github.com/shibaji7/pynasonde/pynasonde/digisonde/parsers/rsf.py).
-
-## Why examine RSF files?
-
-- **Identify spread-F activity**: RSF records reveal frequency-dependent spread and
-  irregularities that impact HF propagation.
-- **Support quality control**: Reviewing headers and frequency groups ensures raw files
-  were captured as expected before deeper analysis.
-- **Bootstrap advanced workflows**: Parsed RSF data can feed custom visualization or
-  statistical pipelines in tandem with SAO/DVL products.
 
 ## Workflow overview
 
@@ -30,7 +21,7 @@ The snippet below mirrors `examples/digisonde/rsf.py`. Update the file path to t
 your own `.RSF` dataset and print whichever elements you need to validate.
 
 ```python
-"""Quick-start example for loading RSF (range spread-F) files with `pynasonde`.
+"""Quick-start example for loading RSF files with `pynasonde`.
 
 Follow the steps:
 
