@@ -40,10 +40,6 @@ def to_namespace(d: object) -> SimpleNamespace:
     Returns:
         A SimpleNamespace for dicts, a list with converted elements for
         lists, or the original value for primitives.
-
-    Example:
-        > to_namespace({'a': 1, 'b': {'c': 2}}).b.c
-        2
     """
     if isinstance(d, dict):
         return SimpleNamespace(**{k: to_namespace(v) for k, v in d.items()})

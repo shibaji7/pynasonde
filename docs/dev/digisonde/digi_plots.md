@@ -9,8 +9,13 @@ the main helpers with their API rendered below.
     options:
         show_root_heading: true
         show_source: true
+        members:
+            - DigiPlots
+            - SaoSummaryPlots
+            - SkySummaryPlots
+            - RsfIonogram
 
-### Key classes
+<!-- ### Key classes
 
 ::: pynasonde.digisonde.digi_plots.DigiPlots
     handler: python
@@ -56,5 +61,5 @@ the main helpers with their API rendered below.
         show_source: true
         members:
             - __init__
-            - add_ionogram
+            - add_ionogram -->
 
