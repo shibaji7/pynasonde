@@ -7,30 +7,10 @@ Dataclasses for SBF-format records and frequency groups.
     handler: python
     options:
         show_root_heading: true
-        show_source: false
-
-::: pynasonde.digisonde.datatypes.sbfdatatypes.SbfDataFile
-    handler: python
-    options:
-        show_root_heading: true
         show_source: true
-
-::: pynasonde.digisonde.datatypes.sbfdatatypes.SbfDataUnit
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: true
-
-::: pynasonde.digisonde.datatypes.sbfdatatypes.SbfFreuencyGroup
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: true
-
-
-::: pynasonde.digisonde.datatypes.sbfdatatypes.SbfHeader
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: true
+        members:
+            - SbfDataFile
+            - SbfDataUnit
+            - SbfFreuencyGroup
+            - SbfHeader
 
