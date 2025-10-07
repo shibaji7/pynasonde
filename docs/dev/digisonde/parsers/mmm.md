@@ -6,11 +6,6 @@ Parses MMM (multi-mode) digisonde outputs.
     handler: python
     options:
         show_root_heading: true
-        show_source: false
-
-
-::: pynasonde.digisonde.parsers.mmm.ModMaxExtractor
-    handler: python
-    options:
-        show_root_heading: true
         show_source: true
+        members:
+            - ModMaxExtractor
