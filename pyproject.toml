@@ -41,5 +41,7 @@ dev = [
   "requests",
   "beautifulsoup4",
   "tqdm",
-  "lxml"
+  "lxml",
+  "toml",
+  "pytz",
 ]
