@@ -45,4 +45,5 @@ dev = [
   "toml",
   "pytz",
   "timezonefinder",
+  "SciencePlots",
 ]

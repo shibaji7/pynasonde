@@ -63,6 +63,7 @@ setup(
             "toml",
             "pytz",
             "timezonefinder",
+            "SciencePlots",
         ]
     },
     include_package_data=True,
