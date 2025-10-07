@@ -102,15 +102,15 @@ class DigiPlots(object):
     `get_axes`, `save` and `close`.
 
     Attributes:
-        fig_title, str: Title shown on the first subplot.
-        nrows, int: Subplot grid(row) layout.
-        ncols, int: Subplot grid(col) layout.
-        font_size, float: Base font size applied via `utils.setsize`.
-        figsize, tuple(int): Per-subplot size (width, height).
-        date, datetime: Optional reference date used by some plotters.
-        date_lims, list(datetime): Optional x-axis limits as datetimes.
-        subplot_kw, dict: Passed to `plt.subplots` for e.g. polar projections.
-        draw_local_time, bool: If True, certain methods will use local time columns
+        fig_title str: Title shown on the first subplot.
+        nrows int: Subplot grid(row) layout.
+        ncols int: Subplot grid(col) layout.
+        font_size float: Base font size applied via `utils.setsize`.
+        figsize tuple(int): Per-subplot size (width, height).
+        date datetime: Optional reference date used by some plotters.
+        date_lims list(datetime): Optional x-axis limits as datetimes.
+        subplot_kw dict: Passed to `plt.subplots` for e.g. polar projections.
+        draw_local_time bool: If True, certain methods will use local time columns
             (prefixed with `local_`) instead of UTC.
     """
 
@@ -178,8 +178,11 @@ class DigiPlots(object):
         self.n_sub_plots += 1
         return ax
 
-    def save(self, filepath):
-        """Save current figure to `filepath` using tight bounding box."""
+    def save(self, filepath:str):
+        """Save current figure to `filepath` using tight bounding box.
+        Args:
+            filepath: Full path (including filename) to save the figure.  
+        """
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
@@ -196,9 +199,9 @@ class DigiPlots(object):
 
     def _add_colorbar(
         self,
-        im,
-        fig,
-        ax,
+        im: plt.cm.ScalarMappable,
+        fig: plt.Figure,
+        ax: plt.axes,
         label: str = "",
         mpos: List[float] = [0.025, 0.0125, 0.015, 0.5],
     ):
@@ -207,6 +210,19 @@ class DigiPlots(object):
         Parameters mirror common Matplotlib `colorbar` usage but provide a
         simple positioning interface via `mpos` describing relative offsets
         and size of the colorbar axes.
+
+        Args:
+            im: The Matplotlib ScalarMappable (e.g. QuadMesh) to use for
+                colorbar generation.
+            fig: The Matplotlib figure containing the axis.
+            ax: The axis to which the colorbar applies.
+            label: Colorbar label text.
+            mpos: List of 4 floats describing the colorbar axes position
+                relative to `ax`. The list contains [left, bottom, width,
+                height] where left/bottom are offsets from `ax` and height is
+                a fraction of `ax` height. For example, the default value
+                places a thin colorbar to the right of `ax` with half its
+                height.
         """
         pos = ax.get_position()
         cpos = [
@@ -229,6 +245,10 @@ class SaoSummaryPlots(DigiPlots):
     `plot_TS` (time-series of scalar parameters). The methods accept pandas
     DataFrames produced by `pynasonde.digisonde.parsers` and use column names
     to select x/y/z parameters.
+
+    This method inherits from `DigiPlots` and thus also provides methods and attributes including
+    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`, 
+    `figsize`, `date`, `date_lims`, `subplot_kw`, and `draw_local_time`.
     """
 
     def __init__(
@@ -284,16 +304,31 @@ class SaoSummaryPlots(DigiPlots):
         (`yparam`).
 
         Args:
-            df: pandas DataFrame with columns for x/y/z.
-            xparam/yparam/zparam: Column names to use for the axes and color.
-            cmap: Matplotlib colormap or our COLOR_MAPS.* entries.
-            prange: Colorbar min/max used when rendering.
-            plot_type: 'pcolor' for gridded rendering, anything else uses
-                scatter with square markers.
+            df: Input DataFrame containing `xparam`, `yparam` and `zparam` columns.
+            xparam: Column name for the x-axis (time).
+            yparam: Column name for the y-axis (height).
+            zparam: Column name for the color parameter.
+            cbar_label: Colorbar label text.
+            cmap: Matplotlib colormap or name used for coloring.
+            prange: List of two floats defining the color range (vmin, vmax).
+            ylabel: Y-axis label text.
+            xlabel: X-axis label text.
+            major_locator: Matplotlib date locator for major x-axis ticks.
+            minor_locator: Matplotlib date locator for minor x-axis ticks.
+            ylim: List of two floats defining the y-axis limits.
+            xlim: List of two datetimes defining the x-axis limits. If None,
+                the full range of `df[xparam]` is used.
+            title: Optional title text shown above the plot.
+            add_cbar: If True, add a colorbar to the right of the plot.
+            zparam_lim: If provided, filter out rows where `zparam` exceeds
+                this value.
+            plot_type: Either 'pcolor' (default) or 'scatter' to choose the
+                rendering method.
+            scatter_ms: If `plot_type=='scatter'`, use this marker size.
 
         Returns:
             Tuple (ax, im) where `im` is the Matplotlib QuadMesh or PathCollection
-            used for colorbar generation.
+                used for colorbar generation.
         """
         xparam = "local_" + xparam if self.draw_local_time else xparam
         xlabel = xlabel.replace("UT", "LT") if self.draw_local_time else xlabel
@@ -377,6 +412,27 @@ class SaoSummaryPlots(DigiPlots):
         (if `right_yparams` provided) shows additional series using a twin
         y-axis. Colors are picked from a color_map seeded for reproducible
         plots.
+
+        Args:
+            df: Input DataFrame containing `xparam`, `left_yparams` and
+                `right_yparams` columns.
+            xparam: Column name for the x-axis (time).
+            right_yparams: List of column names to plot on the right y-axis.
+            left_yparams: List of column names to plot on the left y-axis.
+            ylabels: List of two strings for the left and right y-axis labels.
+            xlabel: X-axis label text.
+            marker: Matplotlib marker style for all series.
+            major_locator: Matplotlib date locator for major x-axis ticks.
+            minor_locator: Matplotlib date locator for minor x-axis ticks.
+            right_ylim: List of two floats defining the right y-axis limits.
+            left_ylim: List of two floats defining the left y-axis limits.
+            xlim: List of two datetimes defining the x-axis limits. If None,
+                the full range of `df[xparam]` is used.
+            ms: Marker size for all series.
+
+        Returns:
+            Tuple (ax, tax) where `ax` is the left axis and `tax` is the
+                right axis (or None if no right_yparams provided).
         """
         np.random.seed(seed)
         xparam = "local_" + xparam if self.draw_local_time else xparam
@@ -459,6 +515,25 @@ class SaoSummaryPlots(DigiPlots):
         If `kind=='ionogram'` lines are drawn, otherwise individual points are
         plotted. The x-axis is log10-scaled but tick labels are shown in
         linear frequency values for readability.
+
+        Args:
+            df: Input DataFrame containing `xparam` and `yparam` columns.
+            xparam: Column name for the x-axis (frequency).
+            yparam: Column name for the y-axis (height).
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: List of two floats defining the y-axis limits.
+            xlim: List of two floats defining the x-axis limits.
+            xticks: List of floats defining the x-axis tick locations.
+            text: Optional text shown in the upper left of the plot.
+            del_ticks: If True, remove x/y ticks from the axis.
+            ls: Line style (if `kind=='ionogram'`).
+            lcolor: Line/marker color.
+            lw: Line width or marker size.
+            zorder: Matplotlib z-order for layering.
+            ax: If provided, use this axis instead of creating a new one.
+            kind: Either 'ionogram' (default) or 'scatter' to choose the
+                rendering method.
         """
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
@@ -534,6 +609,25 @@ class SaoSummaryPlots(DigiPlots):
         distribution of echo frequencies over time/height.
 
         If `fname` is provided the figure will be saved to disk.
+
+        Args:
+            df: Input DataFrame containing `xparam`, `yparam` and `zparam` columns.
+            xparam: Column name for the x-axis (time).
+            yparam: Column name for the y-axis (height).
+            zparam: Column name for the color parameter (frequency).
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: List of two floats defining the y-axis limits.
+            major_locator: Matplotlib date locator for major x-axis ticks.
+            minor_locator: Matplotlib date locator for minor x-axis ticks.
+            xlim: List of two datetimes defining the x-axis limits. If None,
+                the full range of `df[xparam]` is used.
+            fbins: List of frequency bin edges used to group points.
+            text: Optional text shown in the upper left of the plot.
+            del_ticks: If True, remove x/y ticks from the axis.
+            fname: If provided, save the figure to this path.
+            figsize: Figure size (width, height) in inches.
+            lw: Line width for marker edges.
         """
         plot = SaoSummaryPlots(figsize=figsize, nrows=1, ncols=1)
         ax = plot.get_axes(del_ticks)
@@ -741,6 +835,26 @@ class SkySummaryPlots(DigiPlots):
 
         Expects `df` with `xparam` datetime and `yparam` + `error` columns. This
         is a simple helper commonly used by higher-level plotting wrappers.
+
+        Args:
+            df: Input DataFrame containing `xparam`, `yparam` and `error` columns.
+            xparam: Column name for the x-axis (time).
+            yparam: Column name for the y-axis (velocity).
+            color: Matplotlib color for the series.
+            error: Column name for the y-errors.
+            ylabel: Y-axis label text.
+            xlabel: X-axis label text.
+            text: Optional text shown in the upper left of the plot.
+            del_ticks: If True, remove x/y ticks from the axis.
+            fmt: Matplotlib marker style for the series.
+            lw: Line width for markers.
+            alpha: Matplotlib alpha (transparency) for the series.
+            zorder: Matplotlib z-order for layering.
+            major_locator: Matplotlib date locator for major x-axis ticks.
+            minor_locator: Matplotlib date locator for minor x-axis ticks.
+            ylim: List of two floats defining the y-axis limits.
+            xlim: List of two datetimes defining the x-axis limits. If None,
+                the full range of `df[xparam]` is used.
         """
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
@@ -807,6 +921,32 @@ class SkySummaryPlots(DigiPlots):
         `plot_drift_velocities` to populate each subplot. It returns the
         plot object unless `fname` is provided (in which case it saves and
         closes the figure).
+
+        Args:
+            df: Input DataFrame containing `xparam`, `yparams` and `errors` columns.
+            xparam: Column name for the x-axis (time).
+            yparams: List of three column names for the y-axes (Vx, Vy, Vz).
+            colors: List of three colors for the yparams.
+            errors: List of three column names for the y-errors.
+            labels: List of three strings for the y-axis labels.
+            text: Optional text shown in the upper left of the first plot.
+            del_ticks: If True, remove x/y ticks from the axes.
+            fmt: Matplotlib marker style for all series.
+            lw: Line width for markers.
+            alpha: Matplotlib alpha (transparency) for all series.
+            zorder: Matplotlib z-order for layering.
+            major_locator: Matplotlib date locator for major x-axis ticks.
+            minor_locator: Matplotlib date locator for minor x-axis ticks.
+            ylim: List of two floats defining the y-axis limits.
+            xlim: List of two datetimes defining the x-axis limits. If None,
+                the full range of `df[xparam]` is used.
+            fname: If provided, save the figure to this path.
+            figsize: Figure size (width, height) in inches.
+            draw_local_time: If True, convert `xparam` to local time.
+        Returns:
+            If `fname` is None, returns the `SkySummaryPlots` object containing
+                the figure and axes. Otherwise, saves the figure to `fname` and
+                returns None.
         """
 
         xparam = "local_" + xparam if draw_local_time else xparam
@@ -862,6 +1002,10 @@ class RsfIonogram(DigiPlots):
 
     Provides methods to render RSF-style ionograms (frequency vs height) and
     convenience helpers for filtering and visualizing RSF amplitude data.
+
+    This method inherits from `DigiPlots` and thus also provides methods and attributes including
+    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`, 
+    `figsize`, `date`, `date_lims`, `subplot_kw`, and `draw_local_time`.
     """
 
     def __init__(
@@ -915,6 +1059,26 @@ class RsfIonogram(DigiPlots):
         RSF ionograms use frequency_reading (Hz) which is converted to MHz and
         plotted versus height. Signal amplitude below `lower_plimit` is
         discarded to remove noise.
+
+        Args:
+            df: Input DataFrame containing `xparam`, `yparam` and `zparam` columns.
+            xparam: Column name for the x-axis (frequency).
+            yparam: Column name for the y-axis (height).
+            zparam: Column name for the color parameter (amplitude).
+            cbar_label: Colorbar label text.
+            cmap: Matplotlib colormap or name used for coloring.
+            prange: List of two floats defining the color range (vmin, vmax).
+            xlabel: X-axis label text.
+            ylabel: Y-axis label text.
+            ylim: List of two floats defining the y-axis limits.
+            xlim: List of two floats defining the x-axis limits.
+            xticks: List of floats defining the x-axis tick locations.
+            text: Optional text shown in the upper left of the plot.
+            del_ticks: If True, remove x/y ticks from the axis.
+            ms: Marker size for all points.
+            marker: Matplotlib marker style for all points.
+            zorder: Matplotlib z-order for layering.
+            lower_plimit: Minimum amplitude value to include (dB).
         """
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
