@@ -7,7 +7,7 @@ isort -rc -sl .
 autoflake --in-place .
 isort -rc -m 3 .
 black .
-pip install .
+pip install -e .[dev]
 
 ###################
 # Install igrf and clean / build igrf from git 
