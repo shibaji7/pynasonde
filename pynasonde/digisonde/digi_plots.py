@@ -178,10 +178,10 @@ class DigiPlots(object):
         self.n_sub_plots += 1
         return ax
 
-    def save(self, filepath:str):
+    def save(self, filepath: str):
         """Save current figure to `filepath` using tight bounding box.
         Args:
-            filepath: Full path (including filename) to save the figure.  
+            filepath: Full path (including filename) to save the figure.
         """
         self.fig.savefig(filepath, bbox_inches="tight")
         return
@@ -247,7 +247,7 @@ class SaoSummaryPlots(DigiPlots):
     to select x/y/z parameters.
 
     This method inherits from `DigiPlots` and thus also provides methods and attributes including
-    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`, 
+    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`,
     `figsize`, `date`, `date_lims`, `subplot_kw`, and `draw_local_time`.
     """
 
@@ -1004,7 +1004,7 @@ class RsfIonogram(DigiPlots):
     convenience helpers for filtering and visualizing RSF amplitude data.
 
     This method inherits from `DigiPlots` and thus also provides methods and attributes including
-    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`, 
+    `get_axes`, `save`, `close`, and attributes like `fig_title`, `nrows`, `ncols`, `font_size`,
     `figsize`, `date`, `date_lims`, `subplot_kw`, and `draw_local_time`.
     """
 

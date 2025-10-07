@@ -8,6 +8,8 @@ DataFrames suitable for plotting with :class:`SkySummaryPlots`.
 """
 
 import datetime as dt
+from types import SimpleNamespace
+from typing import List
 
 import pandas as pd
 from loguru import logger
@@ -21,8 +23,7 @@ def get_indent(line: str) -> int:
     """Return the number of leading spaces in a line.
 
     Parameters:
-        line : str
-            Input text line.
+        line: Input text line.
 
     Returns:
         Number of leading space characters. This helper assumes spaces
@@ -52,17 +53,17 @@ class SkyExtractor(object):
         """Create a SkyExtractor.
 
         Parameters:
-            filename : str
+            filename: str
                 Path to the SKY-format file to parse.
-            extract_time_from_name : bool, optional
+            extract_time_from_name: bool, optional
                 If True, attempt to parse a timestamp token from the
                 filename (default False).
-            extract_stn_from_name : bool, optional
+            extract_stn_from_name: bool, optional
                 If True, attempt to determine station code and local
                 timezone information (default False).
-            n_fft : int, optional
+            n_fft: int, optional
                 FFT length used to compute Doppler frequency scaling.
-            delta_freq : float, optional
+            delta_freq: float, optional
                 Frequency step in Hz used by :meth:`get_doppler_freq`.
         """
         # Initialize the data structure to hold extracted data
@@ -91,23 +92,21 @@ class SkyExtractor(object):
             logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         return
 
-    def read_file(self):
+    def read_file(self) -> List[str]:
         """Read the input file and return a list of lines.
 
         Returns:
-            File lines including their trailing newline characters.
+            List of lines including their trailing newline characters.
         """
         with open(self.filename, "r") as f:
             return f.readlines()
 
-    def parse_line(self, sky_arch_list, _i):
+    def parse_line(self, sky_arch_list: List[str], _i: int):
         """Parse a single line from the raw lines list.
 
         Parameters:
-            sky_arch_list : list[str]
-                List of file lines as returned by :meth:`read_file`.
-            _i : int
-                Index of the line to parse.
+            sky_arch_list:  List of file lines as returned by :meth:`read_file`.
+            _i: Index of the line to parse.
 
         Returns:
             (indent_level, token_list) where ``indent_level`` is the
@@ -127,8 +126,7 @@ class SkyExtractor(object):
         """Parse a data-header line into a dictionary of fields.
 
         Parameters:
-            sky_arch : list[str]
-                Tokenized line (as returned by :meth:`parse_line`).
+            sky_arch: Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
             Parsed header fields including type, version, number of
@@ -150,12 +148,11 @@ class SkyExtractor(object):
         )
         return parsed_data_header
 
-    def parse_freq_header(self, sky_arch):
+    def parse_freq_header(self, sky_arch: List[str]):
         """Parse a frequency/height header line into a dict of fields.
 
         Parameters:
-            sky_arch : list[str]
-                Tokenized line (as returned by :meth:`parse_line`).
+            sky_arch: Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
             Parsed frequency/height header fields including sampling
@@ -191,7 +188,7 @@ class SkyExtractor(object):
         )
         return parsed_freq_header
 
-    def extract(self):
+    def extract(self) -> SimpleNamespace:
         """Parse the SKY file into :attr:`sky_struct`.
 
         The parser walks the file line-by-line, identifies data headers
@@ -246,11 +243,11 @@ class SkyExtractor(object):
         wrap to multiple groups of five lines.
 
         Parameters:
-            sky_arch_list : list[str]
+            sky_arch_list: list[str]
                 Full list of file lines.
-            _i : int
+            _i: int
                 Current index in the file (frequency header line index).
-            n_sources : int
+            n_sources: int
                 Number of sky sources to extract; determines how many lines
                 to consume.
 
@@ -287,7 +284,7 @@ class SkyExtractor(object):
         """Convert a Doppler bin index to Doppler frequency in MHz.
 
         Parameters:
-            L : float
+            L: float
                 Doppler bin index (integer or float) returned by the skymap
                 processing.
 
