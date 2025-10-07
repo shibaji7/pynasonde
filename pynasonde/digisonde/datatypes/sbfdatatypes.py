@@ -282,16 +282,15 @@ class SbfFreuencyGroup:
         Configures and converts the instance attributes to their appropriate units.
 
         This method performs the following conversions:
-        - Converts `azimuth` from minutes to degrees by multiplying by 60.
-        - Converts `phase` from units to degrees by multiplying by 11.25.
-        - Converts `amplitude` from units to decibels (dB) by multiplying by 3.
-        - Converts `offset` to a string representation.
-        - Converts `mpa` from units to decibels (dB) by multiplying by 3.
-        - Converts `additional_gain` from units to decibels (dB) by multiplying by 3.
-        - Converts `frequency_reading` from kHz to Hz by multiplying by 10,000.
-
-        Returns:
-            None
+        * Converts `azimuth` from minutes to degrees by multiplying by 60.
+        * Converts `phase` from units to degrees by multiplying by 11.25.
+        * Converts `amplitude` from units to decibels (dB) by multiplying by 3.
+        * Converts `offset` to a string representation.
+        * Converts `mpa` from units to decibels (dB) by multiplying by 3.
+        * Converts `additional_gain` from units to decibels (dB) by multiplying by 3.
+        * Converts `frequency_reading` from kHz to Hz by multiplying by 10,000.
+        Args:
+            threshold (float, optional): Threshold value for filtering. Defaults to 0.0.
         """
         self.azimuth *= 60  # Convert to degrees
         self.phase = self.phase.astype(np.float64) * 11.25  # Convert to degrees
@@ -344,9 +343,6 @@ class SbfDataUnit:
 
         This method iterates through each frequency group in the `frequency_groups` list
         and calls the `setup` method on each group to perform necessary conversions and configurations.
-
-        Returns:
-            None
         """
         for group in self.frequency_groups:
             group.height = self.header.range_start + (
