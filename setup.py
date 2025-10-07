@@ -51,6 +51,7 @@ setup(
             "pytest",
             "pytest-cov",
             "coverage",
+            "scipy",
             "numpy",
             "pandas",
             "matplotlib",

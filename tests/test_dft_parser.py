@@ -38,6 +38,7 @@ def _synthetic_block() -> bytes:
 
 
 def test_dft_extract_header(tmp_path):
-    path = "/tmp/chakras4/Crucial X9/APEP/AFRL_Digisondes/Digisonde Files/SKYWAVE_DPS4D_2023_10_14/KR835_2023287000915.DFT"
+    root = Path(__file__).resolve().parents[1]
+    path = root / "examples/data/KR835_2023287000915.DFT"
     extractor = DftExtractor(str(path))
     extractor.extract()
