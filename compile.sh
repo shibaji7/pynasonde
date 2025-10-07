@@ -1,5 +1,5 @@
 python setup.py clean --all
-rm -rf dist site_build site
+rm -rf dist site_build site junit.xml .coverage coverage.xml .pytest_cache .eggs 
 rm -rf build *.egg-info
 rm -rf `find -type d -name '.ipynb_checkpoints'`
 rm -rf `find -type d -name '__pycache__'`
