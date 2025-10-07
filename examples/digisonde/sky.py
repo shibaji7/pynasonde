@@ -47,7 +47,6 @@ skyplot.plot_skymap(
 skyplot.save("docs/examples/figures/single_skymap.png")
 skyplot.close()
 
-
 import datetime as dt
 import glob
 

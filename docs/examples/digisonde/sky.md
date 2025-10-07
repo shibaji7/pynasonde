@@ -26,7 +26,7 @@ parsing utilities it relies on reside in
 3. Render sky maps using `SkySummaryPlots`, then save the figures to
    `docs/examples/figures/` for inclusion in MkDocs.
 
-## Example script
+## Example script - for single file
 
 The listing below reproduces the workflow from `examples/digisonde/sky.py`.
 Edit the file paths to match your own data prior to execution.
@@ -79,47 +79,6 @@ skyplot.plot_skymap(
 # Persist the figure in the documentation assets directory.
 skyplot.save("docs/examples/figures/single_skymap.png")
 skyplot.close()
-
-
-# Generate a multi-panel sky map layout for comparative analysis.
-import numpy as np
-import datetime as dt
-
-files = [
-    "examples/data/KR835_2024099160913.SKY"
-]
-skyplot = SkySummaryPlots(
-    fig_title="",
-    nrows=2,
-    ncols=2,
-    font_size=2,
-    figsize=(4,4),
-    date=dt.datetime(2024,4,8,16),
-    date_lims=[dt.datetime(2024,4,8,15), dt.datetime(2024,4,8,18)],
-    subplot_kw=dict(projection="polar"),
-    draw_local_time=False,
-)
-for i, f in enumerate(files):
-    extractor = SkyExtractor(f, True, True,)
-    extractor.extract()
-    df = extractor.to_pandas()
-    # Annotate each panel with the UT timestamp of the observation.
-    text=f"{extractor.date.strftime('%H:%M:%S UT')}\n"
-    skyplot.plot_skymap(
-        df,
-        zparam="spect_dop_freq",
-        text=text,
-        cmap="Spectral",
-        clim=[-0.25, 0.25],
-        rlim=6,
-        cbar=i==len(files)-1,
-    )
-
-    
-ax = skyplot.fig.get_axes()[0]
-ax.text(-0.1, 0.99, "Multipanel skymaps for 8 April 2024 GAE analysis", ha="left", va="top", transform=ax.transAxes, rotation=90)
-skyplot.save("docs/examples/figures/panel_skymaps.png")
-skyplot.close()
 ```
 
 > Adjust color limits, radial limits, subplot counts, and annotation text to suit
@@ -131,7 +90,60 @@ comparison across time or stations.
 <figcaption>Figure 01: Single-map output highlighting Doppler frequency shifts observed at Kirtland during the 08 April 2024 Great American Eclipse (16:09 UT).</figcaption>
 </figure>
 
+## Example script - for multiple files
+> Ideal for contrasting multiple time intervals or stations in a single figure.
+```python
+# Generate a multi-panel sky map layout for comparative analysis.
+import numpy as np
+import datetime as dt
+import glob
+
+files = sorted(glob.glob("examples/data/KR835_202409916*.SKY"))
+skyplot = SkySummaryPlots(
+    fig_title="",
+    nrows=2,
+    ncols=2,
+    font_size=15,
+    figsize=(4, 4),
+    date=dt.datetime(2024, 4, 8, 16),
+    date_lims=[dt.datetime(2024, 4, 8, 15), dt.datetime(2024, 4, 8, 18)],
+    subplot_kw=dict(projection="polar"),
+    draw_local_time=False,
+)
+for i, f in enumerate(files):
+    extractor = SkyExtractor(
+        f,
+        True,
+        True,
+    )
+    extractor.extract()
+    df = extractor.to_pandas()
+    # Annotate each panel with the UT timestamp of the observation.
+    text = f"{extractor.date.strftime('%H:%M:%S UT')}\n"
+    skyplot.plot_skymap(
+        df,
+        zparam="spect_dop_freq",
+        text=text,
+        cmap="Spectral",
+        clim=[-0.25, 0.25],
+        rlim=6,
+        cbar=i == len(files) - 1,
+    )
+ax = skyplot.fig.get_axes()[0]
+ax.text(
+    -0.1,
+    0.99,
+    "8 April 2024 GAE analysis",
+    ha="left",
+    va="top",
+    transform=ax.transAxes,
+    rotation=90,
+)
+skyplot.save("docs/examples/figures/panel_skymaps.png")
+skyplot.close()
+```
+
 <figure markdown>
 ![Sky Map Panels](../figures/panel_skymaps.png)
-<figcaption>Figure 02: Multi-panel layout from the same script, ideal for contrasting multiple time intervals or stations in a single figure.</figcaption>
+<figcaption>Figure 02: Multi-panel layout from following script, ideal for contrasting multiple time intervals or stations in a single figure.</figcaption>
 </figure>
