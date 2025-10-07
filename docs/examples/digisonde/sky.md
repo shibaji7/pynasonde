@@ -2,9 +2,9 @@
 
 This example demonstrates the full workflow for turning a DIGISONDE `.SKY`
 file into one or more sky map images with `pynasonde`. The runnable script
-is available at [`examples/digisonde/sky.py`](../../../examples/digisonde/sky.py),
+is available at [`examples/digisonde/sky.py`](https://github.com/shibaji7/pynasonde/examples/digisonde/sky.py),
 and the extractor utilities it relies on live in
-[`pynasonde/digisonde/parsers/sky.py`](../../../pynasonde/digisonde/parsers/sky.py).
+[`pynasonde/digisonde/parsers/sky.py`](https://github.com/shibaji7/pynasonde/pynasonde/digisonde/parsers/sky.py).
 
 ## Workflow overview
 
@@ -15,7 +15,7 @@ and the extractor utilities it relies on live in
 3. Use `SkySummaryPlots` to render either a single sky map or a multi-panel
    layout, then save the resulting figures for later use.
 
-## Example script
+## Example script - Single file read and plot
 
 The script below mirrors the version shipped in `examples/digisonde/sky.py`.
 It first produces a single sky map image, then shows how to set up a multi-panel
@@ -80,8 +80,10 @@ making it easy to compare multiple time intervals or stations in a single view.
 <figcaption>Figure 01: Output from the single-map portion of the script, showing the Doppler frequency shift during the 08 April 2024 Great American Eclipse, as observed overhead by the Kirtland station at 16:09 UT.</figcaption>
 </figure>
 
+## Example script - Multiple file read and plot
+> Suitable for comparing multiple files or time intervals on one canvas
+
 ```python
-# Generate a multi-panel sky map layout for comparative analysis.
 # Generate a multi-panel sky map layout for comparative analysis.
 import numpy as np
 import datetime as dt
