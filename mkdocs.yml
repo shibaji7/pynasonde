@@ -76,9 +76,8 @@ nav:
             - Digisonde Examples:
                     - Read/Plot SAO: examples/digisonde/sao.md
                     - Read/Plot SKY: examples/digisonde/sky.md
-                    - Read/Plot RSF: examples/digisonde/rsf.md
-                    - Read/Plot EDP: examples/digisonde/edp.md
                     - Read/Plot DVL: examples/digisonde/dvl.md
+                    - Read/Plot RSF: examples/digisonde/rsf.md
     - API Documentation: 
                 - Digisonde: 
                         - Utils: dev/digisonde/digi_utils.md
