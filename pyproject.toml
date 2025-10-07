@@ -31,5 +31,15 @@ output = "coverage.xml"
 dev = [
   "pytest",
   "pytest-cov",
-  "coverage"
+  "coverage",
+  "numpy",
+  "pandas",
+  "matplotlib",
+  "opencv-python-headless",
+  "pytesseract",
+  "loguru",
+  "requests",
+  "beautifulsoup4",
+  "tqdm",
+  "lxml"
 ]
