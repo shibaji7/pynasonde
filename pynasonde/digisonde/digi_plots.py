@@ -102,14 +102,15 @@ class DigiPlots(object):
     `get_axes`, `save` and `close`.
 
     Attributes:
-        fig_title: Title shown on the first subplot.
-        nrows, ncols: Subplot grid layout.
-        font_size: Base font size applied via `utils.setsize`.
-        figsize: Per-subplot size (width, height).
-        date: Optional reference date used by some plotters.
-        date_lims: Optional x-axis limits as datetimes.
-        subplot_kw: Passed to `plt.subplots` for e.g. polar projections.
-        draw_local_time: If True, certain methods will use local time columns
+        fig_title, str: Title shown on the first subplot.
+        nrows, int: Subplot grid(row) layout.
+        ncols, int: Subplot grid(col) layout.
+        font_size, float: Base font size applied via `utils.setsize`.
+        figsize, tuple(int): Per-subplot size (width, height).
+        date, datetime: Optional reference date used by some plotters.
+        date_lims, list(datetime): Optional x-axis limits as datetimes.
+        subplot_kw, dict: Passed to `plt.subplots` for e.g. polar projections.
+        draw_local_time, bool: If True, certain methods will use local time columns
             (prefixed with `local_`) instead of UTC.
     """
 
@@ -152,6 +153,8 @@ class DigiPlots(object):
         This advances an internal subplot counter so subsequent calls will
         return the next axis in the grid. When the first subplot is returned
         the figure title is drawn.
+        Args:
+            del_ticks: If True, remove x/y ticks from the returned axis.
         """
         utils.setsize(self.font_size)
         ax = (
