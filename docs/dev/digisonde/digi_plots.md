@@ -14,4 +14,5 @@ the main helpers with their API rendered below.
             - SaoSummaryPlots
             - SkySummaryPlots
             - RsfIonogram
+            - search_color_schemes
 
