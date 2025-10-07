@@ -96,7 +96,7 @@ class SaoExtractor(object):
         """Read the file and return a list of lines without trailing newline.
 
         Returns:
-            File lines with trailing newline removed.
+            List of strings (lines) with trailing newline removed.
         """
         with open(self.filename, "r") as f:
             SAOarch = [line.rstrip("\n") for line in f]
@@ -105,7 +105,7 @@ class SaoExtractor(object):
     def pad(self, s, length, pad_char=" ") -> str:
         return s.ljust(length, pad_char)
 
-    def parse_line(self, line, fmt, num_ch) -> List:
+    def parse_line(self, line:str, fmt: str, num_ch: int) -> List:
         """Parse a fixed-width chunked line according to a format token.
 
         Parameters:
@@ -145,7 +145,7 @@ class SaoExtractor(object):
         )
         return
 
-    def get_height_profile_xml(self, plot_ionogram=None) -> tuple:
+    def get_height_profile_xml(self, plot_ionogram: str=None) -> tuple:
         """Extract height profile and trace DataFrames from loaded XML SAO.
 
         Parameters:
@@ -206,7 +206,7 @@ class SaoExtractor(object):
         return profile, trace
 
     def get_scaled_datasets_xml(
-        self, params=["foEs", "foF1", "foF2", "h`Es", "hmF1", "hmF2"]
+        self, params: List[str]=["foEs", "foF1", "foF2", "h`Es", "hmF1", "hmF2"]
     ) -> pd.DataFrame:
         """Return selected characteristic parameters from XML SAO as a DataFrame.
 
@@ -510,12 +510,11 @@ class SaoExtractor(object):
         self.sao = to_namespace(self.SAOstruct)
         return self.SAOstruct
 
-    def get_scaled_datasets(self, asdf=True) -> pd.DataFrame:
+    def get_scaled_datasets(self, asdf:bool=True) -> pd.DataFrame:
         """Return scaled dataset fields from parsed legacy SAO as a DataFrame.
 
         Parameters:
-            asdf:  bool, optional
-                Placeholder parameter retained for API compatibility.
+            asdf:  Retured as `df` if `True`.
 
         Returns:
             Single-row DataFrame containing scaled parameters with
@@ -533,14 +532,12 @@ class SaoExtractor(object):
             o["local_datetime"] = self.local_time
         return o
 
-    def get_height_profile(self, asdf=True, plot_ionogram=False) -> pd.DataFrame:
+    def get_height_profile(self, asdf:bool=True, plot_ionogram:bool=False) -> pd.DataFrame:
         """Return the height profile DataFrame extracted from the parsed SAO.
 
         Parameters:
-            asdf:  bool, optional
-                Placeholder kept for API compatibility.
-            plot_ionogram:  bool, optional
-                If True, generate and save an ionogram plot alongside the
+            asdf:  Retured as `df` if `True`.
+            plot_ionogram:  If True, generate and save an ionogram plot alongside the
                 returned DataFrame.
 
         Returns:
