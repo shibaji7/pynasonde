@@ -31,11 +31,12 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov --junitxml=junit.xml -o junit_family=legacy
+          pytest
         shell: bash
 
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
+          verbose: true
