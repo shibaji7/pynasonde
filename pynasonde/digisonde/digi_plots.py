@@ -75,8 +75,8 @@ def search_color_schemes(
             RGBA colors.
 
     Returns:
-        A list of dicts with keys: 'seed' (int), 'decimals' (list of floats),
-        and 'color' (list of RGBA tuples).
+        A list of dicts with keys: `seed` (int), `decimals` (list of floats),
+            and `color` (list of RGBA tuples).
     """
     cmap = []
     for se in range(search_length):
