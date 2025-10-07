@@ -62,6 +62,7 @@ setup(
             "lxml",
             "toml",
             "pytz",
+            "timezonefinder",
         ]
     },
     include_package_data=True,
