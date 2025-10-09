@@ -259,6 +259,7 @@ class Ionogram(object):
         del_ticks: bool = False,
         xtick_locator: mdates.HourLocator = mdates.HourLocator(interval=4),
         xdate_lims: List[dt.datetime] = None,
+        kind: str = "pcolormesh",
     ):
         """Plot mode-specific interval statistics on a time/height grid.
 
@@ -304,30 +305,41 @@ class Ionogram(object):
             rounding=False,
         )
         Z[Z < prange[0]] = prange[0]
-        levels = np.linspace(prange[0], prange[1], 5)
-        # Overlay filled contours for the same data
-        im = ax.contourf(
-            X,
-            Y,
-            Z.T,
-            levels=levels,
-            cmap=cmap,
-            alpha=0.4,
-            zorder=4,
-        )
+        if kind == "pcolormesh":
+            im = ax.pcolormesh(
+                X,
+                Y,
+                Z.T,
+                cmap=cmap,
+                vmax=prange[1],
+                vmin=prange[0],
+                zorder=3,
+            )
+        elif kind == "contourf":
+            levels = np.linspace(prange[0], prange[1], 5)
+            # Overlay filled contours for the same data
+            im = ax.contourf(
+                X,
+                Y,
+                Z.T,
+                levels=levels,
+                cmap=cmap,
+                alpha=0.4,
+                zorder=4,
+            )
 
-        # Overlay contour lines
-        cs = ax.contour(
-            X,
-            Y,
-            Z.T,
-            levels=levels,
-            colors="k",
-            linewidths=0.5,
-            zorder=5,
-        )
-        # Optionally label the contour lines
-        ax.clabel(cs, inline=True, fontsize=self.font_size * 0.5)
+            # Overlay contour lines
+            cs = ax.contour(
+                X,
+                Y,
+                Z.T,
+                levels=levels,
+                colors="k",
+                linewidths=0.5,
+                zorder=5,
+            )
+            # Optionally label the contour lines
+            ax.clabel(cs, inline=True, fontsize=self.font_size * 0.5)
         ax.text(
             0.01, 1.05, self.fig_title, ha="left", va="center", transform=ax.transAxes
         )

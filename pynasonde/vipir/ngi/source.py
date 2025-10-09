@@ -354,6 +354,9 @@ class DataSource(object):
                         frequency=f_max / 1e3,  # to MHz
                         power=np.nanmax(powr),  # in dB
                         range=r,
+                        noise=getattr(ds, f"{mode}_mode_noise")[
+                            np.nanargmax(powr)
+                        ],  # in dB
                     )
                 )
         rti = pd.DataFrame.from_records(rti)

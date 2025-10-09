@@ -73,6 +73,7 @@ nav:
     - Examples:
             - VIPIR Examples:
                     - Read/Plot RIQ: examples/vipir/proc_riq.md
+                    - Read/Plot FTI: examples/vipir/fti.md
             - Digisonde Examples:
                     - Read/Plot SAO: examples/digisonde/sao.md
                     - Read/Plot SKY: examples/digisonde/sky.md
