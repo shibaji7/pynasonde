@@ -7,7 +7,7 @@ parsers and datatypes:
 - `trim_null` and `len_trim_null` handle null-terminated strings that appear
   in VIPIR binary structures.
 - `unwrap` keeps phase angles within the ``[-pi, pi]`` interval so downstream
-  routines can reason about angular differences safely.
+  routines can reason about angular differences coherently.
 """
 
 import math
