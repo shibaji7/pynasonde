@@ -201,6 +201,33 @@ class IonosphereModels:
 
         return X, Z, Ne
 
+    @staticmethod
+    def default_obscuration_profile(
+        dx: np.ndarray,
+        peak_km: float = 0.0,
+        half_width_km: float = 300.0,
+    ) -> np.ndarray:
+        """
+        Normalized triangular obscuration profile with a configurable peak.
+
+        Parameters
+        ----------
+        dx : array-like
+            Horizontal coordinate(s) [km].
+        peak_km : float
+            Location of the maximum obscuration [km].
+        half_width_km : float
+            Distance from the peak where the obscuration tapers to zero [km].
+
+        Returns
+        -------
+        np.ndarray
+            Values between 0 and 1.
+        """
+        half_width_km = max(float(half_width_km), np.finfo(float).eps)
+        profile = 1.0 - np.abs(np.asarray(dx, dtype=float) - peak_km) / half_width_km
+        return np.clip(profile, 0.0, 1.0)
+
     @classmethod
     def n_layers(
         cls,
@@ -237,6 +264,63 @@ class IonosphereModels:
         hmF2 = hmF2 + hmf2_tilt_funct(X)
         z = (Z - hmF2) / H_scale
         Ne = NmF2 * np.exp(0.5 * (1 - z - np.exp(-z))) + Ne_floor
+        return X, Z, Ne
+
+    @classmethod
+    def chapman_with_grading_obscuration(
+        cls,
+        x: np.ndarray = np.linspace(-1500, 1500, 601),  # horizontal distance [km]
+        hs: np.ndarray = np.linspace(0, 1000, 501),  # altitude [km]
+        NmF2: float = 1e12,  # peak density [m^-3]
+        hmF2: float = 300.0,  # F2 peak height [km]
+        H_scale: float = 50.0,  # scale height [km]
+        Ne_floor: float = 2e10,
+        obs_tilt_funct=None,
+        obscuration_peak_km: float = 0.0,
+        obscuration_half_width_km: float = 300.0,
+        obscuration_depth: float = 1.0,
+    ):
+        """
+        Introduce a Chapman layer with a horizontal obscuration gradient.
+
+        Parameters
+        ----------
+        x, hs : array-like
+            Horizontal and vertical grids [km].
+        NmF2 : float
+            Background peak electron density [m^-3].
+        hmF2 : float
+            F2 peak height [km].
+        H_scale : float
+            Scale height [km].
+        Ne_floor : float
+            Minimum electron density [m^-3].
+        obs_tilt_funct : callable, optional
+            Callable returning values in [0, 1] describing the obscuration profile.
+        obscuration_peak_km : float
+            Peak location for the default obscuration profile [km].
+        obscuration_half_width_km : float
+            Half-width for the default obscuration profile [km].
+        obscuration_depth : float
+            Fractional reduction applied at full obscuration (0=no change, 1=full).
+        """
+        X, Z = np.meshgrid(x, hs)
+        z = (Z - hmF2) / H_scale
+        base_profile = np.exp(0.5 * (1.0 - z - np.exp(-z)))
+
+        if obs_tilt_funct is None:
+            obscuration = cls.default_obscuration_profile(
+                X,
+                peak_km=obscuration_peak_km,
+                half_width_km=obscuration_half_width_km,
+            )
+        else:
+            obscuration = np.clip(np.asarray(obs_tilt_funct(X), dtype=float), 0.0, 1.0)
+
+        depth = np.clip(obscuration_depth, 0.0, 1.0)
+        NmF2_mod = NmF2 * (1.0 - depth * obscuration)
+
+        Ne = NmF2_mod * base_profile + Ne_floor
         return X, Z, Ne
 
     @classmethod

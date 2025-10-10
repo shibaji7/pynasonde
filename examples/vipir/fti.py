@@ -32,6 +32,7 @@ def generate_fti_profiles(
     fig_title: str | None = None,
     stn: str = "",
     flim: tuple[float, float] = (3.5, 4.5),
+    date: dt.datetime | None = None,
 ) -> pd.DataFrame:
     """Render an O-mode frequency–time interval plot for a folder of NGI files.
 
@@ -128,7 +129,7 @@ def generate_fti_profiles(
         xtick_locator=mdates.HourLocator(interval=6),
         xdate_lims=[obs_start, obs_end],
     )
-    axis.set_xlim(dt.datetime(2022,8,21), dt.datetime(2022,8,21)+dt.timedelta(hours=24))
+    axis.set_xlim(date, date+dt.timedelta(hours=24))
     axis.set_ylim(50, 400)
     axis.text(0.95, 1.05, "", ha="right", va="center", transform=axis.transAxes)
     ionogram.save(fig_file)
@@ -147,20 +148,21 @@ if __name__ == "__main__":
     temp_root = Path("/tmp/vipir_fti")
     stn = "WI937"
 
-    for doy in range(233, 234):
+    for doy in range(234, 235):
         date = dt.datetime(2022, 1, 1) + dt.timedelta(days=doy - 1)
         src = data_root / "2022" / f"{doy}" / "ionogram"
         tmp = temp_root / f"{doy}" / "ionogram"
         shutil.rmtree(tmp.parent, ignore_errors=True)
         shutil.copytree(src, tmp)
         try:
-            title = f"Speed Demon / {date:%Y-%m-%d}"
+            title = None # f"Speed Demon / {date:%Y-%m-%d}"
             generate_fti_profiles(
                 folder=str(tmp),
                 fig_file_name=f"docs/examples/figures/fti.{stn}.{date:%Yj}.png",
                 fig_title=title,
                 stn=stn,
-                flim=(3.5, 4.5),
+                flim=(2, 3.5),
+                date=date,
             )
         finally:
             shutil.rmtree(tmp.parent, ignore_errors=True)
