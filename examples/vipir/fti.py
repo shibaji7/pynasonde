@@ -129,7 +129,7 @@ def generate_fti_profiles(
         xtick_locator=mdates.HourLocator(interval=6),
         xdate_lims=[obs_start, obs_end],
     )
-    axis.set_xlim(date, date+dt.timedelta(hours=24))
+    axis.set_xlim(date, date + dt.timedelta(hours=24))
     axis.set_ylim(50, 400)
     axis.text(0.95, 1.05, "", ha="right", va="center", transform=axis.transAxes)
     ionogram.save(fig_file)
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         shutil.rmtree(tmp.parent, ignore_errors=True)
         shutil.copytree(src, tmp)
         try:
-            title = None # f"Speed Demon / {date:%Y-%m-%d}"
+            title = None  # f"Speed Demon / {date:%Y-%m-%d}"
             generate_fti_profiles(
                 folder=str(tmp),
                 fig_file_name=f"docs/examples/figures/fti.{stn}.{date:%Yj}.png",

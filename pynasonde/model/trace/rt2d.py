@@ -301,15 +301,10 @@ class RayTracer2D:
         outputs = outputs if len(outputs) > 0 else self.outputs
         for o in outputs:
             homing = (
-                (
-                    (o.reason == "ground_hit")
-                    and (np.round(o.y_km[-1], ground_height_precision) == 0.0)
-                    and (np.abs(np.abs(o.x_km[-1]) - o.x_km[0]) <= homing_error_km)
-                )
-                or (
-                    o.reason == "evanescent"
-                )
-            )
+                (o.reason == "ground_hit")
+                and (np.round(o.y_km[-1], ground_height_precision) == 0.0)
+                and (np.abs(np.abs(o.x_km[-1]) - o.x_km[0]) <= homing_error_km)
+            ) or (o.reason == "evanescent")
             if homing:
                 self.homing_roots.append(o.el0_deg)
         return self.homing_roots

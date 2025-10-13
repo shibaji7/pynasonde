@@ -149,7 +149,7 @@ class Ionogram(object):
                 ha="left",
                 va="center",
                 transform=ax.transAxes,
-                fontdict={"size": self.font_size},
+                fontdict={"size": self.font_size, "color": "w"},
             )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))
