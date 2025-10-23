@@ -502,6 +502,7 @@ def main() -> None:
             process(program, dir_iq="/media/chakras4/69F9D939661D263B", verbose=True)
         except Exception as exc:
             import traceback
+
             traceback.print_exc()
             logger.error(f"Processing failed for {epoch.isoformat()}: {exc}")
             break

@@ -38,17 +38,12 @@ You can check your python version using
 
 ## Dependencies
 
-pynasonde's setup will download the following dependencies: 
+pynasonde's setup will download the following dependencies:
 
-- [Git](https://git-scm.com/) (For developers)
+- Core Python dependencies (declared in `setup.py::install_requires`): `loguru`, `numpy==1.26.4`, `pandas==2.2.3`, `matplotlib==3.9.2`, `xarray==2024.9.0`, `toml==0.10.2`, `tqdm==4.66.5`, `timezonefinder==6.5.5`, `scipy==1.14.1`, `SciencePlots==2.1.1`, `pysolar==0.11`, `pytz==2024.2`, `requests==2.32.3`, `beautifulsoup4==4.12.3`, `lxml==5.3.0`, `opencv-python-headless`, `nrlmsise00==0.1.2`, `scikit-image==0.24.0`, `scikit-learn==1.5.2`, `pytesseract==0.3.13`.
+- Optional development extras (install with `pip install pynasonde[dev]` to pull `extras_require["dev"]`): `pytest`, `pytest-cov`, `coverage`, `scipy`, `numpy`, `pandas`, `matplotlib`, `pytesseract`, `loguru`, `requests`, `beautifulsoup4`, `tqdm`, `lxml`, `toml`, `pytz`, `timezonefinder`, `SciencePlots`.
+- [Git](https://git-scm.com/) (for developers)
 - [pip3](https://help.dreamhost.com/hc/en-us/articles/115000699011-Using-pip3-to-install-Python3-modules)
-- [NumPy](https://numpy.org/)
-- [SciPy](https://scipy.org/)
-- [matplotlib 3.3.4+](https://matplotlib.org/)
-- [pandas](https://pandas.pydata.org/)
-- [pyproj](https://pyproj4.github.io/pyproj/stable/)
-- [loguru](https://loguru.readthedocs.io/en/stable/)
-- [SciencePlots](https://pypi.org/project/SciencePlots/1.0.2/)
 
 !!! Note
     If you wish to plot coastlines or geographic projections you will need to install cartopy>=0.19 separately
