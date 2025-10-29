@@ -7,6 +7,12 @@ authors:
     given-names: Shibaji
     affiliation: "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
     orcid: "https://orcid.org/0000-0001-6792-0037"
+  - family-names: Mabie
+    given-names: Justin
+  - family-names: Barjatya
+    given-names: Aroh
+  - family-names: Bullett
+    given-names: Terry
 version: "1.0.0"
 doi: "10.5281/zenodo.17476077"  # <- replace with your Zenodo DOI once minted
 date-released: 2025-10-29

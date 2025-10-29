@@ -11,6 +11,21 @@
       },
       "familyName": "Chakraborty",
       "givenName": "Shibaji"
+    },
+    {
+      "@type": "Person",
+      "familyName": "Mabie",
+      "givenName": "Justin"
+    },
+    {
+      "@type": "Person",
+      "familyName": "Barjatya",
+      "givenName": "Aroh"
+    },
+    {
+      "@type": "Person",
+      "familyName": "Bullett",
+      "givenName": "Terry"
     }
   ],
   "codeRepository": "https://github.com/shibaji7/pynasonde",
