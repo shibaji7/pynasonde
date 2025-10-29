@@ -6,14 +6,22 @@ import shutil
 
 
 def clean():
+    os.system("python setup.py clean --all")
+    os.system(
+        "rm -rf dist site_build site junit.xml .coverage coverage.xml .pytest_cache .eggs"
+    )
+    os.system("rm -rf build *.egg-info")
     if os.path.exists("dist/"):
         shutil.rmtree("dist/")
     if os.path.exists("build/"):
         shutil.rmtree("build/")
-    if os.path.exists("raid.egg-info/"):
-        shutil.rmtree("raid.egg-info/")
     os.system("find . -type d -name '.ipynb_checkpoints' -exec rm -rf {} +")
     os.system("find . -type d -name '__pycache__' -exec rm -rf {} +")
+    os.system("isort -rc -sl .")
+    os.system("autoflake --in-place .")
+    os.system("isort -rc -m 3 .")
+    os.system("black .")
+    os.system("pip install -e .[dev]")
     return
 
 

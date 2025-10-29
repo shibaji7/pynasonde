@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: >
+  If you use Pynasonde in your research, please cite it using the metadata below.
+title: "Pynasonde: Open-source Python library for precision ionospheric radio sounding"
+authors:
+  - family-names: Chakraborty
+    given-names: Shibaji
+    affiliation: "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
+    orcid: "https://orcid.org/0000-0001-6792-0037"
+version: "1.0.0"
+doi: "10.5281/zenodo.xxxxxxx"  # <- replace with your Zenodo DOI once minted
+date-released: 2025-10-29
+repository-code: "https://github.com/shibaji7/pynasonde"
+url: "https://pynasonde.readthedocs.io/en/latest/"
+abstract: >
+  Pynasonde is an open-source Python library for precision ionospheric radio
+  sounding with Digisonde and VIPIR systems. It provides tools for reading,
+  plotting, echo recognition, noise discrimination, trace classification, and
+  extraction of ionospheric parameters from ionograms, supporting multi-instrument
+  and multi-point analyses for space weather and radio propagation studies.
+license: "MIT"
+keywords:
+  - ionosphere
+  - Digisonde
+  - VIPIR
+  - ionogram
+  - space weather
+  - ionospheric remote sensing
+  - HF sounding
+  - radio propagation
+  - Python
+  - Linux
+  - macOS
+  - Windows
+contact:
+  - family-names: Chakraborty
+    given-names: Shibaji
+    affiliation: "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
+    orcid: "https://orcid.org/0000-0001-6792-0037"
+preferred-citation:
+  type: software
+  title: "Pynasonde v1.0.0"
+  authors:
+    - family-names: Chakraborty
+      given-names: Shibaji
+      orcid: "https://orcid.org/0000-0001-6792-0037"
+  version: "1.0.0"
+  doi: "10.5281/zenodo.xxxxxxx"
+  url: "https://github.com/shibaji7/pynasonde"

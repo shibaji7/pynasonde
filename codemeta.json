@@ -1,0 +1,38 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0001-6792-0037",
+      "@type": "Person",
+      "affiliation": {
+        "@type": "Organization",
+        "legalName": "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
+      },
+      "familyName": "Chakraborty",
+      "givenName": "Shibaji"
+    }
+  ],
+  "codeRepository": "https://github.com/shibaji7/pynasonde",
+  "datePublished": "2025-10-29",
+  "description": "Pynasonde is an open-source Python library for precision ionospheric radio sounding with Digisonde and VIPIR systems. It provides tools for reading, plotting, echo recognition, noise discrimination, trace classification, and extraction of ionospheric parameters from ionograms, supporting multi-instrument and multi-point analyses for space weather and radio propagation studies.\n",
+  "identifier": "https://doi.org/10.5281/zenodo.xxxxxxx",
+  "keywords": [
+    "ionosphere",
+    "Digisonde",
+    "VIPIR",
+    "ionogram",
+    "space weather",
+    "ionospheric remote sensing",
+    "HF sounding",
+    "radio propagation",
+    "Python",
+    "Linux",
+    "macOS",
+    "Windows"
+  ],
+  "license": "https://spdx.org/licenses/MIT",
+  "name": "Pynasonde: Open-source Python library for precision ionospheric radio sounding",
+  "url": "https://pynasonde.readthedocs.io/en/latest/",
+  "version": "1.0.0"
+}
