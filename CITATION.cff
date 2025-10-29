@@ -8,7 +8,7 @@ authors:
     affiliation: "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
     orcid: "https://orcid.org/0000-0001-6792-0037"
 version: "1.0.0"
-doi: "10.5281/zenodo.xxxxxxx"  # <- replace with your Zenodo DOI once minted
+doi: "10.5281/zenodo.17476077"  # <- replace with your Zenodo DOI once minted
 date-released: 2025-10-29
 repository-code: "https://github.com/shibaji7/pynasonde"
 url: "https://pynasonde.readthedocs.io/en/latest/"
@@ -45,5 +45,5 @@ preferred-citation:
       given-names: Shibaji
       orcid: "https://orcid.org/0000-0001-6792-0037"
   version: "1.0.0"
-  doi: "10.5281/zenodo.xxxxxxx"
+  doi: "10.5281/zenodo.17476077"
   url: "https://github.com/shibaji7/pynasonde"

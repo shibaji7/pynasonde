@@ -16,7 +16,7 @@
   "codeRepository": "https://github.com/shibaji7/pynasonde",
   "datePublished": "2025-10-29",
   "description": "Pynasonde is an open-source Python library for precision ionospheric radio sounding with Digisonde and VIPIR systems. It provides tools for reading, plotting, echo recognition, noise discrimination, trace classification, and extraction of ionospheric parameters from ionograms, supporting multi-instrument and multi-point analyses for space weather and radio propagation studies.\n",
-  "identifier": "https://doi.org/10.5281/zenodo.xxxxxxx",
+  "identifier": "https://doi.org/10.5281/zenodo.17476077",
   "keywords": [
     "ionosphere",
     "Digisonde",
