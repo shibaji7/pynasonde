@@ -1,7 +1,7 @@
 
 # Pynasonde
 <div style="text-align: center;">
-  <img src="assets/Colab-pynasonde-logo2.jpg" alt="Pynasonde" width="50%">
+  <img src="docs/assets/Colab-pynasonde-logo2.jpg" alt="Pynasonde" width="50%">
 </div>
 
 [![License: MIT](https://img.shields.io/badge/License%3A-MIT-green)](https://choosealicense.com/licenses/mit/) 
