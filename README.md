@@ -22,3 +22,6 @@ Designed as a comprehensive toolbox, Pynasonde empowers researchers to process r
 The library source code can be found on the [pynasonde GitHub](https://github.com/shibaji7/pynasonde) repository. 
 
 If you have any questions or concerns please submit an **Issue** on the [pynasonde GitHub](https://github.com/shibaji7/pynasonde) repository. 
+
+## Documentation
+Read the docs: https://pynasonde.readthedocs.io/en/latest/
