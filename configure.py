@@ -39,7 +39,6 @@ def build():
 def uplaod_pip():
     clean()
     build()
-    # -u __token__ -p pypi-a3d6fd70-4f7e-4428-905c-3e53d3ae1176
     os.system("python -m twine upload dist/* --verbose")
     return
 
