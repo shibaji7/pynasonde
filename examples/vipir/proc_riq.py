@@ -14,6 +14,7 @@ Update `fname` to point at your own RIQ capture before running the example.
 
 import numpy as np
 
+from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.riq.parsers.read_riq import (
     VIPIR_VERSION_MAP,
@@ -22,6 +23,8 @@ from pynasonde.vipir.riq.parsers.read_riq import (
 )
 
 # Path to the RIQ file to visualize; replace with your own VIPIR dataset.
+font_size = 20
+setsize(font_size)
 fname = "examples/data/PL407_2024058061501.RIQ"
 
 # Create a dataset object using the appropriate VIPIR configuration/encoding.
@@ -42,7 +45,7 @@ ion = adaptive_gain_filter(
 ion.powerdB[np.isnan(ion.powerdB)] = 0.0
 
 # Set up a single-panel ionogram canvas.
-p = Ionogram(ncols=1, nrows=1)
+p = Ionogram(ncols=1, nrows=1, font_size=font_size, figsize=(7, 5))
 
 # Render the ionogram using power (dB) as the color surface.
 p.add_ionogram(

@@ -16,10 +16,13 @@ your choosing.
 """
 
 from pynasonde.digisonde.digi_plots import SkySummaryPlots
+from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.digisonde.parsers.sky import SkyExtractor
 
 # Build a parser instance with a target .SKY file plus flags controlling
 # whether auxiliary frequency and angle tables are loaded.
+font_size = 20
+setsize(font_size)
 extractor = SkyExtractor(
     "examples/data/KR835_2024099160913.SKY",
     True,
@@ -31,7 +34,7 @@ extractor.extract().dataset[-1].freq_headers
 # Convert the parsed structure into a tidy dataframe for plotting/pandas work.
 df = extractor.to_pandas()
 # Instantiate the plot helper that encapsulates matplotlib figure creation.
-skyplot = SkySummaryPlots()
+skyplot = SkySummaryPlots(figsize=(4, 4), font_size=font_size)
 # Render a sky map using Doppler frequency as the color surface; adjust limits
 # and labels to taste for your dataset.
 skyplot.plot_skymap(
@@ -40,7 +43,7 @@ skyplot.plot_skymap(
     text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M:%S UT, %d %b %Y')}",
     cmap="Spectral",
     clim=[-0.25, 0.25],
-    rlim=6,
+    rlim=3,
 )
 # Persist the figure and release underlying matplotlib resources.
 # Persist the figure in the documentation assets directory.
@@ -58,7 +61,7 @@ skyplot = SkySummaryPlots(
     fig_title="",
     nrows=2,
     ncols=2,
-    font_size=15,
+    font_size=font_size,
     figsize=(4, 4),
     date=dt.datetime(2024, 4, 8, 16),
     date_lims=[dt.datetime(2024, 4, 8, 15), dt.datetime(2024, 4, 8, 18)],
@@ -81,7 +84,7 @@ for i, f in enumerate(files):
         text=text,
         cmap="Spectral",
         clim=[-0.25, 0.25],
-        rlim=6,
+        rlim=3,
         cbar=i == len(files) - 1,
     )
 ax = skyplot.fig.get_axes()[0]

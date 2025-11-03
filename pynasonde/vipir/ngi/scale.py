@@ -286,6 +286,7 @@ class AutoScaler(object):
         xlim: List[float] = [1, 22],
         font_size: float = 10,
         figsize: tuple = (6, 3),
+        txt_color: str = "w",
     ):
         """Generate a multi-panel figure showing intermediate scaling outputs."""
         ion = Ionogram(
@@ -300,12 +301,14 @@ class AutoScaler(object):
             mode=self.mode,
             text="(a) Raw ionogram",
             xlabel="",
-            ylabel="",
+            ylabel=ylabel,
             cmap=cmap,
+            del_ticks=False,
             ylim=ylim,
             xlim=xlim,
             prange=prange,
             xticks=xticks,
+            txt_color=txt_color,
         )
         ion.add_ionogram(
             self.frequency,
@@ -320,6 +323,7 @@ class AutoScaler(object):
             xlim=xlim,
             prange=prange,
             xticks=xticks,
+            txt_color=txt_color,
         )
         ion.add_ionogram(
             self.frequency,
@@ -334,6 +338,7 @@ class AutoScaler(object):
             xlim=xlim,
             prange=prange,
             xticks=xticks,
+            txt_color=txt_color,
         )
         ion.add_ionogram(
             self.frequency,
@@ -349,6 +354,7 @@ class AutoScaler(object):
             xticks=xticks,
             del_ticks=False,
             prange=[0, 1],
+            txt_color=txt_color,
         )
 
         ax = ion.add_ionogram(
@@ -364,6 +370,7 @@ class AutoScaler(object):
             xlim=xlim,
             xticks=xticks,
             prange=[0, 1],
+            txt_color=txt_color,
         )
         for key in list(self.traces.keys()):
             trace = self.traces[key]
@@ -391,6 +398,7 @@ class AutoScaler(object):
             xlim=xlim,
             xticks=xticks,
             prange=[0, 1],
+            txt_color=txt_color,
         )
         for key in list(self.trace_params.keys()):
             trace_info = self.trace_params[key]

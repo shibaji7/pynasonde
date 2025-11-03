@@ -4,7 +4,7 @@ This example demonstrates how to:
 
 1. Discover and load a collection of NGI files with :class:`DataSource`.
 2. Collapse the ionogram cubes into a long-form dataframe suitable for plotting.
-3. Render an interval plot with :class:`Ionogram` and persist the figure for MkDocs.
+3. Render stacked interval plots with :class:`Ionogram` and persist the figure for MkDocs.
 
 Before running the script update the paths inside ``__main__`` to point at your
 own NGI dataset. The defaults reference the Speed Demon 2022 campaign layout.
@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import os
 import shutil
+from collections.abc import Sequence
 from pathlib import Path
 
 import matplotlib.dates as mdates
@@ -22,8 +23,12 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.ngi.source import DataSource
+
+font_size = 15
+setsize(font_size)
 
 
 def generate_fti_profiles(
@@ -31,10 +36,10 @@ def generate_fti_profiles(
     fig_file_name: str | None = None,
     fig_title: str | None = None,
     stn: str = "",
-    flim: tuple[float, float] = (3.5, 4.5),
+    frequency_bands: Sequence[tuple[float, float]] | None = None,
     date: dt.datetime | None = None,
 ) -> pd.DataFrame:
-    """Render an O-mode frequency–time interval plot for a folder of NGI files.
+    """Render stacked O-mode frequency–time interval plots for the requested bands.
 
     Parameters
     ----------
@@ -48,25 +53,37 @@ def generate_fti_profiles(
         and the observation date are combined with the frequency window.
     stn
         Station identifier used when building auto-generated titles.
-    flim
-        Two-element tuple describing the lower/upper frequency bounds in MHz.
+    frequency_bands
+        Iterable of (f_min, f_max) tuples describing the frequency windows (MHz)
+        to extract and plot. Each tuple produces one subplot stacked vertically.
 
     Returns
     -------
     pandas.DataFrame
-        Flattened RTI dataframe with ``time``, ``range``, and mode-specific
-        power/noise columns suitable for further analysis.
+        Flattened RTI dataframe with ``time``, ``range``, mode-specific
+        power/noise columns, and metadata describing the contributing
+        frequency band(s).
     """
-    if len(flim) != 2:
-        raise ValueError("flim must contain exactly two elements: (f_min, f_max)")
+    bands = list(frequency_bands or [(3.5, 4.5)])  # Maintain band ordering to drive subplot stacking.
+    if not bands:
+        raise ValueError(
+            "frequency_bands must include at least one (f_min, f_max) interval"
+        )
+    for band in bands:
+        if len(band) != 2:
+            raise ValueError(
+                "Each entry in frequency_bands must contain exactly two elements"
+            )
 
     logger.info(f"Loading NGI datasets from {folder}")
     ds = DataSource(source_folder=folder)
-    ds.load_data_sets(0, -1)
+    ds.load_data_sets(0, -1, n_jobs=20)  # Pull every NGI cube for the folder using modest parallelism.
 
     mode = "O"
     rti = pd.DataFrame()
     for dataset in ds.datasets:
+        # Assemble a timestamp for the snapshot and project the ionogram cube onto
+        # frequency × height grids so the values can be flattened into a DataFrame.
         time = dt.datetime(
             dataset.year,
             dataset.month,
@@ -92,12 +109,17 @@ def generate_fti_profiles(
             }
         )
         frame["time"] = time
-        f_min, f_max = flim
-        frame = frame[(frame.frequency >= f_min) & (frame.frequency <= f_max)]
+        # Restrict to the shared altitude/frequency envelope covered by the requested bands.
+        frame = frame[
+            (frame.range <= 400)
+            & (frame.range >= 50)
+            & (frame.frequency >= np.min(np.array(bands)))
+            & (frame.frequency <= np.max(np.array(bands)))
+        ]
         rti = pd.concat([rti, frame], ignore_index=True)
 
     if rti.empty:
-        logger.warning("No RTI samples found in the requested frequency window")
+        logger.warning("No RTI samples found in the input datasets")
         return rti
 
     fig_file = Path(fig_file_name or "docs/examples/figures/fti.png")
@@ -108,34 +130,102 @@ def generate_fti_profiles(
         obs_end = obs_start + dt.timedelta(minutes=1)
     if fig_title is None:
         station_label = f"{stn} / " if stn else ""
-        fig_title = (
-            f"{station_label}{obs_start:%d %b %Y}, "
-            f"$f_0$=[{flim[0]:.2f}-{flim[1]:.2f}] MHz"
+        bands_text = " + ".join(f"{b[0]:.2f}-{b[1]:.2f}" for b in bands)
+        fig_title = f"{station_label}{obs_start:%d %b %Y}, " f"$f_0$=[{bands_text}] MHz"
+
+    # One subplot per band; the class handles positioning and shared sizing.
+    ionogram = Ionogram(
+        fig_title="", nrows=len(bands), ncols=1, figsize=(6, 3), font_size=font_size
+    )
+    if fig_title:
+        ionogram.fig.suptitle(
+            fig_title, fontsize=ionogram.font_size + 2, y=0.99, x=0.02, ha="left"
+        )
+        ionogram.fig.subplots_adjust(top=0.92)
+
+    xdate_lims = [obs_start, obs_end]
+    if date is not None:
+        # When a specific day is supplied, pin the x-axis to a full 24-hour window.
+        xdate_lims = [date, date + dt.timedelta(hours=24)]
+
+    band_frames: list[pd.DataFrame] = []
+    for idx, (f_min, f_max) in enumerate(bands):
+        band_df = rti[(rti.frequency >= f_min) & (rti.frequency <= f_max)].copy()
+        band_label = f"({chr(97+idx)}) {f_min:.2f}-{f_max:.2f} MHz"
+        if band_df.empty:
+            logger.warning(
+                "No RTI samples found for frequency band {} within {}",
+                band_label,
+                folder,
+            )
+            ax = ionogram._add_axis(del_ticks=False)
+            ax.set_xlim(xdate_lims)
+            ax.set_ylim(50, 400)
+            ax.set_xlabel("Time, UT" if idx == len(bands) - 1 else "")
+            ax.set_ylabel("Virtual Height, km")
+            ax.text(
+                0.5,
+                0.5,
+                "No data available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontdict={"size": ionogram.font_size},
+            )
+            ax.text(
+                0.99,
+                1.02,
+                band_label,
+                ha="right",
+                va="bottom",
+                transform=ax.transAxes,
+                fontdict={"size": ionogram.font_size},
+            )
+            continue
+
+        band_df = band_df.assign(
+            frequency_band_min=f_min,
+            frequency_band_max=f_max,
+            band_label=band_label,
+        )
+        band_frames.append(band_df)
+
+        axis = ionogram.add_interval_plots(
+            band_df,
+            mode,
+            xlabel="Time, UT" if idx == len(bands) - 1 else "",
+            ylabel="Virtual Height, km",
+            ylim=[50, 400],
+            add_cbar=idx == len(bands) - 1,
+            cbar_label="O-mode Power, dB",
+            cmap="Spectral",
+            noise_scale=1,
+            date_format=r"$%H^{%M}$",
+            del_ticks=False,
+            xtick_locator=mdates.HourLocator(interval=6),
+            xdate_lims=xdate_lims,
+        )
+        axis.set_ylim(50, 400)
+        # Add a panel-level tag so readers can cross-reference the band in text.
+        axis.text(
+            0.99,
+            1.02,
+            band_label,
+            ha="right",
+            va="bottom",
+            transform=axis.transAxes,
+            fontdict={"size": ionogram.font_size},
         )
 
-    ionogram = Ionogram(fig_title=fig_title, nrows=1, ncols=1, figsize=(6, 3))
-    axis = ionogram.add_interval_plots(
-        rti,
-        mode,
-        xlabel="Time, UT",
-        ylabel="Virtual Height, km",
-        ylim=[50, 400],
-        add_cbar=True,
-        cbar_label="O-mode Power, dB",
-        cmap="Spectral",
-        noise_scale=1,
-        date_format=r"$%H^{%M}$",
-        del_ticks=False,
-        xtick_locator=mdates.HourLocator(interval=6),
-        xdate_lims=[obs_start, obs_end],
-    )
-    axis.set_xlim(date, date + dt.timedelta(hours=24))
-    axis.set_ylim(50, 400)
-    axis.text(0.95, 1.05, "", ha="right", va="center", transform=axis.transAxes)
+    if not band_frames:
+        ionogram.close()
+        return pd.DataFrame()
+
+    ionogram.fig.subplots_adjust(hspace=0.25)
     ionogram.save(fig_file)
     ionogram.close()
     logger.info(f"Saved FTI figure to {fig_file}")
-    return rti
+    return pd.concat(band_frames, ignore_index=True)
 
 
 if __name__ == "__main__":
@@ -161,7 +251,10 @@ if __name__ == "__main__":
                 fig_file_name=f"docs/examples/figures/fti.{stn}.{date:%Yj}.png",
                 fig_title=title,
                 stn=stn,
-                flim=(2, 3.5),
+                frequency_bands=[
+                    (2.0, 3.5),
+                    (4.0, 6.0),
+                ],
                 date=date,
             )
         finally:

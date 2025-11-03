@@ -914,6 +914,7 @@ class SkySummaryPlots(DigiPlots):
         fname: str = None,
         figsize: tuple = (2.5, 7),
         draw_local_time: bool = False,
+        font_size: float = 18,
     ):
         """Create a 3-row DVL velocity plot (Vx, Vy, Vz) with optional save.
 
@@ -956,17 +957,18 @@ class SkySummaryPlots(DigiPlots):
             ncols=1,
             subplot_kw=None,
             draw_local_time=draw_local_time,
+            font_size=font_size,
         )
         for i, y, col, err, lab in zip(
             range(len(yparams)), yparams, colors, errors, labels
         ):
             text = text if text else ""
-            text = (
-                text
-                + f"{df[xparam].iloc[0].strftime('%d %b')}-{df[xparam].iloc[-1].strftime('%d %b, %Y')}"
-                if i == 0
-                else None
+            date_txt = (
+                f"{df[xparam].iloc[0].strftime('%d %b')}-{df[xparam].iloc[-1].strftime('%d %b, %Y')}"
+                if df[xparam].iloc[0].day != df[xparam].iloc[-1].day
+                else f"{df[xparam].iloc[-1].strftime('%d %b, %Y')}"
             )
+            text = text + date_txt if i == 0 else None
             ylabel = rf"Velocity({lab}), m/s"
             xlabel = "Time, UT" if i == 2 else ""
             xlabel = "Time, LT" if xlabel == "Time, UT" and draw_local_time else xlabel

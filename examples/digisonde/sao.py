@@ -21,10 +21,12 @@ import datetime as dt
 import matplotlib.dates as mdates
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
+from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.digisonde.parsers.sao import SaoExtractor
 
 date = dt.datetime(2023, 10, 14)  # Reference day for constraining the time axis.
-
+font_size = 16
+setsize(font_size)
 # Height-profile view: ingest SAO files and compute electron density profiles.
 df = SaoExtractor.load_SAO_files(
     folders=[
@@ -38,9 +40,10 @@ df = SaoExtractor.load_SAO_files(
 df.ed = df.ed / 1e6
 
 sao_plot = SaoSummaryPlots(
-    figsize=(6, 3),
-    fig_title="KR835 / Height profiles (derived parameters) during 14 Oct 2023 GAE",
+    figsize=(8, 4),
+    fig_title="KR835 / Ne Profiles (derived parameters) during 2023 GAE",
     draw_local_time=False,
+    font_size=font_size,
 )
 sao_plot.add_TS(
     df,
@@ -59,6 +62,12 @@ ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
 
 # Persist the figure alongside other documentation assets.
 sao_plot.save("docs/examples/figures/stack_sao_ne.png")
+sao_plot.fig.savefig(
+    "tmp/pynasondev1/PynasondeV1-F2,01 - SoftwareX.png",
+    format="png",
+    dpi=300,
+    bbox_inches="tight",
+)
 sao_plot.close()
 
 
@@ -73,9 +82,10 @@ df = SaoExtractor.load_SAO_files(
 
 
 sao_plot = SaoSummaryPlots(
-    figsize=(6, 3),
+    figsize=(8, 4),
     fig_title="KR835 / F2 (scaled) response during 14 Oct 2023 GAE",
     draw_local_time=False,
+    font_size=font_size,
 )
 # Plot dual-axis F2 parameters (critical frequency and peak height).
 sao_plot.plot_TS(
@@ -93,4 +103,10 @@ ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
 
 # Persist the figure alongside other documentation assets.
 sao_plot.save("docs/examples/figures/stack_sao_F2.png")
+sao_plot.fig.savefig(
+    "tmp/pynasondev1/PynasondeV1-F2,02 - SoftwareX.png",
+    format="png",
+    dpi=300,
+    bbox_inches="tight",
+)
 sao_plot.close()

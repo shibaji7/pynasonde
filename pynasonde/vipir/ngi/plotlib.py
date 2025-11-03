@@ -96,6 +96,7 @@ class Ionogram(object):
         xticks: List[float] = [1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0],
         text: str = None,
         del_ticks: bool = True,
+        txt_color: str = "w",
     ) -> None:
         """Render a single ionogram heatmap into the next subplot slot.
 
@@ -149,7 +150,7 @@ class Ionogram(object):
                 ha="left",
                 va="center",
                 transform=ax.transAxes,
-                fontdict={"size": self.font_size, "color": "w"},
+                fontdict={"size": self.font_size, "color": txt_color},
             )
         if add_cbar:
             self._add_colorbar(im, self.fig, ax, label=cbar_label.format(mode))

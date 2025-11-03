@@ -26,6 +26,7 @@ def clean():
 
 
 def build():
+    clean()
     os.system("isort -rc -sl .")
     os.system(
         "autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots ."
