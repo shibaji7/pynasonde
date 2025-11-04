@@ -11,7 +11,7 @@ import datetime as dt
 import os
 import shutil
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any, Iterable
 
 from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.ngi.scale import AutoScaler, NoiseProfile
@@ -48,7 +48,9 @@ def stage_day(root: Path, doy: int, temp_root: Path) -> Path:
     return tmp
 
 
-def load_datasets(folder: Path, start_idx: int, end_idx: int, jobs: int) -> Iterable[Any]:
+def load_datasets(
+    folder: Path, start_idx: int, end_idx: int, jobs: int
+) -> Iterable[Any]:
     """Load ionogram cubes for the desired index range."""
     datasource = DataSource(source_folder=str(folder))
     datasource.load_data_sets(start_idx, end_idx, n_jobs=jobs)

@@ -64,7 +64,9 @@ def generate_fti_profiles(
         power/noise columns, and metadata describing the contributing
         frequency band(s).
     """
-    bands = list(frequency_bands or [(3.5, 4.5)])  # Maintain band ordering to drive subplot stacking.
+    bands = list(
+        frequency_bands or [(3.5, 4.5)]
+    )  # Maintain band ordering to drive subplot stacking.
     if not bands:
         raise ValueError(
             "frequency_bands must include at least one (f_min, f_max) interval"
@@ -77,7 +79,9 @@ def generate_fti_profiles(
 
     logger.info(f"Loading NGI datasets from {folder}")
     ds = DataSource(source_folder=folder)
-    ds.load_data_sets(0, -1, n_jobs=20)  # Pull every NGI cube for the folder using modest parallelism.
+    ds.load_data_sets(
+        0, -1, n_jobs=20
+    )  # Pull every NGI cube for the folder using modest parallelism.
 
     mode = "O"
     rti = pd.DataFrame()
