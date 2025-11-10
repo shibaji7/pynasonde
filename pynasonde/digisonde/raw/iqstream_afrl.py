@@ -1,5 +1,5 @@
 """Functions to help read in raw binary data created by SDL/AFRL HF receivers.
-Based on code written by Eugene Dao (AFRL). 
+Based on code written by Eugene Dao (AFRL).
 @author Riley Troyer, Space Dynamics Laboratory, riley.troyer@sdl.usu.edu
 
 Copyright Space Dynamics Laboratory, 2025. The U.S. Federal Government retains a royalty-free, non-exclusive, non-
