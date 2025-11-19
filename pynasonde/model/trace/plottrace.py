@@ -12,15 +12,20 @@ __email__ = "chakras4@erau.edu"
 __status__ = "Research"
 
 import matplotlib.pyplot as plt
-
-# import scienceplots
-import scienceplots
-
-plt.style.use(["science", "ieee"])
-plt.rcParams["font.family"] = "sans-serif"
-plt.rcParams["font.sans-serif"] = ["Tahoma", "DejaVu Sans", "Lucida Grande", "Verdana"]
-plt.rcParams["text.usetex"] = False
 import numpy as np
+
+
+def setup(size=15):
+    import matplotlib as mpl
+    import scienceplots
+    import matplotlib.pyplot as plt
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["font.sans-serif"] = ["Tahoma", "DejaVu Sans", "Lucida Grande", "Verdana"]
+    plt.rcParams["text.usetex"] = False
+    mpl.rcParams.update(
+        {"xtick.labelsize": size, "ytick.labelsize": size, "font.size": size}
+    )
+    return
 
 
 class PlotRays(object):
@@ -33,6 +38,7 @@ class PlotRays(object):
         oth=True,
         figsize=(5, 5),
         Re_km=6371.0,
+        font_size=15,
     ):
         self.nrows = nrows
         self.ncols = ncols
@@ -42,6 +48,8 @@ class PlotRays(object):
         self.fig = plt.figure(figsize=(figsize[0] * ncols, figsize[1] * nrows), dpi=300)
         self.oth = oth
         self.Re = Re_km
+        self.font_size = font_size
+        setup(font_size)
         return
 
     def save(self, filepath):
@@ -101,7 +109,7 @@ class PlotRays(object):
                 ylabel,
                 ha="left",
                 va="center",
-                fontdict={"size": 12, "fontweight": "bold"},
+                fontdict={"size": self.font_size, "fontweight": "bold"},
                 rotation=90,
             )
             ax.text(
@@ -110,16 +118,16 @@ class PlotRays(object):
                 xlabel,
                 ha="center",
                 va="top",
-                fontdict={"size": 12, "fontweight": "bold"},
+                fontdict={"size": self.font_size, "fontweight": "bold"},
             )
             ax.set_facecolor("0.98")
             ax.fill_between(x, -800 * np.ones_like(y), y, color="gray", alpha=0.5)
         else:
-            ax.set_ylabel(ylabel, fontdict={"size": 12, "fontweight": "bold"})
-            ax.set_xlabel(xlabel, fontdict={"size": 12, "fontweight": "bold"})
+            ax.set_ylabel(ylabel, fontdict={"size": self.font_size, "fontweight": "bold"})
+            ax.set_xlabel(xlabel, fontdict={"size": self.font_size, "fontweight": "bold"})
         ax.set_xlim(self.xlim if len(self.xlim) == 2 else [-300, 300])
         ax.set_ylim(self.ylim if len(self.ylim) == 2 else [-100, 800])
-        ax.tick_params(axis="both", labelsize=11)
+        ax.tick_params(axis="both", labelsize=self.font_size)
         ax.set_yticks([0, 200, 400, 600, 800])
         return ax
 
@@ -155,6 +163,8 @@ class PlotRays(object):
             alpha=param_alpha,
             zorder=param_zorder,
         )
+        ax.set_xlim(self.xlim if len(self.xlim) == 2 else [-300, 300])
+        ax.set_ylim(self.ylim if len(self.ylim) == 2 else [-100, 800])
         if add_cbar:
             pos = ax.get_position()
             cpos = [
@@ -167,8 +177,8 @@ class PlotRays(object):
             cbax = self.fig.colorbar(
                 im, cax, spacing="uniform", orientation="vertical", cmap="plasma"
             )
-            _ = cbax.set_label(label, fontsize=11)
-            cbax.ax.tick_params(axis="both", labelsize=11)
+            _ = cbax.set_label(label, fontsize=self.font_size)
+            cbax.ax.tick_params(axis="both", labelsize=self.font_size)
 
         for o in outputs:
             x_km, y_km = o.x_km, o.y_km
