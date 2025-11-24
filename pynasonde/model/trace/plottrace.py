@@ -39,6 +39,8 @@ class PlotRays(object):
         figsize=(5, 5),
         Re_km=6371.0,
         font_size=15,
+        ylabel_loc=(-200, 200),
+        xlabel_loc=(0, -50),
     ):
         self.nrows = nrows
         self.ncols = ncols
@@ -49,6 +51,8 @@ class PlotRays(object):
         self.oth = oth
         self.Re = Re_km
         self.font_size = font_size
+        self.xlabel_loc = xlabel_loc
+        self.ylabel_loc = ylabel_loc
         setup(font_size)
         return
 
@@ -104,8 +108,8 @@ class PlotRays(object):
             x, y = self.Re * np.cos(theta), self.Re * np.sin(theta) - self.Re
             ax.plot(x, y, ls="-", color="k", lw=1)
             ax.text(
-                -400,
-                200,
+                self.ylabel_loc[0],
+                self.ylabel_loc[1],
                 ylabel,
                 ha="left",
                 va="center",
@@ -113,8 +117,8 @@ class PlotRays(object):
                 rotation=90,
             )
             ax.text(
-                0,
-                -50,
+                self.xlabel_loc[0],
+                self.xlabel_loc[1],
                 xlabel,
                 ha="center",
                 va="top",
