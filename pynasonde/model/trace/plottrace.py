@@ -17,10 +17,16 @@ import numpy as np
 
 def setup(size=15):
     import matplotlib as mpl
-    import scienceplots
     import matplotlib.pyplot as plt
+    import scienceplots
+
     plt.rcParams["font.family"] = "sans-serif"
-    plt.rcParams["font.sans-serif"] = ["Tahoma", "DejaVu Sans", "Lucida Grande", "Verdana"]
+    plt.rcParams["font.sans-serif"] = [
+        "Tahoma",
+        "DejaVu Sans",
+        "Lucida Grande",
+        "Verdana",
+    ]
     plt.rcParams["text.usetex"] = False
     mpl.rcParams.update(
         {"xtick.labelsize": size, "ytick.labelsize": size, "font.size": size}
@@ -65,6 +71,14 @@ class PlotRays(object):
         plt.close()
         return
 
+    def set_parameters(
+        self, pf_lim=(1, 9), edens_lim=(1e10, 1e12), ref_indx_lim=(0.8, 1.0)
+    ):
+        self.pf_lim = pf_lim
+        self.edens_lim = edens_lim
+        self.ref_indx_lim = ref_indx_lim
+        return
+
     def get_parameter(self, kind):
         import matplotlib.colors as colors
 
@@ -72,23 +86,22 @@ class PlotRays(object):
             o, cmap, label, norm = (
                 getattr(self, kind),
                 "PuOr",
-                # "YlGnBu",
                 r"$f_0$ [MHz]",
-                colors.Normalize(1, 9),
+                colors.Normalize(self.pf_lim[0], self.pf_lim[1]),
             )
         if kind == "edens":
             o, cmap, label, norm = (
                 getattr(self, kind),
                 "cool",
                 r"$N_e$ [$m^{-3}$]",
-                colors.LogNorm(1e10, 1e12),
+                colors.LogNorm(self.edens_lim[0], self.edens_lim[1]),
             )
         if kind == "ref_indx":
             o, cmap, label, norm = (
                 getattr(self, kind),
                 "cool",
                 r"$\eta$",
-                colors.Normalize(0.8, 1),
+                colors.Normalize(self.ref_indx_lim[0], self.ref_indx_lim[1]),
             )
         return o, cmap, label, norm
 
@@ -127,8 +140,12 @@ class PlotRays(object):
             ax.set_facecolor("0.98")
             ax.fill_between(x, -800 * np.ones_like(y), y, color="gray", alpha=0.5)
         else:
-            ax.set_ylabel(ylabel, fontdict={"size": self.font_size, "fontweight": "bold"})
-            ax.set_xlabel(xlabel, fontdict={"size": self.font_size, "fontweight": "bold"})
+            ax.set_ylabel(
+                ylabel, fontdict={"size": self.font_size, "fontweight": "bold"}
+            )
+            ax.set_xlabel(
+                xlabel, fontdict={"size": self.font_size, "fontweight": "bold"}
+            )
         ax.set_xlim(self.xlim if len(self.xlim) == 2 else [-300, 300])
         ax.set_ylim(self.ylim if len(self.ylim) == 2 else [-100, 800])
         ax.tick_params(axis="both", labelsize=self.font_size)

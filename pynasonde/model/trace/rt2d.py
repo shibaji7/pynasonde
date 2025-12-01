@@ -320,10 +320,14 @@ class RayTracer2D:
         kind="pf",
         close=False,
         text=None,
+        pf_lim=(1, 9), 
+        edens_lim=(1e10, 1e12), 
+        ref_indx_lim=(0.8, 1.0),
     ):
         outputs = outputs if len(outputs) > 0 else self.outputs
         homing_roots = homing_roots if len(homing_roots) > 0 else self.homing_roots
         rp = PlotRays()
+        rp.set_param_lims(pf_lim, edens_lim, ref_indx_lim)
         rp.set_density(X, Z, Ne, plasma_freq_hz(Ne) / 1e6)
         rp.lay_rays(
             outputs,
