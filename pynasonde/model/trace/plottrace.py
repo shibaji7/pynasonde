@@ -71,7 +71,7 @@ class PlotRays(object):
         plt.close()
         return
 
-    def set_parameters(
+    def set_param_lims(
         self, pf_lim=(1, 9), edens_lim=(1e10, 1e12), ref_indx_lim=(0.8, 1.0)
     ):
         self.pf_lim = pf_lim
