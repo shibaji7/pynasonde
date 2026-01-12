@@ -320,8 +320,8 @@ class RayTracer2D:
         kind="pf",
         close=False,
         text=None,
-        pf_lim=(1, 9), 
-        edens_lim=(1e10, 1e12), 
+        pf_lim=(1, 9),
+        edens_lim=(1e10, 1e12),
         ref_indx_lim=(0.8, 1.0),
     ):
         outputs = outputs if len(outputs) > 0 else self.outputs

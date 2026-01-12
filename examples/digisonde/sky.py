@@ -21,7 +21,7 @@ from pynasonde.digisonde.parsers.sky import SkyExtractor
 
 # Build a parser instance with a target .SKY file plus flags controlling
 # whether auxiliary frequency and angle tables are loaded.
-font_size = 20
+font_size = 15
 setsize(font_size)
 extractor = SkyExtractor(
     "examples/data/KR835_2024099160913.SKY",
@@ -40,10 +40,23 @@ skyplot = SkySummaryPlots(figsize=(4, 4), font_size=font_size)
 skyplot.plot_skymap(
     df,
     zparam="spect_dop_freq",
-    text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M:%S UT, %d %b %Y')}",
+    text=f"{extractor.date.strftime('%H:%M UT')}",
     cmap="Spectral",
     clim=[-0.25, 0.25],
     rlim=3,
+    txt_loc=(0.7, 1.0),
+    txt_fontsize=15,
+    cbar=False,
+)
+ax = skyplot.fig.get_axes()[0]
+ax.text(
+    -0.1,
+    0.99,
+    f"Skymap: {extractor.stn_code}",
+    ha="left",
+    va="top",
+    transform=ax.transAxes,
+    rotation=90,
 )
 # Persist the figure and release underlying matplotlib resources.
 # Persist the figure in the documentation assets directory.
@@ -56,6 +69,8 @@ import glob
 # Generate a multi-panel sky map layout for comparative analysis.
 import numpy as np
 
+font_size = 20
+setsize(font_size)
 files = sorted(glob.glob("examples/data/KR835_202409916*.SKY"))
 skyplot = SkySummaryPlots(
     fig_title="",
@@ -77,7 +92,7 @@ for i, f in enumerate(files):
     extractor.extract()
     df = extractor.to_pandas()
     # Annotate each panel with the UT timestamp of the observation.
-    text = f"{extractor.date.strftime('%H:%M:%S UT')}\n"
+    text = f"{extractor.date.strftime('%H:%M UT')}\n"
     skyplot.plot_skymap(
         df,
         zparam="spect_dop_freq",
@@ -86,6 +101,8 @@ for i, f in enumerate(files):
         clim=[-0.25, 0.25],
         rlim=3,
         cbar=i == len(files) - 1,
+        txt_loc=(0.7, 1.0),
+        txt_fontsize=15,
     )
 ax = skyplot.fig.get_axes()[0]
 ax.text(

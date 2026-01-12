@@ -736,6 +736,8 @@ class SkySummaryPlots(DigiPlots):
         ms: float = 1.5,
         zorder: int = 2,
         nrticks: int = 5,
+        txt_loc: tuple = (0.05, 0.9),
+        txt_fontsize: float = 10,
     ):
         """Render a polar skymap of measured points.
 
@@ -786,13 +788,13 @@ class SkySummaryPlots(DigiPlots):
         )
         if text:
             ax.text(
-                0.05,
-                0.9,
+                txt_loc[0],
+                txt_loc[1],
                 text,
                 ha="left",
                 va="center",
                 transform=ax.transAxes,
-                fontdict={"size": self.font_size},
+                fontdict={"size": txt_fontsize},
             )
         ax.set_rmax(rlim)
         if cbar:

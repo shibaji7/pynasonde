@@ -307,10 +307,37 @@ class Ionogram(object):
         )
         Z[Z < prange[0]] = prange[0]
         if kind == "pcolormesh":
+            x_minutes = (
+                pd.to_datetime(X[0, :]) - pd.to_datetime(X[0, 0])
+            ).total_seconds() / 60.0
+            y_km = np.asarray(Y[:, 0])
+            nx_fine = 4 * len(x_minutes)  # 4x upsample in time
+            ny_fine = 4 * len(y_km)  # 4x upsample in height
+            x_fine = np.linspace(x_minutes.min(), x_minutes.max(), nx_fine)
+            y_fine = np.linspace(y_km.min(), y_km.max(), ny_fine)
+
+            from scipy.interpolate import RegularGridInterpolator
+
+            interp = RegularGridInterpolator(
+                (x_minutes, y_km),
+                Z,
+                method="linear",  # or "nearest"
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+            xx, yy = np.meshgrid(x_fine, y_fine, indexing="ij")
+            points = np.column_stack([xx.ravel(), yy.ravel()])
+            Z_fine = interp(points).reshape(xx.shape)
+            xx_dt = (
+                (pd.to_datetime(X[0, 0]) + pd.to_timedelta(xx.ravel(), unit="min"))
+                .to_numpy()
+                .reshape(xx.shape)
+            )
+
             im = ax.pcolormesh(
-                X,
-                Y,
-                Z.T,
+                xx_dt,
+                yy,
+                Z_fine,
                 cmap=cmap,
                 vmax=prange[1],
                 vmin=prange[0],

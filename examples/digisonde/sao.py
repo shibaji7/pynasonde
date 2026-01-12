@@ -60,6 +60,10 @@ ax = sao_plot.axes
 ax.set_xlim([date, date + dt.timedelta(1)])
 ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
 
+# from matplotlib.collections import PathCollection
+# scatter_plots = [c for c in ax.collections if isinstance(c, PathCollection)]
+# print(scatter_plots)
+
 # Persist the figure alongside other documentation assets.
 sao_plot.save("docs/examples/figures/stack_sao_ne.png")
 sao_plot.fig.savefig(
@@ -100,6 +104,28 @@ sao_plot.plot_TS(
 ax = sao_plot.axes
 ax.set_xlim([date, date + dt.timedelta(1)])
 ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
+
+
+main_ax = sao_plot.axes
+handles, labels = [], []
+for _a in sao_plot.fig.get_axes():
+    h, label = _a.get_legend_handles_labels()
+    handles.extend(h)
+    labels.extend(label)
+
+# Remove duplicate labels while preserving order and skip empty labels
+seen = set()
+unique_handles = []
+unique_labels = []
+for h, l in zip(handles, labels):
+    if l and l not in seen:
+        seen.add(l)
+        unique_handles.append(h)
+        unique_labels.append(l)
+
+if unique_handles:
+    main_ax.legend(unique_handles, unique_labels, loc=2)
+
 
 # Persist the figure alongside other documentation assets.
 sao_plot.save("docs/examples/figures/stack_sao_F2.png")

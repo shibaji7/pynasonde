@@ -1,0 +1,62 @@
+digraph DigisondeWorkflow {
+  graph [
+    rankdir=TB,
+    splines=ortho,
+    nodesep=0.6,
+    ranksep=0.8,
+    bgcolor="white"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=14,
+    fillcolor="white",
+    color="black",
+    penwidth=1.8
+  ];
+
+  edge [
+    arrowsize=0.9,
+    penwidth=1.8
+  ];
+
+  // Nodes
+  RAW [label="Raw waveforms"];
+
+  RSF_SBF [label=<
+    <B>RSF / SBF</B><BR/>
+    <FONT POINT-SIZE="11">Range–frequency representation<br/>Echo detection</FONT>
+  >];
+
+  DFT [label=<
+    <B>DFT</B><BR/>
+    <FONT POINT-SIZE="11">Doppler-resolved spectra</FONT>
+  >];
+
+  SKY [label=<
+    <B>SKY</B><BR/>
+    <FONT POINT-SIZE="11">Direction-of-arrival<br/>Skymaps</FONT>
+  >];
+
+  DVL [label=<
+    <B>DVL</B><BR/>
+    <FONT POINT-SIZE="11">Bulk Doppler<br/>velocity diagnostics</FONT>
+  >];
+
+  SAO [label=<
+    <B>SAO</B><BR/>
+    <FONT POINT-SIZE="11">Scaled ionospheric<br/>parameters</FONT>
+  >];
+
+  // Main workflow
+  RAW -> RSF_SBF;
+  RAW -> DFT;
+  DFT -> SKY [label="DFT2SKY", fontsize=11];
+  SKY -> DVL;
+
+  // Parallel branch to SAO
+  RSF_SBF -> SAO [label="ARTIST5.0", fontsize=11];
+
+}
