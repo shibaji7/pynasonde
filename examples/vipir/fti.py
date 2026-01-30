@@ -26,6 +26,7 @@ from loguru import logger
 from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.ngi.source import DataSource
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 font_size = 15
 setsize(font_size)
@@ -85,7 +86,7 @@ def generate_fti_profiles(
 
     mode = "O"
     rti = pd.DataFrame()
-    for dataset in ds.datasets:
+    for j, dataset in enumerate(ds.datasets):
         # Assemble a timestamp for the snapshot and project the ionogram cube onto
         # frequency × height grids so the values can be flattened into a DataFrame.
         time = dt.datetime(
@@ -96,6 +97,8 @@ def generate_fti_profiles(
             dataset.minute,
             dataset.second,
         )
+        if j == 0:
+            LTC = TimeZoneConversion(None, dataset.latitude, dataset.longitude)
         logger.info(f"Processing snapshot at {time:%Y-%m-%d %H:%M:%S}")
         frequency, range_gate = np.meshgrid(
             dataset.Frequency, dataset.Range, indexing="ij"
@@ -112,7 +115,8 @@ def generate_fti_profiles(
                 f"{mode}_mode_noise": noise.ravel(),
             }
         )
-        frame["time"] = time
+        # frame["time"] = time
+        frame["time"] = LTC.utc_to_local_time([time])[0]
         # Restrict to the shared altitude/frequency envelope covered by the requested bands.
         frame = frame[
             (frame.range <= 400)
@@ -147,10 +151,10 @@ def generate_fti_profiles(
         )
         ionogram.fig.subplots_adjust(top=0.92)
 
-    xdate_lims = [obs_start, obs_end]
     if date is not None:
         # When a specific day is supplied, pin the x-axis to a full 24-hour window.
         xdate_lims = [date, date + dt.timedelta(hours=24)]
+    xdate_lims = [obs_start, obs_end]
 
     band_frames: list[pd.DataFrame] = []
     for idx, (f_min, f_max) in enumerate(bands):
@@ -197,7 +201,7 @@ def generate_fti_profiles(
         axis = ionogram.add_interval_plots(
             band_df,
             mode,
-            xlabel="Time, UT" if idx == len(bands) - 1 else "",
+            xlabel="Time, LT" if idx == len(bands) - 1 else "",
             ylabel="Virtual Height, km",
             ylim=[50, 400],
             add_cbar=idx == len(bands) - 1,

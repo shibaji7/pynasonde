@@ -48,7 +48,7 @@ sao_plot = SaoSummaryPlots(
 sao_plot.add_TS(
     df,
     zparam="ed",
-    prange=[0, 1],
+    prange=[0, 2],
     zparam_lim=10,
     cbar_label=r"$N_e$,$\times 10^{6}$ /cc",
     plot_type="scatter",
