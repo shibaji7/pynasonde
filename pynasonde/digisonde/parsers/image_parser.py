@@ -199,9 +199,9 @@ class IonogramImageExtractor(object):
                     )
                 record = dict(zip(header_columns, header_values))
 
-    record = pd.DataFrame.from_dict([record])
-    logger.info(f"Parsed records: \n {record}")
-    return record
+        record = pd.DataFrame.from_dict([record])
+        logger.info(f"Parsed records: \n {record}")
+        return record
 
 
 if __name__ == "__main__":

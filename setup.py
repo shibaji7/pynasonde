@@ -12,7 +12,12 @@ setup(
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
-        "pynasonde": ["config.toml", "digisonde_station_codes.csv", "saoxml.dtd"],
+        "pynasonde": [
+            "config.toml",
+            "digisonde_station_codes.csv",
+            "saoxml.dtd",
+            "matlab_lib/*.m",
+        ],
     },
     data_files=[
         (
@@ -21,6 +26,11 @@ setup(
                 "pynasonde/config.toml",
                 "pynasonde/digisonde_station_codes.csv",
                 "pynasonde/saoxml.dtd",
+                "pynasonde/matlab_lib/apply_misc_and_language.m",
+                "pynasonde/matlab_lib/apply_scienceplots_style.m",
+                "pynasonde/matlab_lib/SaoSummaryPlots.m",
+                "pynasonde/matlab_lib/DigiPlots.m",
+                "pynasonde/matlab_lib/SkySummaryPlots.m",
             ],
         )
     ],

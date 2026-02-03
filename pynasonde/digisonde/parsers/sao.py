@@ -206,7 +206,18 @@ class SaoExtractor(object):
         return profile, trace
 
     def get_scaled_datasets_xml(
-        self, params: List[str] = ["foEs", "foF1", "foF2", "h`Es", "hmF1", "hmF2"]
+        self,
+        params: List[str] = [
+            "foEs",
+            "foF1",
+            "foF2",
+            "h`Es",
+            "hmF1",
+            "hmF2",
+            "hmE",
+            "foEp",
+            "foE",
+        ],
     ) -> pd.DataFrame:
         """Return selected characteristic parameters from XML SAO as a DataFrame.
 
@@ -225,17 +236,21 @@ class SaoExtractor(object):
             for cid, ursi in enumerate(sao_record.CharacteristicList.URSI):
                 if ursi.Name in params:
                     d.update({ursi.Name: ursi.Val})
+            for cid, mod in enumerate(sao_record.CharacteristicList.Modeled):
+                if mod.Name in params:
+                    d.update({mod.Name: mod.Val})
             if len(d) == 0:
                 d.update(zip(params, [np.nan] * len(params)))
+            d.update(
+                dict(
+                    datetime=sao_record.StartTimeUTC,
+                    lat=sao_record.GeoLatitude,
+                    lon=sao_record.GeoLongitude,
+                    ursi_code=sao_record.URSICode,
+                )
+            )
             df.append(d)
         df = pd.DataFrame.from_records(df)
-        if len(df):
-            df["datetime"] = self.date
-            df["local_datetime"] = self.local_time
-            df["lat"], df["lon"] = (
-                self.stn_info["LAT"],
-                self.stn_info["LONG"],
-            )
         return df
 
     def extract(self) -> dict:
