@@ -112,6 +112,9 @@ classdef SaoSummaryPlots < DigiPlots
                 opts.color_map = [255 100 100]
                 opts.color_direction = "light2dark"
                 opts.txt_pos = [0.9 0.9]
+                opts.vlines = []
+                opts.vline_style = []
+                opts.draw_legend = true
             end
 
             if obj.draw_local_time
@@ -159,7 +162,9 @@ classdef SaoSummaryPlots < DigiPlots
                 datetick(ax, "x", "HH^{MM}", "keeplimits", "keepticks");
             end
             
-            legend(ax, "Location", "northwest");
+            if opts.draw_legend
+                legend(ax, "Location", "northwest");
+            end
 
             tax = [];
             if ~isempty(right_yparams)
@@ -182,6 +187,15 @@ classdef SaoSummaryPlots < DigiPlots
             if strlength(opts.title_txt) > 0
                 text(ax, opts.txt_pos(1), opts.txt_pos(2), opts.title_txt, "Units", "normalized", "HorizontalAlignment", "right", "VerticalAlignment", "middle");
             end
+
+            if ~isempty(opts.vlines)
+                for v = 1:numel(opts.vlines)
+                    xv = datenum(opts.vlines(v));
+                    yl = ax.YLim;
+                    line(ax, [xv xv], yl, "Color", "k", "LineStyle", opts.vline_style, "ZData", [1 1]*ax.ZLim(2));
+                end
+            end
+
         end
 
         function plot_ionogram(obj, df, xparam, yparam, xlabel_txt, ylabel_txt, ylim, xlim, xticks, text_txt, del_ticks, ls, lcolor, lw, zorder, ax, kind)

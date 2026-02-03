@@ -37,9 +37,17 @@ class CreateFig:
         self.eng.quit()
         return
 
-    def generate_scaled_TS_figure(self, data_dicts: list[dict], fig_file_name: str):
+    def generate_scaled_TS_figure(
+        self,
+        data_dicts: list[dict],
+        fig_file_name: str,
+        fontsize: int = 16,
+        fig_shape: tuple = (8, 2),
+    ):
         self.eng.eval(
-            f"sp = SaoSummaryPlots('', {len(data_dicts)},1,16, [8 5*{len(data_dicts)}]);",
+            f"""
+            sp = SaoSummaryPlots("", {len(data_dicts)}, 1, {fontsize}, [{fig_shape[0]} {fig_shape[1]}*{len(data_dicts)}]);
+            """,
             nargout=0,
         )
         for i, data_dict in enumerate(data_dicts):
@@ -104,6 +112,8 @@ class CreateFig:
             self.eng.workspace["title_txt"] = title_txt
             self.eng.workspace["vlines"] = matlab.double(vlines)
             self.eng.workspace["vline_styles"] = list(vline_styles)
+            self.eng.workspace["draw_legend"] = data_dict.get("draw_legend", False)
+            self.eng.workspace["xlabel_txt"] = data_dict.get("xlabel_txt", "Time, UT")
 
             self.eng.eval(
                 f"""
@@ -115,11 +125,18 @@ class CreateFig:
                             xlim=xlim, left_yparam_labels=left_yparam_labels, ...
                             right_yparam_labels=right_yparam_labels, ...
                             color_direction = "dark2light", ms=3, ...
-                            title_txt=title_txt, txt_pos=[0.9 0.9] ...
+                            title_txt=title_txt, txt_pos=[0.9 0.9], ...
+                            vlines=vlines, vline_style=vline_styles, ...
+                            draw_legend=draw_legend, xlabel_txt=xlabel_txt ...
                     );
-                    sp.save(fullfile("{self.fig_path}", "{fig_file_name}"));
-                    sp.close();
                 """,
                 nargout=0,
             )
+        self.eng.eval(
+            f"""
+            sp.save(fullfile("{self.fig_path}", "{fig_file_name}"));
+            sp.close();
+            """,
+            nargout=0,
+        )
         return
