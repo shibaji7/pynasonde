@@ -1,3 +1,8 @@
+# RIQ Utils
+
+<span class="api-badge api-method">M</span>
+`pynasonde.vipir.riq.utils` — low-level helpers for null-terminated strings, phase unwrapping, and index parity.
+
 ::: pynasonde.vipir.riq.utils
     handler: python
     options:

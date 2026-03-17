@@ -1,5 +1,8 @@
 # Sky parser
 
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.parsers.sky` — `SkyExtractor`
+
 Parses sky images and associated metadata.
 
 ::: pynasonde.digisonde.parsers.sky

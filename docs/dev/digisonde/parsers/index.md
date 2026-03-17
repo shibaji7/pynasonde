@@ -1,5 +1,8 @@
 # Digisonde parsers
 
+<span class="api-badge api-package">P</span>
+`pynasonde.digisonde.parsers` — SAO, SKY, DFT, RSF, DVL, EDP, SBF, MMM, and image parsers.
+
 This page links individual parser modules and provides brief usage examples.
 
 ::: pynasonde.digisonde.parsers.sky.SkyExtractor
@@ -17,8 +20,6 @@ This page links individual parser modules and provides brief usage examples.
     options:
         show_root_heading: true
         show_source: false
-        members:
-            - parse_sao (if present)
 
 ::: pynasonde.digisonde.parsers.sbf
     handler: python

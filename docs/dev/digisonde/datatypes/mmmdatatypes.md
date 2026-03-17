@@ -1,5 +1,8 @@
 # MMM datatypes
 
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.datatypes.mmmdatatypes` — `ModMaxDataUnit`, `ModMaxHeader`, `ModMaxFreuencyGroup`
+
 Dataclasses modeling MMM-format headers and spectral blocks.
 
 ::: pynasonde.digisonde.datatypes.mmmdatatypes

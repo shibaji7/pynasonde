@@ -1,4 +1,7 @@
-## DFT datatypes
+# DFT datatypes
+
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.datatypes.dftdatatypes` — `DopplerSpectralBlock`, `DopplerSpectra`, `DftHeader`, `SubCaseHeader`
 
 Dataclasses modeling DFT-format headers and spectral blocks.
 

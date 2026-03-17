@@ -1,3 +1,8 @@
+# Digisonde Utils
+
+<span class="api-badge api-method">M</span>
+`pynasonde.digisonde.digi_utils` — shared utility functions (namespace helpers, grid builders, station CSV loader).
+
 ::: pynasonde.digisonde.digi_utils
     handler: python
     options:

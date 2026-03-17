@@ -1,5 +1,8 @@
 # SAO XML datatypes
 
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.datatypes.saoxmldatatypes` — `SAORecord`, `Trace`, `Profile`, `SystemInfo`, and related dataclasses.
+
 Dataclasses for SAO/XML-format records and frequency groups.
 
 ::: pynasonde.digisonde.datatypes.saoxmldatatypes

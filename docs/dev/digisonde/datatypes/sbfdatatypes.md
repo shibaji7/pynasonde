@@ -1,4 +1,7 @@
-## SBF datatypes
+# SBF datatypes
+
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.datatypes.sbfdatatypes` — `SbfDataFile`, `SbfDataUnit`, `SbfFreuencyGroup`, `SbfHeader`
 
 Dataclasses for SBF-format records and frequency groups.
 

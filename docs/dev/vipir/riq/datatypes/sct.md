@@ -1,4 +1,7 @@
-## SCT datatypes
+# SCT datatypes
+
+<span class="api-badge api-class">C</span> <span class="api-badge api-method">M</span>
+`pynasonde.vipir.riq.datatypes.sct` — `SctType` and sub-type dataclasses (`StationType`, `TimingType`, etc.), plus `read_dtype`.
 
 Dataclasses modeling VIPIR SCT header-format header block.
 

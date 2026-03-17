@@ -105,6 +105,11 @@ nav:
                                 - SBF:  dev/digisonde/datatypes/sbfdatatypes.md
                                 - DFT: dev/digisonde/datatypes/dftdatatypes.md
                                 - RSF: dev/digisonde/datatypes/rsfdatatypes.md
+                        - Raw IQ Processing:
+                                - Overview: dev/digisonde/raw/index.md
+                                - Pipeline (raw_parse): dev/digisonde/raw/raw_parse.md
+                                - IQ Reader: dev/digisonde/raw/iq_reader.md
+                                - Plots: dev/digisonde/raw/raw_plots.md
                 - VIPIR:
                         - Overview: dev/vipir/index.md
                         - RIQ Overview: dev/vipir/riq/index.md

@@ -42,6 +42,7 @@ def test_run_sky_example(monkeypatch):
 
     _cleanup(outputs)
 
+
 @pytest.mark.skip(reason="This test is currently broken")
 def test_run_sao_example(monkeypatch, tmp_path):
     pytest.importorskip("matplotlib")
@@ -92,6 +93,7 @@ def test_run_sao_example(monkeypatch, tmp_path):
         assert output.exists() and output.stat().st_size > 0
 
     _cleanup(outputs)
+
 
 @pytest.mark.skip(reason="This test is currently broken")
 def test_run_dvl_example(monkeypatch):

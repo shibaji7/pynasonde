@@ -1,3 +1,8 @@
+# Trace parsers
+
+<span class="api-badge api-method">M</span>
+`pynasonde.vipir.riq.parsers.trace` — echo trace extraction and phase-velocity computation functions.
+
 ::: pynasonde.vipir.riq.parsers.trace
     handler: python
     options:

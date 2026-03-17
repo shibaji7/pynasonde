@@ -1,5 +1,8 @@
 # MMM parser
 
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.parsers.mmm` — `ModMaxExtractor`
+
 Parses MMM (multi-mode) digisonde outputs.
 
 ::: pynasonde.digisonde.parsers.mmm

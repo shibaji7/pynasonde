@@ -1,4 +1,7 @@
-## PCT datatypes
+# PCT datatypes
+
+<span class="api-badge api-class">C</span> <span class="api-badge api-method">M</span>
+`pynasonde.vipir.riq.datatypes.pct` — `Ionogram`, `PctType` dataclasses and `to_mantissa_exponant` helper.
 
 Dataclasses modeling VIPIR PCT-format data blocks.
 

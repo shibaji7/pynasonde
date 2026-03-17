@@ -1,5 +1,8 @@
 # DFT parser
 
+<span class="api-badge api-class">C</span>
+`pynasonde.digisonde.parsers.dft` — `DftExtractor`
+
 Parses DFT-format digisonde outputs.
 
 ::: pynasonde.digisonde.parsers.dft

@@ -1,3 +1,8 @@
+# NGI Utils
+
+<span class="api-badge api-class">C</span> <span class="api-badge api-method">M</span>
+`pynasonde.vipir.ngi.utils` — timezone conversion, outlier removal, smoothing, grid helpers.
+
 ::: pynasonde.vipir.ngi.utils
     handler: python
     options:
