@@ -24,7 +24,7 @@ if [ -n "$1" ]; then
 else
   CHANGED=$(git diff --cached --name-only | head -6 | tr '\n' ', ' | sed 's/,$//')
   COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')
-  MSG="Update website: $COUNT file(s) changed — $CHANGED"
+  MSG="Update codebase: $COUNT file(s) changed — $CHANGED"
 fi
 
 # ── Commit ────────────────────────────────────────────────────
