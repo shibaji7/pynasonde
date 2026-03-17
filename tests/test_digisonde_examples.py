@@ -49,14 +49,14 @@ def test_run_sao_example(monkeypatch, tmp_path):
     base_time = dt.datetime(2023, 10, 14)
     hp_df = pd.DataFrame(
         {
-            "datetime": pd.date_range(base_time, periods=4, freq="6H"),
+            "datetime": pd.date_range(base_time, periods=4, freq="h"),
             "th": np.linspace(100, 200, 4),
             "ed": np.linspace(0.2, 0.8, 4),
         }
     )
     scaled_df = pd.DataFrame(
         {
-            "datetime": pd.date_range(base_time, periods=4, freq="6H"),
+            "datetime": pd.date_range(base_time, periods=4, freq="6h"),
             "hmF2": np.linspace(220, 260, 4),
             "foF2": np.linspace(4, 8, 4),
         }
@@ -102,7 +102,7 @@ def test_run_dvl_example(monkeypatch):
     base_time = dt.datetime(2023, 10, 14)
     dvl_df = pd.DataFrame(
         {
-            "datetime": pd.date_range(base_time, periods=4, freq="6H"),
+            "datetime": pd.date_range(base_time, periods=4, freq="6h"),
             "Hb": np.linspace(250, 280, 4),
             "Ht": np.linspace(270, 300, 4),
             "Vx": np.linspace(-10, 10, 4),
