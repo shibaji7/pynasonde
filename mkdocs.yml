@@ -72,9 +72,10 @@ nav:
     - DIGISONDE: user/digisonde.md
     - Citing: user/citing.md
     - Authors: user/authors.md
-    - Toolbox: 
+    - Toolbox:
             - isca: tools/isca.md
             - fti: tools/fti.md
+            - HF Ray Tracing: tools/raytrace.md
     - Examples:
             - VIPIR Examples:
                     - Read/Plot RIQ: examples/vipir/proc_riq.md

@@ -30,11 +30,11 @@ consists of a fixed header block followed by one record per transmitted pulse:
 
 ```
 ┌─────────────────────────────┐
-│  Sounding Control Table     │  (SCT) — instrument configuration
-│  (variable size)            │
+│  Sounding Control Table   │  (SCT) — instrument configuration
+│  (variable size)          │
 ├─────────────────────────────┤
-│  Pulse Configuration Table  │  (PCT) — per-pulse metadata + IQ data
-│  repeated N_pulses times    │
+│  Pulse Configuration Table│  (PCT) — per-pulse metadata + IQ data
+│  repeated N_pulses times  │
 └─────────────────────────────┘
 ```
 

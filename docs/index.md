@@ -82,6 +82,11 @@ If you have any questions or concerns please submit an **Issue** on the [pynason
     <a href="dev/">Open API</a>
   </div>
   <div class="doc-card">
+    <strong>HF Ray Tracing</strong>
+    Why ray paths matter and how to forward-model them with PyTrace.<br>
+    <a href="tools/raytrace/">Open Ray Tracing Guide</a>
+  </div>
+  <div class="doc-card">
     <strong>Citing & Authors</strong>
     Citation guidance and contributor listing.<br>
     <a href="user/citing/">Citing</a> | <a href="user/authors/">Authors</a>
