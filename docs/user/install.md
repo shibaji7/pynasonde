@@ -1,106 +1,102 @@
-<!-- 
+<!--
 Author(s): Shibaji Chakraborty
 
 Disclaimer:
 -->
 
-# Installing Pynasonde 
----
+# Installing Pynasonde
 
-[![License: MIT](https://img.shields.io/badge/License%3A-MIT-green)](https://choosealicense.com/licenses/mit/) 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/) 
+<div class="hero">
+  <h2>Get Up and Running in Minutes</h2>
+  <p>
+    Pynasonde requires Python 3.11+ and installs cleanly via pip into any
+    virtual environment. Most users only need the one-line install below.
+  </p>
+</div>
+
+[![License: MIT](https://img.shields.io/badge/License%3A-MIT-green)](https://choosealicense.com/licenses/mit/)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 ![GitHub Stable Release (latest by date)](https://img.shields.io/github/v/release/shibaji7/pynasonde)
-[![Documentation Status](https://img.shields.io/readthedocs/pynasonde?logo=readthedocs&label=docs)](https://pynasonde.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/shibaji7/pynasonde/branch/main/graph/badge.svg)](https://codecov.io/gh/shibaji7/pynasonde)
 
+## Quick Start
 
-!!! Important 
-    It is recommended to install pynasonde `pip`; however, please cite via the [DOI for the release]() 
+```bash
+pip install pynasonde
+```
 
+Verify the install:
 
-## Prerequisites
+```python
+import pynasonde
+print(pynasonde.__version__)
+```
 
-Pynasonde requires **python 3.11** or later and **matplotlib 3.3.4** or later.
+!!! note "Upgrade"
+    Already installed? Run `pip install --upgrade pynasonde` to get the latest release.
 
-Depending on your operating system or distribution, the following package installers, development environments or data parsers are required: 
- 
-| Ubuntu      | OpenSuse       | Fedora        | OSX           | Windows       |
-| ----------- | -------------- | ------------- | ------------- | ------------- |
-| libyaml-dev | python3-PyYAML | libyaml-devel | Xcode/pip     | pip           |
+## Recommended Workflows
 
-You can check your python version using
+### conda (recommended)
 
-`$ python --version` or 
-`$ python3 --version`
+```bash
+conda create -n pynasonde python=3.11
+conda activate pynasonde
+pip install pynasonde
+```
 
-!!! Note
-    If you have already installed `pynasonde` you can use `pip3 install --upgrade pynasonde`
+### pip virtual environment
 
-## Dependencies
+```bash
+python3 -m venv pynasonde-env
+source pynasonde-env/bin/activate   # Windows: pynasonde-env\Scripts\activate
+pip install pynasonde
+```
 
-pynasonde's setup will download the following dependencies:
+## Developer Install
 
-- Core Python dependencies (declared in `setup.py::install_requires`): `loguru`, `numpy==1.26.4`, `pandas==2.2.3`, `matplotlib==3.9.2`, `xarray==2024.9.0`, `toml==0.10.2`, `tqdm==4.66.5`, `timezonefinder==6.5.5`, `scipy==1.14.1`, `SciencePlots==2.1.1`, `pysolar==0.11`, `pytz==2024.2`, `requests==2.32.3`, `beautifulsoup4==4.12.3`, `lxml==5.3.0`, `opencv-python-headless`, `nrlmsise00==0.1.2`, `scikit-image==0.24.0`, `scikit-learn==1.5.2`, `pytesseract==0.3.13`.
-- Optional development extras (install with `pip install pynasonde[dev]` to pull `extras_require["dev"]`): `pytest`, `pytest-cov`, `coverage`, `scipy`, `numpy`, `pandas`, `matplotlib`, `pytesseract`, `loguru`, `requests`, `beautifulsoup4`, `tqdm`, `lxml`, `toml`, `pytz`, `timezonefinder`, `SciencePlots`.
-- [Git](https://git-scm.com/) (for developers)
-- [pip3](https://help.dreamhost.com/hc/en-us/articles/115000699011-Using-pip3-to-install-Python3-modules)
+Clone the repository and install in editable mode so local source changes take effect immediately:
 
-!!! Note
-    If you wish to plot coastlines or geographic projections you will need to install cartopy>=0.19 separately
+```bash
+git clone https://github.com/shibaji7/pynasonde.git
+cd pynasonde
+pip install -e ".[dev]"
+```
 
-### Cartopy 
-[Cartopy](https://scitools.org.uk/cartopy/docs/latest/) is a Python package designed for geospatial data processing in order to produce maps and other geospatial data analyses. This library is used when invoking a projection system needing overlapped coastline maps in cable routs plots. 
+The `[dev]` extra pulls in `pytest`, `pytest-cov`, `coverage`, and the full
+scientific stack (`numpy`, `pandas`, `matplotlib`, `scipy`, …).
 
-For installing cartopy please follow the packages [installation](https://scitools.org.uk/cartopy/docs/latest/installing.html) instructions. For ubuntu here is good installation [link](https://techoverflow.net/2021/07/11/how-to-install-cartopy-on-ubuntu/) 
+!!! warning "Cartopy (optional)"
+    Coastline and geographic projection plots require `cartopy >= 0.19`.
+    Install it separately following the [Cartopy installation guide](https://scitools.org.uk/cartopy/docs/latest/installing.html).
+    On Ubuntu: `sudo apt-get install python3-cartopy` often works cleanly.
 
-!!! Warning
-    For cartopy to work with pynasonde please make sure it version `>=0.19`. Otherwise pynasonde may throw an exception if you try to use it.  
+## Core Dependencies
 
+Pynasonde's `setup.py` installs these automatically:
 
-!!! Note
-    cartopy can be a challenging package to install so please provide any information on troubleshooting or solutions to common issues on the [pynasonde GitHub](https://github.com/shibaji7/pynasonde) page. 
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `numpy` | 1.26.4 | Array operations, bit-level unpacking |
+| `pandas` | 2.2.3 | Tidy DataFrames for all parsed outputs |
+| `matplotlib` | 3.9.2 | Publication-quality plotting |
+| `scipy` | 1.14.1 | Signal processing utilities |
+| `xarray` | 2024.9.0 | Gridded data structures |
+| `loguru` | latest | Structured logging |
+| `timezonefinder` | 6.5.5 | Station local-time lookup |
+| `SciencePlots` | 2.1.1 | Clean scientific plot styles |
 
+## System Requirements
 
+| OS | Required system package |
+|----|------------------------|
+| Ubuntu / Debian | `libyaml-dev` |
+| OpenSuse | `python3-PyYAML` |
+| Fedora | `libyaml-devel` |
+| macOS | Xcode Command Line Tools |
+| Windows | pip (no extra system package) |
 
-## Virtual Environments
-It is recommended to install pynasonde in one of the suggested virtual environments if you have multiple python/pip 3 version on your computer, or do not want to affect the main system's python libraries. 
+Check your Python version:
 
-The following virtual environments have been tested by pynasonde developers:"
-
-### pip Virtual Environment
-Instructions can be found here [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
-
-1. `$ python3 -m pip install --user virtualenv` (Install virtual environment package)
-2. `$ python3 -m virtualenv <environment name>`  (Make your virtual environment)
-3. `$ source <environment name>/bin/activate`  (Activate the virtual environment)
-4. `$ pip install pynasonde`    (Install pynasonde)
-
-!!! Note
-    If you have multiple versions of python 3 on your machine, you can access a specific version by: `python<version number>`. 
-    For example, if you want to install python 3.6 virtual environment: `python3.11 -m pip install --user virtualenv`.
-
-### Anaconda Virtual Environment
-Instructions can be found here [conda environment](https://uoa-eresearch.github.io/eresearch-cookbook/recipe/2014/11/20/conda/) and installing [anaconda](https://docs.anaconda.com/anaconda/install/)
-
-1. `$ conda create -n yourenvname python=3.11 anaconda`
-2. `$ conda activate yourenvname`
-3. `$ pip install pynasonde`
-
-#### Adding the environment to PyCharm
-
-To set the project interpreter to the anaconda environment:
-
-1. File -> Settings -> Project Folder -> Project Interpreter
-2. Click the project Interpreter drop down list and click on show all.
-
-    * If you don't see the environment you wish to use click the plus sign on the right side bar named "Add"
-    * Select "Conda Environment" on the left side menu.
-    * Click "Existing Environment" and give the interpreter field the path to your environment's python.exe and apply.
-
-## Local Install
-**pip3 install**
-
-`pip3 install --user pynasonde`
-
-## System Install 
-`sudo pip3 install pynasonde`
+```bash
+python --version   # or python3 --version
+```

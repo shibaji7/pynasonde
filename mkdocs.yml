@@ -54,6 +54,9 @@ markdown_extensions:
     - pymdownx.details
     - footnotes
         
+extra_css:
+    - css/pynasonde.css
+
 extra_javascript:
     - javascripts/mathjax.js
     - https://polyfill.io/v3/polyfill.min.js?features=es6
@@ -75,10 +78,12 @@ nav:
                     - Read/Plot RIQ: examples/vipir/proc_riq.md
                     - Read/Plot FTI: examples/vipir/fti.md
             - Digisonde Examples:
-                    - Read/Plot SAO: examples/digisonde/sao.md
+                    - SAO Height Profiles + F2: examples/digisonde/sao.md
+                    - SAO Isodensity + DFT Waterfall: examples/digisonde/sao_dft.md
                     - Read/Plot SKY: examples/digisonde/sky.md
                     - Read/Plot DVL: examples/digisonde/dvl.md
-                    - Read/Plot RSF: examples/digisonde/rsf.md
+                    - RSF Parse and Inspect: examples/digisonde/rsf.md
+                    - RSF Direction Ionogram + Directogram: examples/digisonde/rsf_direction_ionogram.md
     - API Documentation: 
                 - Digisonde: 
                         - Utils: dev/digisonde/digi_utils.md

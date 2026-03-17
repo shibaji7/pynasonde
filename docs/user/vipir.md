@@ -1,220 +1,198 @@
-<!-- 
+<!--
 Author(s): Shibaji Chakraborty
 
 Disclaimer:
 
 -->
 
-<style>
-tr:nth-child(even) {
-  background-color: #b2b2b2!important;
-  color: #f4f4f4!important;
-}
-</style>
-
 # VIPIR: _Vertical Incidence Pulsed Ionospheric Radar_
-The Vertical Incidence Pulsed Ionospheric Radar (VIPIR) was initially developed by Scion Associates under a Small Business Innovative Research grant from the U.S. Air Force Research Laboratory. The first installation of VIPIR took place at NASA's Wallops Island Flight Facility in 2008. Since then, 15 VIPIR instruments have been deployed in various locations.
 
-In 2015, Scion Associates introduced Version 2 of the radar system, further enhancing its capabilities. This software suite is compatible with both the original and second-generation VIPIR systems, providing a robust tool for ionospheric research.
+<div class="hero">
+  <h2>RIQ File Format, SCT/PCT Structures, and Ionogram Analysis</h2>
+  <p>
+    VIPIR is a pulsed HF radar system for vertical-incidence ionospheric sounding.
+    Pynasonde reads its binary RIQ files and exposes the Sounding Control Table,
+    Pulse Configuration Table, and raw IQ samples as Python data structures.
+  </p>
+</div>
 
-For a detailed technical description of the radar, please refer to Grubb et al.
+VIPIR was developed by Scion Associates under a SBIR grant from AFRL.  The first
+installation was at NASA Wallops Island Flight Facility in 2008; 15 instruments have
+since been deployed worldwide.  Version 2 (2015) introduced improved dynamic range
+and multi-channel digital down-conversion.  Pynasonde supports both generations.
 
-## VIPIR Data Output: Raw In-phase and Quadrature (RIQ) Files
-The output data from VIPIR is stored in Raw In-phase and Quadrature (RIQ) files. These files contain multiple range gate samples from the Digital Down Converter for each of the eight radar receive channels. Each range gate and receiver has an associated in-phase and quadrature sample.
+Reference: Grubb et al. (2011), *Radio Science*.
 
-In addition to the raw data blocks, each RIQ file includes metadata records such as the Sounding Control Table (SCT) and the Pulse Control Table (PCT), which define the instrument’s mode of operation. The metadata also provides site-specific details, including the station location and antenna configuration.
+## RIQ File Structure
 
-The RIQ file is a custom binary format. The structure of the data is best understood through `C`, and `FORTRAN` definitions. However, we provide `Python`-version of the data structure. 
+VIPIR output is stored in **Raw In-phase and Quadrature (RIQ)** files.  Each file
+consists of a fixed header block followed by one record per transmitted pulse:
 
-## RIQ Data Structure (Pythonic)
-An RIQ file is divided into blocks or records. Each record has the same format but the length and number of the records can vary with the settings of the radar.
+```
+┌─────────────────────────────┐
+│  Sounding Control Table     │  (SCT) — instrument configuration
+│  (variable size)            │
+├─────────────────────────────┤
+│  Pulse Configuration Table  │  (PCT) — per-pulse metadata + IQ data
+│  repeated N_pulses times    │
+└─────────────────────────────┘
+```
 
-### Sounding Control Table (SCT)
-Here is the SCT `Python` structure. However, `C` and `FORTRAN` both structure formats are also supported, and produce nearly idential files. The exception is for the user-defined text strs, where `C` prodices a null filled character string and `FORTRAN` produces a space filled character string. Both methods are supported. For 64 bit C code, it is necessary to define the structure as `packed`. This version defined here is 1.20.
+### Python usage
 
-| Field Name              | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| magic             |  `int32`        | 4 | `0x51495200` (/nullRIQ) Possibly Byte Reversed |
-| sounding_table_size  |  `int32`     | 4 | Bytes in sounder configuration structure |
-| pulse_table_size  |  `int32`     | 4 | Bytes in pulse configuration structure |
-| raw_data_size  |  `int32`     | 4 | Bytes in raw data block (one PRI) |
-| struct_version  | `float64`     | 8 | Format Version Number.  Currently 1.2 |
-| start_year  | `int32`     | 4 | Start time elements (Year) of the ionogram |
-| start_daynumber  | `int32`     | 4 | Start time elements (doy) |
-| start_month | `int32`     | 4 | Start time elements (month) |
-| start_day  | `int32`     | 4 | Start time elements (day of month) |
-| start_hour  | `int32`     | 4 | Start time elements (hour) |
-| start_minute  | `int32`     | 4 | Start time elements (minute) |
-| start_second  | `int32`     | 4 | Start time elements (second) |
-| start_epoch  | `int32`     | 4 | Epoch time of the measurement start |
-| readme  | `str`     | 16 | Operator comment on this measurement |
-| decimation_method  | `int32`     | 4 | If processed, 0=no process (raw data) |
-| decimation_threshold  | `float64`     | 8 | If processed, the treshold value for the given method |
-| user  | `str`     | 16 | User-defined |
-| station  | `StationType`     | Variable | Station info substructure |
-| timing  | `TimingType`     | Variable | Radar timing substruture |
-| frequency  | `FrequencyType`     | Variable | Frequency sweep substructure |
-| receiver  | `RecieverType`     | Variable | Receiver settings substructure |
-| exciter  | `ExciterType`     | Variable | Exciter settings substructure |
-| monitor  | `MonitorType`     | Variable | Built In Test values substructure |
+```python
+from pynasonde.vipir.riq.parsers.read_riq import RiqReader
 
-#### Station, Timing, Frequency, Reciever, Exciter, and Monitor Information Substructures
-Here are the substrcuture holding information on instrumentation stetting and control information `Python` structure.
+reader = RiqReader("station_20230101.riq")
+reader.read()
+sct = reader.sct      # SoundingControlTable dataclass
+pcts = reader.pcts    # list of PulseConfigTable records
+```
 
-| Field Name `StationType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Name of station settings file |
-| ursi_id             |  `str`        | 1 | URSI standard station ID code |
-| rx_name             |  `str`        | 4 | Rx Station Name |
-| rx_latitude             |  `float64`        | 8 | Latitude of Rx array ref point [deg North] |
-| rx_longitude             |  `float64`        | 8 | Longitude of Rx array ref point [deg East] |
-| rx_altitude             |  `float64`        | 8 | Meters above mean sea level |
-| rx_count             |  `int32`        | 4 | Number of defined receive antennas |
-| rx_antenna_type             |  `[str]`        | 32[4] | Rx antenna type text descriptors |
-| rx_position             |  `[float64]`        | 32X3[8] | X,Y,Z = (East,North,Up) Positon [m] of each Rx |
-| rx_direction             | `[float64]`        | 32X3[8] | X,Y,Z = (East,North,Up) Direction of each Rx |
-| rx_height             |  `[float64]`        | 32[8] | Height above ground [m] |
-| rx_cable_length             |  `[float64]`        | 32[8] | physical length of receive cables [m] |
-| frontend_atten             |  `float64`        | 8 | Front End attenuator setting |
-| tx_name             |  `str`        | 4 | Transmitter station name |
-| tx_latitude             |  `float64`        | 8 | Latitude of Tx array ref point [deg North] |
-| tx_longitude             |  `float64`        | 8 | Latitude of Tx array ref point [deg East] |
-| tx_altitude             |  `float64`        | 8 | Meters above mean sea level |
-| tx_antenna_type             |  `str`        | 4 | Tx antenna type text descriptors |
-| tx_vector             |  `[float64]`        | 3[8] | Tx antenna direction vector [m] |
-| tx_height             |  `float64`        | 8 | Antenna height above reference ground [m] |
-| tx_cable_length | `float64` | 8 | Physical length of transmit cables [m] |
-| drive_band_count | `int32` | 4 | Number of antenna drive bands |
-| drive_band_bounds | `[float64]` | 2X64[8] | Drive bands start/stop in kHz |
-| drive_band_atten | `[float64]` | 64[8] | Antenna drive atteunuation in dB |
-| rf_control | `int32` | 64[8] | -1 = none, 0 = drive/quiet, 1 = full, 2 = only quiet, 3 = only atten |
-| ref_type | `str` | 4 | Type of reference oscillator |
-| clock_type | `str` | 8 | Source of absoulte UT timing |
-| user | `str` | 16 | Spare space for user-defined information |
+---
 
+## Sounding Control Table (SCT)
 
-| Field Name `TimingType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Name of the timing settings file |
-| pri             |  `float64`        | 8 | Pulse Repetition Interval (PRI) (us) |
-| pri_count             |  `int32`        | 4 | Number of PRI's in the measurement |
-| ionogram_count             |  `int32`        | 4 | Repeat count for ionogram within same data file |
-| holdoff             |  `float64`        | 8 | Time between GPS 1 pps and start |
-| range_gate_offset             |  `float64`        | 8 | True range to gate 0 |
-| gate_count             |  `int32`        | 8 | Number of range gates, adjusted up for USB blocks |
-| gate_start             |  `float64`        | 8 | Start gate placement [us], adjusted |
-| gate_end             |  `float64`        | 8 | End gate placement [us], adjusted |
-| gate_step             |  `float64`        | 8 | Range delta [us] |
-| data_start             |  `float64`        | 8 | Data range placement start [us] |
-| data_width             |  `float64`        | 8 | Data pulse baud width [us] |
-| data_baud_count             |  `int32`        | 4 | Data pulse baud count |
-| data_wave_file             |  `str`        | 8 | Data baud pattern file name |
-| data_baud             |  `[float64]`        | 1024[8] | Data waveform baud pattern |
-| data_pairs             |  `int32`        | 4 | Number of IQ pairs in waveform memory |
-| cal_start             |  `float64`        | 8 | Cal range placement start [us] |
-| cal_width             |  `float64`        | 8 | Cal pulse baud width [us] |
-| cal_baud_count             |  `int32`        | 4 | Cal pulse baud count |
-| cal_baud_count             |  `str`        | 8 | Alternative baud pattern file name |
-| cal_baud             |  `[float64]`        | 1024[8] | Cal waveform baud pattern |
-| cal_pairs             |  `int32`        | 4 | Number of IQ pairs in waveform memory |
-| user             |  `str`        | 16 | Spare space for user-defined information |
+The SCT describes the complete instrument configuration for a sounding.
+Pynasonde maps it to a Python dataclass (format version 1.20).
 
+!!! note "Format compatibility"
+    `C` uses null-filled strings; `FORTRAN` uses space-filled strings.
+    Both are supported.  64-bit C code must use `packed` struct alignment.
 
-| Field Name `FrequencyType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Name of the frequency settings file |
-| base_start             |  `float64`        | 8 | Initial base frequency |
-| base_end             |  `float64`        | 8 | Final base frequency |
-| base_steps             |  `int32`        | 4 | Number of base frequencies |
-| tune_type             |  `int32`        | 4 | Tuning type flag: 1=log, 2=linear, 3=table, 4=Log+Fixed ShuffleMode |
-| base_table             |  `[float64]`        | 8192[8] | Nominal or Base frequency table |
-| linear_step             |  `float64`        | 8 | Linear frequency step [kHz] |
-| log_step             |  `float64`        | 8 | Log frequency step, [percent] |
-| freq_table_id             |  `str`        | 8 | Manual tuning table filename |
-| tune_steps             |  `int32`        | 4 | All frequencies pre-ramp repeats |
-| pulse_count             |  `int32`        | 4 | Pulset frequency vector length |
-| pulse_pattern             |  `[int32]`        | 256[4] | Pulset frequency vector |
-| pulse_offset             |  `float64`        | 8 | Pulset offset [kHz] |
-| ramp_steps             |  `int32`        | 4 | Pulsets per B-mode ramp |
-| ramp_repeats             |  `int32`        | 4 | Repeat count of B-mode ramps |
-| drive_table             |  `[float64]`        | 8192[8] | Base frequencies attenuation/silent table |
-| user             |  `str`        | 16 | Spare space for user-defined information |
+### Top-level SCT fields
 
+| Field | Type | Size | Description |
+|-------|------|------|-------------|
+| `magic` | `int32` | 4 | `0x51495200` (`\0RIQ`) — byte-order check |
+| `sounding_table_size` | `int32` | 4 | Bytes in SCT structure |
+| `pulse_table_size` | `int32` | 4 | Bytes in PCT structure |
+| `raw_data_size` | `int32` | 4 | Bytes in raw data block (one PRI) |
+| `struct_version` | `float64` | 8 | Format version (currently 1.20) |
+| `start_year` | `int32` | 4 | Ionogram start year |
+| `start_daynumber` | `int32` | 4 | Day of year |
+| `start_month` | `int32` | 4 | Month |
+| `start_day` | `int32` | 4 | Day of month |
+| `start_hour` | `int32` | 4 | Hour (UT) |
+| `start_minute` | `int32` | 4 | Minute |
+| `start_second` | `int32` | 4 | Second |
+| `start_epoch` | `int32` | 4 | UNIX epoch of measurement start |
+| `readme` | `str` | 16 | Operator comment |
+| `decimation_method` | `int32` | 4 | 0 = raw (no decimation) |
+| `decimation_threshold` | `float64` | 8 | Threshold for decimation method |
+| `station` | `StationType` | variable | Station geometry substructure |
+| `timing` | `TimingType` | variable | Radar timing substructure |
+| `frequency` | `FrequencyType` | variable | Frequency sweep substructure |
+| `receiver` | `ReceiverType` | variable | DDC receiver settings |
+| `exciter` | `ExciterType` | variable | Transmitter settings |
+| `monitor` | `MonitorType` | variable | Built-in test values |
 
-| Field Name `RecieverType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Frequency settings file |
-| rx_chan             |  `int32`        | 4 | Number of receivers |
-| rx_map             |  `[int32]`        | 16[4] | Receiver-to-antenna mapping |
-| word_format             |  `int32`        | 4 | 0 = big endian fixed, 1 = little endian, 2 = floating_point, 3=32 bit little endian integer (v2.z) |
-| cic2_dec             |  `int32`        | 4 | DDC filter block |
-| cic2_interp             |  `int32`        | 4 | DDC filter block |
-| cic2_scale             |  `int32`        | 4 | DDC filter block |
-| cic5_dec             |  `int32`        | 4 | DDC filter block |
-| cic5_scale             |  `int32`        | 4 | DDC filter block |
-| rcf_type             |  `str`        | 8 | Text descriptor of FIR filter block |
-| rcf_dec             |  `int32`        | 4 | Decimation factor for FIR filter block |
-| rcf_taps             |  `int32`        | 4 | Number of taps in FIR filter block |
-| coefficients             |  `[int32]`        | 160[4] | Receiver filter coefficients |
-| analog_delay             |  `float64`        | 8 | Analog delay of receiver, us |
-| user             |  `str`        | 16 | Spare space for user-defined information |
+### Station substructure (`StationType`)
 
+| Field | Type | Description |
+|-------|------|-------------|
+| `rx_name` | `str` | Receive station name |
+| `rx_latitude` | `float64` | Rx latitude (deg N) |
+| `rx_longitude` | `float64` | Rx longitude (deg E) |
+| `rx_altitude` | `float64` | Rx altitude (m MSL) |
+| `rx_count` | `int32` | Number of receive antennas |
+| `rx_position` | `[float64]` | (East, North, Up) position of each Rx (m) |
+| `rx_direction` | `[float64]` | (East, North, Up) direction of each Rx |
+| `tx_latitude` | `float64` | Tx latitude (deg N) |
+| `tx_longitude` | `float64` | Tx longitude (deg E) |
+| `drive_band_bounds` | `[float64]` | Drive band start/stop (kHz) |
+| `ref_type` | `str` | Reference oscillator type |
+| `clock_type` | `str` | UT timing source |
 
-| Field Name `ExciterType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| file_id             |  `str`        | 8 | Frequency settings file |
-| cic_scale             |  `int32`        | 4 | DUC filter block |
-| cic2_dec             |  `int32`        | 4 | DUC filter block |
-| cic2_interp             |  `int32`        | 4 | DUC filter block |
-| cic5_interp             |  `int32`        | 4 | DUC filter block |
-| rcf_type             |  `str`        | 8 | Text descriptor of FIR filter block |
-| rcf_taps             |  `int32`        | 4 | Number of taps in FIR filter block |
-| rcf_taps_phase             |  `int32`        | 4 | Number of taps in FIR filter block |
-| coefficients             |  `[int32]`        | 256[4] | Receiver filter coefficients |
-| analog_delay             |  `float64`        | 8 | Analog delay of exciter/transmitter, us |
-| user             |  `str`        | 16 | Spare space for user-defined information |
+### Timing substructure (`TimingType`)
 
+| Field | Type | Description |
+|-------|------|-------------|
+| `pri` | `float64` | Pulse Repetition Interval (µs) |
+| `pri_count` | `int32` | Number of PRIs per ionogram |
+| `gate_count` | `int32` | Number of range gates |
+| `gate_start` / `gate_end` | `float64` | Range gate placement (µs) |
+| `gate_step` | `float64` | Range gate delta (µs) |
+| `data_baud_count` | `int32` | Baud count in transmitted pulse |
+| `data_baud` | `[float64]` | Waveform baud pattern (up to 1024) |
 
-| Field Name `MonitorType`             | Type     | Size(Bytes) | Note / Description  |
-| :---------------- | :------: | :------: | ----: |
-| balun_currents             |  `[int32]`        | 8[4] | As read prior to ionogram |
-| balun_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
-| front_end_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
-| receiver_status             |  `[int32]`        | 8[4] | As read prior to ionogram |
-| exciter_status             |  `[int32]`        | 2[4] | As read prior to ionogram |
-| user             |  `str`        | 16 | Spare space for user-defined information |
+### Frequency substructure (`FrequencyType`)
 
+| Field | Type | Description |
+|-------|------|-------------|
+| `base_start` / `base_end` | `float64` | Frequency sweep range |
+| `base_steps` | `int32` | Number of sweep frequencies |
+| `tune_type` | `int32` | 1=log, 2=linear, 3=table, 4=log+shuffle |
+| `base_table` | `[float64]` | Up to 8192 nominal frequencies |
+| `linear_step` | `float64` | Linear step (kHz) |
+| `log_step` | `float64` | Log step (percent) |
 
-### Pulse Configuration Table (PCT)
+---
 
-The Pulse Configuration Table (PCT) describes the settings and measured values for each transmitted pulse in the VIPIR ionogram. Each PCT record contains metadata about the pulse, including timing, frequency, amplifier status, and the raw in-phase (`pulse_i`) and quadrature (`pulse_q`) samples for each range gate and receiver channel.
+## Pulse Configuration Table (PCT)
 
-The `pulse_i` and `pulse_q` arrays contain the raw in-phase and quadrature samples for each range gate and receiver channel. These samples are used to compute the signal power and phase for ionogram analysis.
+One PCT record exists per transmitted pulse.  It captures pulse metadata
+and the raw IQ samples for all range gates and receiver channels.
 
-| Field Name              | Type     | Size(Bytes) | Note / Description  |
-| :---------------------- | :------: | :------: | ----: |
-| record_id               | `int32`  | 4         | Sequence number of this PCT |
-| pri_ut                  | `float64`| 8         | UT of this pulse |
-| pri_time_offset         | `float64`| 8         | Time read from system clock, not precise |
-| base_id                 | `int32`  | 4         | Base Frequency counter |
-| pulse_id                | `int32`  | 4         | Pulse set element for this PRI |
-| ramp_id                 | `int32`  | 4         | Ramp set element for this PRI |
-| repeat_id               | `int32`  | 4         | Ramp repeat element for this PRI |
-| loop_id                 | `int32`  | 4         | Outer loop element for this PRI |
-| frequency               | `float64`| 8         | Frequency of observation (kHz) |
-| nco_tune_word           | `int32`  | 4         | Tuning word sent to the receiver |
-| drive_attenuation       | `float64`| 8         | Low-level drive attenuation [dB] |
-| pa_flags                | `int32`  | 4         | Status flags from amplifier |
-| pa_forward_power        | `float64`| 8         | Forward power from amplifier |
-| pa_reflected_power      | `float64`| 8         | Reflected power from amplifier |
-| pa_vswr                 | `float64`| 8         | Voltage Standing Wave Ratio from amplifier |
-| pa_temperature          | `float64`| 8         | Amplifier temperature |
-| proc_range_count        | `int32`  | 4         | Number of range gates kept this PRI |
-| proc_noise_level        | `float64`| 8         | Estimated noise level for this PRI |
-| pulse_i                 | `[int or float]` | Variable | In-phase samples for each gate and receiver channel |
-| pulse_q                 | `[int or float]` | Variable | Quadrature samples for each gate and receiver channel |
-| user                    | `str`    | 64        | Spare space for user-defined information |
+### PCT fields
 
-**pulse_i**: 2D array of in-phase samples, shape = (number of gates, number of receiver channels).  
-**pulse_q**: 2D array of quadrature samples, shape = (number of gates, number of receiver channels).  
-These arrays are used to reconstruct the amplitude and phase of the received radar signal for each pulse.
+| Field | Type | Description |
+|-------|------|-------------|
+| `record_id` | `int32` | Pulse sequence number |
+| `pri_ut` | `float64` | UT of this pulse |
+| `frequency` | `float64` | Sounding frequency (kHz) |
+| `pa_forward_power` | `float64` | Amplifier forward power |
+| `pa_reflected_power` | `float64` | Reflected power |
+| `pa_vswr` | `float64` | Voltage Standing Wave Ratio |
+| `proc_noise_level` | `float64` | Estimated noise floor for this PRI |
+| `pulse_i` | `2D array` | In-phase samples (gates × channels) |
+| `pulse_q` | `2D array` | Quadrature samples (gates × channels) |
+
+`pulse_i` and `pulse_q` have shape `(gate_count, rx_count)`.  Combine them
+as `signal = pulse_i + 1j * pulse_q` to get the complex baseband voltage.
+
+### Reconstruct ionogram power
+
+```python
+import numpy as np
+
+signal = np.array(pct.pulse_i) + 1j * np.array(pct.pulse_q)
+power_db = 20 * np.log10(np.abs(signal) + 1e-12)   # shape: (gates, channels)
+```
+
+---
+
+## Ionogram Analysis Workflow
+
+```
+RiqReader.read()
+    │
+    ├─ sct  →  station geometry, timing, frequency sweep
+    │
+    └─ pcts →  per-pulse IQ  →  coherent integration
+                                    │
+                                    ├─ ionogram power(f, h')
+                                    ├─ Doppler analysis
+                                    └─ Ne(h) inversion
+```
+
+### Example: load and inspect
+
+```python
+from pynasonde.vipir.riq.parsers.read_riq import RiqReader
+
+reader = RiqReader("station_20230101.riq")
+reader.read()
+
+print(f"Station: {reader.sct.station.rx_name}")
+print(f"Frequencies: {reader.sct.frequency.base_steps}")
+print(f"Gate count:  {reader.sct.timing.gate_count}")
+print(f"Pulses read: {len(reader.pcts)}")
+```
+
+---
+
+## See Also
+
+- [Read / Plot RIQ Example](../examples/vipir/proc_riq.md)
+- [VIPIR API Reference](../dev/vipir/riq/parsers/read_riq.md)

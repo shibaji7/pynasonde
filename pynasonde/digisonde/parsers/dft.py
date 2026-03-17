@@ -79,18 +79,16 @@ class DftExtractor(object):
     def extract(self) -> None:
         """Read the DFT file and construct DopplerSpectralBlock objects.
 
-        The method iterates over blocks in the file and assembles
-        ``DopplerSpectralBlock`` containers holding a header and a list
-        of :class:`DopplerSpectra` objects. The current implementation
-        is minimal and intended for examples and testing; callers may
-        adapt it to return or yield parsed records instead of mutating
-        internal state.
+        Iterates over all blocks in the file and stores each parsed
+        :class:`DopplerSpectralBlock` in :attr:`blocks`.  Each block holds a
+        :class:`DftHeader` (decoded from LSBs of the amplitude bytes) and a
+        list of 16 :class:`DopplerSpectra` objects — one per sub-case (height
+        bin).  Call :meth:`to_pandas` after ``extract()`` to obtain a flat
+        DataFrame suitable for plotting.
 
-        Returns:
-            The method populates local variables and currently returns
-                None. Future revisions may return an iterable of parsed
-                blocks.
+        Populates :attr:`blocks` (list of :class:`DopplerSpectralBlock`).
         """
+        self.blocks: list = []
         with open(self.filename, "rb") as file:
             for block_index in range(self.BLOCKS):
                 logger.debug(f"Reading block {block_index+1} of {self.BLOCKS}")
@@ -108,9 +106,65 @@ class DftExtractor(object):
                     )
                     dsb.spectra_line.append(ds)
                 dsb.header = self.extract_header_from_amplitudes(header_bits_ampl_bytes)
-                if block_index == 1:
-                    break
+                self.blocks.append(dsb)
+        logger.info(f"Extracted {len(self.blocks)} DFT blocks from {self.filename}")
         return
+
+    def to_pandas(self) -> "pd.DataFrame":
+        """Flatten all parsed DFT blocks into a tidy DataFrame.
+
+        Each row corresponds to one (block, sub-case, Doppler-bin) triplet.
+        Heights are estimated from the block header fields
+        (``bottom_height``, ``height_resolution``) using typical DPS4D unit
+        conventions (5 km per raw height-resolution unit, 80 km baseline).
+
+        The Doppler axis is expressed as a signed bin offset centred at
+        bin 64, so negative values correspond to downward (approaching)
+        motion and positive values to upward (receding) motion.
+
+        Returns:
+            DataFrame with columns:
+
+            * ``block_idx``   – block index (0-based)
+            * ``subcase_idx`` – height sub-case index within the block (0-15)
+            * ``height_km``   – estimated virtual height in km
+            * ``doppler_bin`` – signed Doppler bin (−64 … +63)
+            * ``amplitude``   – amplitude in dB-like units (×3/8 applied by dataclass)
+            * ``phase``       – raw phase byte (0-255)
+            * ``frequency_hz``– start frequency from the block header (Hz)
+            * ``date``        – measurement timestamp (datetime)
+        """
+        import pandas as pd
+
+        rows = []
+        date = getattr(self, "date", None)
+        for bi, block in enumerate(self.blocks):
+            h = block.header
+            # Rough height decode: DPS4D uses 5 km × height_resolution per step
+            h_res_km = max(int(h.height_resolution or 1), 1) * 5
+            h_base_km = max(int(h.bottom_height or 0), 0) * h_res_km + 80
+            for si, spectra in enumerate(block.spectra_line):
+                height_km = h_base_km + si * h_res_km
+                n_dop = len(spectra.amplitude)
+                centre = n_dop // 2
+                for di in range(n_dop):
+                    rows.append(
+                        {
+                            "block_idx": bi,
+                            "subcase_idx": si,
+                            "height_km": height_km,
+                            "doppler_bin": di - centre,
+                            "amplitude": spectra.amplitude[di],
+                            "phase": spectra.phase[di],
+                            "frequency_hz": h.start_frequency,
+                            "date": date,
+                        }
+                    )
+        df = pd.DataFrame(rows)
+        logger.info(
+            f"to_pandas: {len(df)} rows from {len(self.blocks)} blocks"
+        )
+        return df
 
     def extract_header_from_amplitudes(self, amplitude_bytes: list) -> DftHeader:
         """Decode header bits embedded in the amplitude LSBs.

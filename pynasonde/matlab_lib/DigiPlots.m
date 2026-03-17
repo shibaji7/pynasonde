@@ -20,15 +20,17 @@ classdef DigiPlots < handle
 
     methods
         function obj = DigiPlots(fig_title, nrows, ncols, font_size, figsize, date, date_lims, subplot_kw, draw_local_time)
-            if nargin < 1 || isempty(fig_title), fig_title = ""; end
-            if nargin < 2 || isempty(nrows), nrows = 1; end
-            if nargin < 3 || isempty(ncols), ncols = 1; end
-            if nargin < 4 || isempty(font_size), font_size = 10; end
-            if nargin < 5 || isempty(figsize), figsize = [3 3]; end
-            if nargin < 6, date = []; end
-            if nargin < 7 || isempty(date_lims), date_lims = []; end
-            if nargin < 8 || isempty(subplot_kw), subplot_kw = struct(); end
-            if nargin < 9 || isempty(draw_local_time), draw_local_time = false; end
+            arguments
+                fig_title = "" 
+                nrows = 1 
+                ncols = 1
+                font_size = 16
+                figsize = [3 3]
+                date = []
+                date_lims = []
+                subplot_kw = struct()
+                draw_local_time = false
+            end
 
             obj.fig_title = fig_title;
             obj.nrows = nrows;
@@ -40,15 +42,17 @@ classdef DigiPlots < handle
             obj.subplot_kw = subplot_kw;
             obj.draw_local_time = draw_local_time;
 
-            obj.fig = apply_scienceplots_style(nrows, ncols, figsize, "science", "muted");
+            obj.fig = apply_scienceplots_style(nrows, ncols, figsize=figsize, style="science", palette="muted", font_size=font_size);
+            DigiPlots.setsize(obj.font_size);
             obj.tl = tiledlayout(nrows, ncols, 'Padding','loose', 'TileSpacing','loose');
             n_axes = nrows * ncols;
             obj.axes = gobjects(n_axes, 1);
             for i = 1:n_axes
                 if isfield(subplot_kw, "projection") && strcmpi(subplot_kw.projection, "polar")
-                    ax = polaraxes;
+                    ax = polaraxes("Parent", obj.tl);
                     ax.ThetaZeroLocation = "top";
                     ax.ThetaDir = "clockwise"; 
+                    ax.Layout.Tile = i;
                     obj.axes(i) = ax;
                 else
                     obj.axes(i) = nexttile;
@@ -56,12 +60,20 @@ classdef DigiPlots < handle
             end
         end
 
-        function ax = get_axes(obj, del_ticks)
-            if nargin < 2 || isempty(del_ticks), del_ticks = true; end
+        function ax = get_axes(obj, del_ticks, num)
+            arguments
+                obj
+                del_ticks = true
+                num = NaN
+            end
             DigiPlots.setsize(obj.font_size);
 
             if numel(obj.axes) > 1
-                ax = obj.axes(obj.n_sub_plots + 1);
+                if ~isnan(num)
+                    ax = obj.axes(num);
+                else
+                    ax = obj.axes(obj.n_sub_plots + 1);
+                end
             else
                 ax = obj.axes;
             end
@@ -75,17 +87,17 @@ classdef DigiPlots < handle
                 end
             end
             if obj.n_sub_plots == 0 && strlength(obj.fig_title) > 0
-                text(ax, 0.01, 1.05, obj.fig_title, "Units", "normalized", ...
-                    "HorizontalAlignment", "left", "VerticalAlignment", "middle", "FontSize", obj.font_size);
+                text(ax, 0.01, 1.1, obj.fig_title, "Units", "normalized", ...
+                    "HorizontalAlignment", "left", "VerticalAlignment", "middle", "FontSize", obj.font_size*1.2);
             end
             obj.n_sub_plots = obj.n_sub_plots + 1;
         end
 
         function save(obj, filepath)
-            if endsWith(filepath, ".fig", "IgnoreCase", true);
+            if endsWith(filepath, ".fig", "IgnoreCase", true)
                 saveas(obj.fig, filepath);
             elseif exist("exportgraphics", "file")
-                exportgraphics(obj.fig, fullfile(filepath), "ContentType", "vector");
+                exportgraphics(obj.fig, fullfile(filepath), "ContentType", "image");
             end
         end
 
@@ -102,36 +114,38 @@ classdef DigiPlots < handle
             % Use normalized units to compute positions
             ax.Units = 'normalized';
             pos = ax.Position;
-            cpos = [pos(1) + pos(3) + mpos(1), pos(2) + mpos(2), mpos(3), pos(4) * mpos(4)];
-        
-            % Create colorbar targeted to axes, set matching Units before Position
-            cb = colorbar(ax);
-            cb.Units = 'normalized';
-            cb.Position = cpos;
+            cpos = [pos(1) + mpos(1), pos(2) + mpos(2), mpos(3), pos(4) * mpos(4)];
+
+            if isa(ax.Parent, "matlab.graphics.layout.TiledChartLayout")
+                % In tiled layouts, use a manual colorbar axis to control size.
+                fig = ancestor(ax, "figure");
+                cbax = axes(fig, "Position", cpos, "Visible", "off");
+                cb = colorbar(cbax);
+                cmap = colormap(ax);
+                colormap(cbax, cmap);
+                if isprop(cb, "Colormap")
+                    cb.Colormap = cmap;
+                end
+                cb.Limits = clim(ax);
+            else
+                cb = colorbar(ax);
+                cb.Units = 'normalized';
+                cb.Position = cpos;
+            end
         
             % Set label robustly (convert to char if string array/scalar)
-            if strlength(string(label_txt)) > 0
-                lbl = label_txt;
-                if isstring(lbl) || ischar(lbl)
-                    % prefer the Label property if present; otherwise fallback to ylabel(cb,...)
-                    if isprop(cb,'Label') && ~isempty(cb.Label)
-                        cb.Label.String = char(lbl);
-                    else
-                        ylabel(cb, char(lbl));
-                    end
+            lbl = string(label_txt);
+            if strlength(lbl) > 0
+                if isprop(cb,'Label') && ~isempty(cb.Label)
+                    cb.Label.String = char(lbl);
                 else
-                    % convert other numeric/etc. to string
-                    if isscalar(label_txt)
-                        txt = char(string(label_txt));
-                    else
-                        txt = char(string(label_txt));
-                    end
-                    if isprop(cb,'Label') && ~isempty(cb.Label)
-                        cb.Label.String = txt;
-                    else
-                        ylabel(cb, txt);
-                    end
+                    ylabel(cb, char(lbl));
                 end
+            end
+
+            cb.FontSize = obj.font_size;
+            if isprop(cb,'Label') && ~isempty(cb.Label)
+                cb.Label.FontSize = obj.font_size;
             end
         
             % keep handle to image to prevent optimization away (if needed)
@@ -187,6 +201,8 @@ classdef DigiPlots < handle
                 switch lower(name)
                     case "redblackblue"
                         cmap = DigiPlots.colormap_redblackblue(256);
+                    case "coolwarm"
+                        cmap = DigiPlots.colormap_coolwarm(256);
                     case "inferno"
                         cmap = DigiPlots.colormap_inferno(256);
                     otherwise
@@ -231,6 +247,13 @@ classdef DigiPlots < handle
             if nargin < 1 || isempty(n), n = 256; end
             stops = [0 0 0; 85/255 0 127/255; 170/255 0 255/255; 1 69/255 0; 1 1 0; 1 1 170/255];
             cmap = interp1([0 0.2 0.4 0.6 0.8 1], stops, linspace(0, 1, n));
+        end
+
+        function cmap = colormap_coolwarm(n)
+            if nargin < 1 || isempty(n), n = 256; end
+            % Approximate coolwarm (blue-white-red)
+            stops = [59/255 76/255 192/255; 1 1 1; 180/255 4/255 38/255];
+            cmap = interp1([0 0.5 1], stops, linspace(0, 1, n));
         end
     end
 end

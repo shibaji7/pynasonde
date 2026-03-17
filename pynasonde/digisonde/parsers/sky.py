@@ -72,7 +72,7 @@ class SkyExtractor(object):
         self.delta_freq = delta_freq
         self.l0 = n_fft // 2
         if extract_time_from_name:
-            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
+            date = self.filename.split("_")[-1].replace(".SKY", "").replace(".sky", "")
             self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
                 int(date[4:7]) - 1
             )

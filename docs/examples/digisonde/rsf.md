@@ -1,54 +1,79 @@
-# DIGISONDE RSF Example
+# RSF — Parse and Inspect Raw Sounding File
 
-This short walkthrough explains how to ingest DIGISONDE `.RSF` files with
-`pynasonde`. The sample uses data from the 14 October 2023 Great American Annular
-Eclipse and highlights how to inspect the structured contents of an RSF product.
-The runnable script lives at [`examples/digisonde/rsf.py`](https://github.com/shibaji7/pynasonde/examples/digisonde/rsf.py),
-and the extractor implementation resides in
-[`pynasonde/digisonde/parsers/rsf.py`](https://github.com/shibaji7/pynasonde/pynasonde/digisonde/parsers/rsf.py).
+<div class="hero">
+  <h3>Low-Level RSF Walkthrough</h3>
+  <p>
+    Load a single DPS4D <code>.RSF</code> file, parse all blocks and frequency
+    groups into structured Python dataclasses, and inspect headers and echo data
+    programmatically.
+  </p>
+</div>
 
-## Workflow overview
+This page explains `examples/digisonde/rsf.py`.
 
-1. Instantiate `RsfExtractor` with a path to a `.RSF` file plus optional flags that
-   load supplementary metadata tables.
-2. Call `extract()` to populate `rsf_data_units`, which organize header information and
-   frequency groups for each observation.
-3. Inspect the parsed content (headers, frequency groups) to guide downstream processing.
+## Call Flow
 
-## Example script
+1. `RsfExtractor(filepath, ...)` opens the `.RSF` file and resolves optional
+   metadata tables (station codes, frequency tables).
+2. `.extract()` iterates over all 4096-byte blocks, decoding the RSF Header and
+   Frequency Groups into `RsfDataUnit` objects stored in `rsf_data.rsf_data_units`.
+3. Inspect `rsf_data_units[i].header` for block-level metadata (timestamp,
+   frequency, height settings) and `frequency_groups[j]` for per-height echo data
+   (amplitude, phase, Doppler number, direction bits).
+4. `.to_pandas()` flattens all parsed units into a tidy DataFrame suitable for
+   plotting or downstream analysis.
 
-The snippet below mirrors `examples/digisonde/rsf.py`. Update the file path to target
-your own `.RSF` dataset and print whichever elements you need to validate.
+## Key Code
+
+### 1) Load and Extract
 
 ```python
-"""Quick-start example for loading RSF files with `pynasonde`.
-
-Follow the steps:
-
-1. Point `RsfExtractor` at a `.RSF` file and enable optional table loading as needed.
-2. Call `extract()` to parse the structured RSF product into `rsf_data_units`.
-3. Inspect headers or frequency groups to drive quality control or visualization.
-
-Update the sample file path to match your own dataset before running the script.
-"""
-
 from pynasonde.digisonde.parsers.rsf import RsfExtractor
 
-# Configure the extractor with a target RSF file and optional frequency/angle tables.
 extractor = RsfExtractor(
-    "/tmp/chakras4/Crucial X9/APEP/AFRL_Digisondes/Digisonde Files/SKYWAVE_DPS4D_2023_10_14/KR835_2023287000000.RSF",
-    True,
-    True,
+    "/path/to/KR835_2023287000000.RSF",
+    extract_time_from_name=True,   # parse timestamp from filename
+    extract_stn_from_name=True,    # parse station URSI code from filename
 )
-
-# Parse the file to populate `rsf_data` with structured data units.
 extractor.extract()
-
-# Print the first header and frequency group for quick inspection/debugging.
-print(extractor.rsf_data.rsf_data_units[0].header)
-print(extractor.rsf_data.rsf_data_units[0].frequency_groups[0])
 ```
 
-> For richer analysis, iterate through all `rsf_data_units` or convert them into pandas
-> data structures. Pairing RSF outputs with simultaneous SAO or DVL products can help
-> correlate spread-F activity with electron-density and drift-velocity signatures.
+### 2) Inspect Header and Frequency Groups
+
+```python
+# First block header: timestamp, frequency, height parameters
+h = extractor.rsf_data.rsf_data_units[0].header
+print(f"Date:      {h.date}")
+print(f"Frequency: {h.frequency_group} MHz")
+
+# First frequency group: one height profile of echoes
+fg = extractor.rsf_data.rsf_data_units[0].frequency_groups[0]
+print(f"Amplitude values: {fg.amplitude[:8]}")
+print(f"Direction bits:   {fg.azimuth[:8]}")
+```
+
+### 3) Convert to DataFrame
+
+```python
+df = extractor.to_pandas()
+print(df[["datetime", "frequency", "height_km", "amplitude", "azimuth"]].head(10))
+```
+
+## Run
+
+```bash
+cd /home/chakras4/Research/CodeBase/pynasonde
+python examples/digisonde/rsf.py
+```
+
+## Related Files
+
+- `examples/digisonde/rsf.py`
+- `pynasonde/digisonde/parsers/rsf.py`
+- `pynasonde/digisonde/datatypes/rsfdatatypes.py`
+
+## See Also
+
+- [RSF Direction Ionogram + Directogram](rsf_direction_ionogram.md)
+- [DIGISONDE Format Guide](../../user/digisonde.md#rsf----raw-sounding-file)
+- [RSF API Reference](../../dev/digisonde/parsers/rsf.md)

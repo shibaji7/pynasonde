@@ -61,3 +61,66 @@ tr:nth-child(even) {
   background-color: #b2b2b2!important;
   color: #f4f4f4!important;
 }
+
+.api-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.api-package {
+  background: #e6f6ff;
+  color: #0b5cad;
+  border: 1px solid #9fd3ff;
+}
+
+.api-class {
+  background: #eafbea;
+  color: #197a2a;
+  border: 1px solid #9dd9a7;
+}
+
+.api-method {
+  background: #fff2db;
+  color: #8a5100;
+  border: 1px solid #f0c27a;
+}
+
+.hero {
+  padding: 1.25rem 1.35rem;
+  border-radius: 14px;
+  border: 1px solid #d7e9ff;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(32, 122, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 90% 0%, rgba(2, 201, 122, 0.1), transparent 45%),
+    #f8fbff;
+  margin-bottom: 1rem;
+}
+
+.hero h1, .hero h2, .hero h3 {
+  margin-top: 0;
+}
+
+.doc-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0.4rem 0 1.2rem;
+}
+
+.doc-card {
+  border: 1px solid #e4ecf7;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 3px 12px rgba(20, 52, 100, 0.05);
+}
+
+.doc-card strong {
+  display: block;
+  margin-bottom: 4px;
+}

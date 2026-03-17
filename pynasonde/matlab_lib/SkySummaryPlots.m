@@ -3,44 +3,44 @@ classdef SkySummaryPlots < DigiPlots
 
     methods
         function obj = SkySummaryPlots(fig_title, nrows, ncols, font_size, figsize, date, date_lims, subplot_kw, draw_local_time)
-            if nargin < 1, fig_title = ""; end
-            if nargin < 2, nrows = 1; end
-            if nargin < 3, ncols = 1; end
-            if nargin < 4, font_size = 10; end
-            if nargin < 5, figsize = [3 3]; end
-            if nargin < 6, date = []; end
-            if nargin < 7, date_lims = []; end
-            if nargin < 8 || isempty(subplot_kw), subplot_kw = struct("projection", "polar"); end
-            if nargin < 9, draw_local_time = false; end
+            arguments
+                fig_title = "" 
+                nrows = 1 
+                ncols = 1
+                font_size = 16
+                figsize = [3 3]
+                date = []
+                date_lims = []
+                subplot_kw = struct("projection", "polar")
+                draw_local_time = false
+            end
             obj@DigiPlots(fig_title, nrows, ncols, font_size, figsize, date, date_lims, subplot_kw, draw_local_time);
         end
 
-        function plot_skymap(obj, df, xparam, yparam, zparam, theta_lim, rlim, text_txt, del_ticks, cmap, cbar, clim, cbar_label, ms, zorder, nrticks, txt_loc, txt_fontsize)
-            if nargin < 3, xparam = "x_coord"; end
-            if nargin < 4, yparam = "y_coord"; end
-            if nargin < 5, zparam = "spect_dop"; end
-            if nargin < 6, theta_lim = [0 360]; end
-            if nargin < 7, rlim = 21; end
-            if nargin < 8, text_txt = ""; end
-            if nargin < 9, del_ticks = true; end
-            if nargin < 10, cmap = "redblackblue"; end
-            if nargin < 11, cbar = true; end
-            if nargin < 12, clim = [-5 5]; end
-            if nargin < 13, cbar_label = "Doppler, Hz"; end
-            if nargin < 14, ms = 1.5; end
-            if nargin < 15, zorder = 2; end
-            if nargin < 16, nrticks = 5; end
-            if nargin < 17, txt_loc = [0.05 0.9]; end
-            if nargin < 18, txt_fontsize = 10; end
+        function plot_skymap(obj, df, xparam, yparam, zparam, opts)
+            arguments
+                obj
+                df
+                xparam = "x_coord"
+                yparam = "y_coord"
+                zparam = "spect_dop_freq"
+                opts.theta_lim = [0 360]
+                opts.rlim = 21
+                opts.text_txt = ""
+                opts.del_ticks = true
+                opts.cmap = "redblackblue"
+                opts.cbar = true
+                opts.clim = [-1 1]
+                opts.cbar_label = "Doppler, Hz"
+                opts.ms = 90
+                opts.zorder = 2
+                opts.nrticks = 5
+                opts.txt_loc = [0.05 0.9]
+                opts.tag_direction = false
+            end
 
             DigiPlots.setsize(obj.font_size);
-            ax = obj.axes;
-            if isa(ax, "matlab.graphics.axis.PolarAxes")
-                ax.ThetaLim = theta_lim;
-                ax.ThetaDir = "clockwise";
-                ax.ThetaZeroLocation = "top";
-                ax.RLim = [0 rlim];
-            end
+            ax = obj.get_axes(opts.del_ticks);
 
             x = df.(xparam);
             y = df.(yparam);
@@ -48,45 +48,45 @@ classdef SkySummaryPlots < DigiPlots
             r = sqrt(x.^2 + y.^2);
             theta = -atan2(y, x);
 
-            cmap_arr = DigiPlots.resolve_colormap(cmap);
+            cmap_arr = DigiPlots.resolve_colormap(opts.cmap);
+            disp("cmap: " + string(opts.cmap))
             colormap(ax, cmap_arr);
-            if isa(ax, "matlab.graphics.axis.PolarAxes")
-                im = polarscatter(ax, theta, r, ms, z, "filled");
+            if isa(ax, "matlab.graphics.axis.PolarAxes") 
+                im = polarscatter(ax, theta, r, opts.ms, z, "filled"); 
             else
-                im = scatter(ax, theta, r, ms, z, "filled");
+                im = scatter(ax, theta, r, opts.ms, z, "filled");
             end
-            caxis(ax, clim);
+            caxis(ax, opts.clim);
             ax.Box = "off";
 
             hold(ax, "on");
-            for rtick = linspace(0, rlim - 1, nrticks)
-                th = linspace(0, 2*pi, 200);
-                polarplot(ax, th, rtick * ones(size(th)), "--", "Color", [0 0 0], "LineWidth", 0.4);
-            end
-            for th = [0 pi/2 pi 1.5*pi]
-                polarplot(ax, [th th], [0 rlim], "-", "Color", [0 0 0], "LineWidth", 0.4);
-            end
-
-            text(ax, pi/2, rlim * 1.05, "East", "HorizontalAlignment", "left", "VerticalAlignment", "middle");
-            text(ax, 0, rlim * 1.05, "North", "HorizontalAlignment", "center", "VerticalAlignment", "bottom");
-
-            if strlength(text_txt) > 0
-                text(ax, txt_loc(1), txt_loc(2), text_txt, "Units", "normalized", "HorizontalAlignment", "left", "VerticalAlignment", "middle", "FontSize", txt_fontsize);
+            for rtick = linspace(0, opts.rlim - 1, opts.nrticks)
+                th = linspace(0, 2*pi, 200); 
+                polarplot(ax, th, rtick * ones(size(th)), "--", "Color", [0 0 0], "LineWidth", 0.4); 
+            end 
+            for th = [0 pi/2 pi 1.5*pi] 
+                polarplot(ax, [th th], [0 opts.rlim], "-", "Color", [0 0 0], "LineWidth", 0.4);
             end
 
-            if cbar
-                obj.add_colorbar(im, ax, cbar_label, [0.05 0.0125 0.015 0.5]);
+            if opts.tag_direction
+                text(ax, pi/2, opts.rlim * 1.05, "East", "HorizontalAlignment", "left", "VerticalAlignment", "middle",  "Rotation", 90); 
+                text(ax, 0, opts.rlim * 1.05, "North", "HorizontalAlignment", "center", "VerticalAlignment", "bottom"); 
             end
 
-            ax.ThetaTick = [];
-            ax.RTick = [];
-            ax.ThetaZeroLocation = "top";
-            ax.ThetaDir = "clockwise"; 
-        end
+            if strlength(opts.text_txt) > 0 
+                text(ax, opts.txt_loc(1), opts.txt_loc(2), opts.text_txt, "Units", "normalized", "HorizontalAlignment", "left", "VerticalAlignment", "middle"); 
+            end 
 
-        function plot_doppler_waterfall(obj)
-            %#ok<MANU>
-            % Placeholder for future implementation
+            if opts.cbar
+                obj.add_colorbar(im, ax, opts.cbar_label, [-0.01 0 0.2 0.5]);
+            end
+
+            ax.ThetaLim = opts.theta_lim;
+            ax.RLim = [0 opts.rlim];
+            ax.ThetaTick = []; 
+            ax.RTick = []; 
+            ax.ThetaZeroLocation = "top"; 
+            ax.ThetaDir = "clockwise";
         end
 
         function plot_drift_velocities(obj, df, xparam, yparam, color, error, ylabel_txt, xlabel_txt, text_txt, del_ticks, fmt, lw, alpha, zorder, major_locator, minor_locator, ylim, xlim)
