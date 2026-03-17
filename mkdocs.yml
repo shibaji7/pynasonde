@@ -73,8 +73,8 @@ nav:
     - Citing: user/citing.md
     - Authors: user/authors.md
     - Toolbox:
-            - isca: tools/isca.md
-            - fti: tools/fti.md
+            - ISCA: tools/isca.md
+            - FTI: tools/fti.md
             - HF Ray Tracing: tools/raytrace.md
     - Examples:
             - VIPIR Examples:
