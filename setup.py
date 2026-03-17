@@ -76,6 +76,7 @@ setup(
             "timezonefinder",
             "SciencePlots",
             "xarray",
+            "joblib",
         ]
     },
     include_package_data=True,

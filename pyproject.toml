@@ -48,4 +48,5 @@ dev = [
   "SciencePlots",
   "scipy",
   "xarray",
+  "joblib",
 ]
