@@ -50,4 +50,5 @@ dev = [
   "xarray",
   "joblib",
   "pysolar",
+  "netCDF4",
 ]

@@ -78,6 +78,7 @@ setup(
             "xarray",
             "joblib",
             "pysolar",
+            "netCDF4",
         ]
     },
     include_package_data=True,
