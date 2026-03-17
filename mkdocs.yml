@@ -21,11 +21,13 @@ plugins:
         default_handler: python
         handlers:
           python:
-            paths: [".."]  
+            paths: [".."]
             options:
               show_root_heading: true
               show_source: true
               members_order: source
+              show_symbol_type_heading: true
+              show_symbol_type_toc: true
      
 markdown_extensions:
     - extra
@@ -84,8 +86,9 @@ nav:
                     - Read/Plot DVL: examples/digisonde/dvl.md
                     - RSF Parse and Inspect: examples/digisonde/rsf.md
                     - RSF Direction Ionogram + Directogram: examples/digisonde/rsf_direction_ionogram.md
-    - API Documentation: 
-                - Digisonde: 
+    - API Documentation:
+                - Overview: dev/api_index.md
+                - Digisonde:
                         - Utils: dev/digisonde/digi_utils.md
                         - Plot Utils: dev/digisonde/digi_plots.md
                         - Digisonde Parsers:
@@ -102,15 +105,20 @@ nav:
                                 - DFT: dev/digisonde/datatypes/dftdatatypes.md
                                 - RSF: dev/digisonde/datatypes/rsfdatatypes.md
                 - VIPIR:
+                        - Overview: dev/vipir/index.md
+                        - RIQ Overview: dev/vipir/riq/index.md
                         - VIPIR Ionogram:
+                                - Overview: dev/vipir/ngi/index.md
                                 - Utils: dev/vipir/ngi/utils.md
                                 - Source: dev/vipir/ngi/source.md
                                 - Scale: dev/vipir/ngi/scale.md
                                 - Plot Utils: dev/vipir/ngi/plotlib.md
                         - VIPIR RIQ Parsers:
+                                - Overview: dev/vipir/riq/parsers/index.md
                                 - Trace: dev/vipir/riq/parsers/trace.md
                                 - Read RIQ: dev/vipir/riq/parsers/read_riq.md
                                 - Utils: dev/vipir/riq/utils.md
                         - VIPIR RIQ Datatypes:
+                                - Overview: dev/vipir/riq/datatypes/index.md
                                 - SCT: dev/vipir/riq/datatypes/sct.md
                                 - PCT: dev/vipir/riq/datatypes/pct.md
