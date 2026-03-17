@@ -33,7 +33,7 @@ git commit -m "$MSG"
 # ── Push main → master (GitHub Pages branch) ─────────────────
 echo ""
 echo "Pushing to GitHub Pages (master)..."
-git push origin main:master
+git push origin main
 
 echo ""
 echo "Done! Site will be live at https://shibaji7.github.io in ~60 seconds."
