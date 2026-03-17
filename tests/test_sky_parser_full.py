@@ -11,10 +11,10 @@ import pytest
 
 from pynasonde.digisonde.parsers.sky import SkyExtractor, get_indent
 
-
 # ---------------------------------------------------------------------------
 # Module-level helper: get_indent
 # ---------------------------------------------------------------------------
+
 
 class TestGetIndent:
     def test_no_indent(self):
@@ -46,8 +46,7 @@ class TestGetIndent:
 # Exact spacing required: 1-space indent for data header, 4-space indent for freq header.
 # Do NOT use textwrap.dedent — it would strip the leading spaces and break the parser.
 MINIMAL_SKY = (
-    " 1 4.0 57Z1KR835 1 1 0 0\n"
-    "    1 0.0 5.000 200.0 25.0 1.0 2.0 0 0.5 0.3 0\n"
+    " 1 4.0 57Z1KR835 1 1 0 0\n" "    1 0.0 5.000 200.0 25.0 1.0 2.0 0 0.5 0.3 0\n"
 )
 
 
@@ -61,6 +60,7 @@ def sky_file(tmp_path):
 # ---------------------------------------------------------------------------
 # SkyExtractor instantiation and helper methods
 # ---------------------------------------------------------------------------
+
 
 class TestSkyExtractorHelpers:
     def test_init_sets_attributes(self, sky_file):
@@ -103,8 +103,19 @@ class TestSkyExtractorHelpers:
 
     def test_parse_freq_header_fields(self, sky_file):
         ex = SkyExtractor(sky_file)
-        tokens = ["1", "0.0", "5.000", "200.0", "25.0",
-                  "1.0", "2.0", "0", "0.5", "0.3", "0"]
+        tokens = [
+            "1",
+            "0.0",
+            "5.000",
+            "200.0",
+            "25.0",
+            "1.0",
+            "2.0",
+            "0",
+            "0.5",
+            "0.3",
+            "0",
+        ]
         fh = ex.parse_freq_header(tokens)
         assert fh["frq_height_num"] == 1
         assert fh["zenith_angle"] == pytest.approx(0.0)
@@ -119,6 +130,7 @@ class TestSkyExtractorHelpers:
         p.write_text(MINIMAL_SKY)
         ex = SkyExtractor(str(p), extract_time_from_name=True)
         import datetime as dt
+
         expected = dt.datetime(2024, 1, 1) + dt.timedelta(99 - 1)
         expected = expected.replace(hour=16, minute=9, second=13)
         assert ex.date == expected
@@ -127,6 +139,7 @@ class TestSkyExtractorHelpers:
 # ---------------------------------------------------------------------------
 # Full extract() with synthetic SKY file
 # ---------------------------------------------------------------------------
+
 
 class TestSkyExtractorExtract:
     def test_extract_returns_namespace(self, sky_file):
@@ -150,7 +163,7 @@ class TestSkyExtractorExtract:
         sky = ex.extract()
         fh = sky.dataset[0].freq_headers
         assert len(fh) == 1
-        assert fh[0].n_sources == 0   # 0 sources → no sky_data block
+        assert fh[0].n_sources == 0  # 0 sources → no sky_data block
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +200,7 @@ class TestSkyExtractorWithSource:
 # ---------------------------------------------------------------------------
 # to_pandas with a minimal synthetic sky_struct
 # ---------------------------------------------------------------------------
+
 
 class TestSkyExtractorToPandas:
     def test_to_pandas_returns_dataframe(self, sky_file):

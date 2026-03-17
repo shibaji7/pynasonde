@@ -14,7 +14,6 @@ import pytest
 from pynasonde.digisonde.digi_utils import to_namespace
 from pynasonde.digisonde.parsers.sao import SaoExtractor
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -40,6 +39,7 @@ def extractor(sao_file):
 # SaoExtractor.pad()
 # ---------------------------------------------------------------------------
 
+
 class TestSaoExtractorPad:
     def test_pad_shorter(self, extractor):
         assert extractor.pad("abc", 6) == "abc   "
@@ -61,6 +61,7 @@ class TestSaoExtractorPad:
 # ---------------------------------------------------------------------------
 # SaoExtractor.parse_line()
 # ---------------------------------------------------------------------------
+
 
 class TestSaoExtractorParseLine:
     def test_7_3f_numeric(self, extractor):
@@ -116,6 +117,7 @@ class TestSaoExtractorParseLine:
 # SaoExtractor.__init__ and read_file
 # ---------------------------------------------------------------------------
 
+
 class TestSaoExtractorInit:
     def test_stn_code_parsed(self, sao_file):
         ex = SaoExtractor(sao_file)
@@ -144,6 +146,7 @@ class TestSaoExtractorInit:
 # SaoExtractor.extract() — all-zero header (all sections skipped)
 # ---------------------------------------------------------------------------
 
+
 class TestSaoExtractorExtractZero:
     def test_extract_returns_dict(self, extractor):
         result = extractor.extract()
@@ -166,9 +169,14 @@ class TestSaoExtractorExtractZero:
 #   Dindex1: noe[3]=1  (Scaled/foF2, %8.3f)
 #   Dindex2: noe[50]=2 (TH), noe[51]=2 (PF), noe[52]=2 (ED)  all %8.3f
 _SCALED_HDR = (
-    "  0  0  0  1" + "  0" * 36 + "\n"   # Dindex1: only noe[3]=1
-    + "  0" * 10 + "  2  2  2" + "  0" * 27 + "\n"  # Dindex2: noe[50/51/52]=2
-    + "   5.500\n"          # Scaled foF2 = 5.5 (1 item × 8 chars)
+    "  0  0  0  1"
+    + "  0" * 36
+    + "\n"  # Dindex1: only noe[3]=1
+    + "  0" * 10
+    + "  2  2  2"
+    + "  0" * 27
+    + "\n"  # Dindex2: noe[50/51/52]=2
+    + "   5.500\n"  # Scaled foF2 = 5.5 (1 item × 8 chars)
     + "  80.000 100.000\n"  # TH = [80.0, 100.0] (2 × 8 chars)
     + "   3.000   5.000\n"  # PF = [3.0, 5.0]
     + " 100.000 200.000\n"  # ED = [100.0, 200.0]
@@ -220,6 +228,7 @@ class TestSaoExtractorExtractData:
 # SaoExtractor.get_scaled_datasets() — manual sao injection
 # ---------------------------------------------------------------------------
 
+
 class TestGetScaledDatasets:
     def test_returns_dataframe(self, extractor):
         extractor.extract()
@@ -262,15 +271,18 @@ class TestGetScaledDatasets:
 # SaoExtractor.get_height_profile() — manual sao injection
 # ---------------------------------------------------------------------------
 
+
 class TestGetHeightProfile:
     def _set_sao_data(self, extractor):
         """Inject TH/PF/ED and stn_info needed by get_height_profile."""
         extractor.extract()
-        extractor.sao = to_namespace({
-            "TH": [100.0, 150.0, 200.0],
-            "PF": [3.5, 4.0, 5.0],
-            "ED": [1e10, 1.5e10, 2e10],
-        })
+        extractor.sao = to_namespace(
+            {
+                "TH": [100.0, 150.0, 200.0],
+                "PF": [3.5, 4.0, 5.0],
+                "ED": [1e10, 1.5e10, 2e10],
+            }
+        )
         extractor.stn_info = {"LAT": 55.8, "LONG": 48.8}
 
     def test_returns_dataframe(self, extractor):
@@ -319,11 +331,13 @@ class TestGetHeightProfile:
         p.write_text(_ZERO_HDR)
         ex = SaoExtractor(str(p), extract_time_from_name=True)
         ex.extract()
-        ex.sao = to_namespace({
-            "TH": [100.0, 200.0],
-            "PF": [3.0, 4.0],
-            "ED": [1e10, 2e10],
-        })
+        ex.sao = to_namespace(
+            {
+                "TH": [100.0, 200.0],
+                "PF": [3.0, 4.0],
+                "ED": [1e10, 2e10],
+            }
+        )
         ex.stn_info = {"LAT": 55.8, "LONG": 48.8}
         df = ex.get_height_profile()
         assert "datetime" in df.columns

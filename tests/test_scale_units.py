@@ -7,15 +7,15 @@ import pytest
 from pynasonde.vipir.ngi.scale import AutoScaler, NoiseProfile, parabola
 from pynasonde.vipir.ngi.source import Dataset
 
-
 # ---------------------------------------------------------------------------
 # Helper: build a minimal synthetic Dataset that AutoScaler.extract() accepts
 # ---------------------------------------------------------------------------
 
+
 def _make_dataset(n_freq=10, n_range=20):
     ds = Dataset()
-    ds.Frequency = np.linspace(1000.0, 10000.0, n_freq)   # kHz
-    ds.Range = np.linspace(50.0, 500.0, n_range)           # km
+    ds.Frequency = np.linspace(1000.0, 10000.0, n_freq)  # kHz
+    ds.Range = np.linspace(50.0, 500.0, n_range)  # km
     ds.O_mode_power = np.random.rand(n_freq, n_range) * 50.0
     ds.O_mode_noise = np.ones(n_freq) * 5.0
     ds.X_mode_power = np.random.rand(n_freq, n_range) * 40.0
@@ -27,14 +27,16 @@ def _make_dataset(n_freq=10, n_range=20):
 # parabola()
 # ---------------------------------------------------------------------------
 
+
 class TestParabola:
     def test_zero_coefficients(self):
         assert parabola(0.0, 0, 0, 0) == 0.0
 
     def test_linear_when_a_zero(self):
         # a=0, b=2, c=1 → 2*x + 1
-        np.testing.assert_allclose(parabola(np.array([0.0, 1.0, 2.0]), 0, 2, 1),
-                                   [1.0, 3.0, 5.0])
+        np.testing.assert_allclose(
+            parabola(np.array([0.0, 1.0, 2.0]), 0, 2, 1), [1.0, 3.0, 5.0]
+        )
 
     def test_returns_array_for_array_input(self):
         x = np.linspace(0, 1, 5)
@@ -45,6 +47,7 @@ class TestParabola:
 # ---------------------------------------------------------------------------
 # NoiseProfile
 # ---------------------------------------------------------------------------
+
 
 class TestNoiseProfile:
     def test_defaults(self):
@@ -70,6 +73,7 @@ class TestNoiseProfile:
 # ---------------------------------------------------------------------------
 # AutoScaler – construct, mdeian_filter, image_segmentation, fit_parabola
 # ---------------------------------------------------------------------------
+
 
 class TestAutoScalerExtract:
     def test_init_sets_image2d(self):
@@ -148,10 +152,12 @@ class TestAutoScalerFitParabola:
         scaler.traces = {}
         scaler.trace_params = {}
         # <= 10 rows: no fit should happen
-        tr = pd.DataFrame({
-            "frequency": np.linspace(2, 6, 5),
-            "height": np.linspace(100, 300, 5),
-        })
+        tr = pd.DataFrame(
+            {
+                "frequency": np.linspace(2, 6, 5),
+                "height": np.linspace(100, 300, 5),
+            }
+        )
         scaler.fit_parabola(tr, label=0)
         assert 0 not in scaler.traces
 
@@ -161,7 +167,7 @@ class TestAutoScalerFitParabola:
         scaler.traces = {}
         scaler.trace_params = {}
         freqs = np.linspace(2, 8, 20)
-        heights = -(freqs - 5.0) ** 2 + 300.0  # parabola shape
+        heights = -((freqs - 5.0) ** 2) + 300.0  # parabola shape
         tr = pd.DataFrame({"frequency": freqs, "height": heights})
         scaler.fit_parabola(tr, label=1)
         assert 1 in scaler.traces
@@ -173,9 +179,11 @@ class TestAutoScalerFitParabola:
         scaler.traces = {}
         scaler.trace_params = {}
         # NaN data → curve_fit will fail
-        tr = pd.DataFrame({
-            "frequency": [np.nan] * 15,
-            "height": [np.nan] * 15,
-        })
+        tr = pd.DataFrame(
+            {
+                "frequency": [np.nan] * 15,
+                "height": [np.nan] * 15,
+            }
+        )
         scaler.fit_parabola(tr, label=2)  # should not raise
         assert 2 not in scaler.traces

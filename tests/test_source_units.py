@@ -8,12 +8,12 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from pynasonde.vipir.ngi.source import DataSource, Dataset, Trace
-
+from pynasonde.vipir.ngi.source import Dataset, DataSource, Trace
 
 # ---------------------------------------------------------------------------
 # Trace
 # ---------------------------------------------------------------------------
+
 
 class TestTrace:
     def test_default_fields_are_none(self):
@@ -32,6 +32,7 @@ class TestTrace:
 # ---------------------------------------------------------------------------
 # Dataset – direct instantiation and set_traces / get_n_traces
 # ---------------------------------------------------------------------------
+
 
 class TestDataset:
     def test_default_instantiation(self):
@@ -71,6 +72,7 @@ class TestDataset:
 # Dataset.__initialize__ – synthetic xarray Dataset
 # ---------------------------------------------------------------------------
 
+
 def _make_xr_dataset():
     """Build a minimal xarray Dataset that matches Dataset.__initialize__().
 
@@ -84,10 +86,10 @@ def _make_xr_dataset():
     # byte-string arrays for URSI / StationName
     # Use dtype=object (Python bytes elements) so __initialize__ goes through
     # the else branch and u.decode("latin-1") works per production expectation.
-    ursi_bytes = np.array([b"K", b"R", b"8", b"3", b"5", b" ", b" ", b" "],
-                          dtype=object)
-    stn_bytes = np.array([b"T", b"e", b"s", b"t", b" ", b" ", b" ", b" "],
-                         dtype=object)
+    ursi_bytes = np.array(
+        [b"K", b"R", b"8", b"3", b"5", b" ", b" ", b" "], dtype=object
+    )
+    stn_bytes = np.array([b"T", b"e", b"s", b"t", b" ", b" ", b" ", b" "], dtype=object)
 
     def scalar(v):
         return xr.DataArray(np.array(v))
@@ -196,6 +198,7 @@ class TestDatasetInitialize:
 # ---------------------------------------------------------------------------
 # DataSource – __init__ with various combinations
 # ---------------------------------------------------------------------------
+
 
 class TestDataSource:
     def test_init_empty_folder(self, tmp_path):

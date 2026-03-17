@@ -17,10 +17,10 @@ from pynasonde.digisonde.datatypes.rsfdatatypes import (
     RsfHeader,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_header(**overrides):
     """Create an RsfHeader with sensible defaults."""
@@ -39,17 +39,17 @@ def make_header(**overrides):
         stn_code_tx="KR835",
         schedule=1,
         program=1,
-        start_frequency=10000,      # ×100 Hz → 1 000 000 Hz = 1 MHz
+        start_frequency=10000,  # ×100 Hz → 1 000 000 Hz = 1 MHz
         coarse_frequency_step=100,  # ×1 kHz  → 100 000 Hz
-        stop_frequency=45000,       # ×100 Hz → 4 500 000 Hz = 4.5 MHz
-        fine_frequency_step=10,     # ×1 kHz  → 10 000 Hz
+        stop_frequency=45000,  # ×100 Hz → 4 500 000 Hz = 4.5 MHz
+        fine_frequency_step=10,  # ×1 kHz  → 10 000 Hz
         num_small_steps_in_scan=3,
         phase_code=1,
         option_code=0,
         number_of_samples=5,
         pulse_repetition_rate=100,
         range_start=80,
-        range_increment=5,          # → 5 km
+        range_increment=5,  # → 5 km
         number_of_heights=128,
         delay=0,
         base_gain=3,
@@ -57,7 +57,7 @@ def make_header(**overrides):
         operating_mode=0,
         data_format=4,
         printer_output=0,
-        threshold=10,               # → 3*(10-10) = 0 dB
+        threshold=10,  # → 3*(10-10) = 0 dB
         constant_gain=0,
         cit_length=500,
         journal="0000",
@@ -76,11 +76,11 @@ def make_frequency_group(n=8, **overrides):
     defaults = dict(
         pol="O",
         group_size=2,
-        frequency_reading=300.0,    # → 300 × 10000 = 3 000 000 Hz
-        offset=2,                   # → 0 Hz (no offset)
-        additional_gain=3.0,        # → 9 dB
+        frequency_reading=300.0,  # → 300 × 10000 = 3 000 000 Hz
+        offset=2,  # → 0 Hz (no offset)
+        additional_gain=3.0,  # → 9 dB
         seconds=9,
-        mpa=2.0,                    # → 2 (raw); amplitude values < 2 set to 0
+        mpa=2.0,  # → 2 (raw); amplitude values < 2 set to 0
         amplitude=np.ones(n, dtype=np.float64) * 5.0,
         dop_num=np.arange(n, dtype=np.float64),
         phase=np.ones(n, dtype=np.float64) * 2.0,
@@ -95,10 +95,11 @@ def make_frequency_group(n=8, **overrides):
 # RsfHeader
 # ---------------------------------------------------------------------------
 
+
 class TestRsfHeader:
     def test_frequency_conversion(self):
         h = make_header(start_frequency=10000)
-        assert h.start_frequency == pytest.approx(1_000_000.0)   # 10000 × 100 Hz
+        assert h.start_frequency == pytest.approx(1_000_000.0)  # 10000 × 100 Hz
 
     def test_coarse_step_conversion(self):
         h = make_header(coarse_frequency_step=100)
@@ -126,15 +127,15 @@ class TestRsfHeader:
 
     def test_threshold_zero(self):
         h = make_header(threshold=10)
-        assert h.threshold == pytest.approx(0.0)   # 3*(10-10)=0
+        assert h.threshold == pytest.approx(0.0)  # 3*(10-10)=0
 
     def test_threshold_nonzero(self):
         h = make_header(threshold=13)
-        assert h.threshold == pytest.approx(9.0)   # 3*(13-10)=9
+        assert h.threshold == pytest.approx(9.0)  # 3*(13-10)=9
 
     def test_threshold_zero_raw(self):
         h = make_header(threshold=0)
-        assert np.isnan(h.threshold)               # 0 → NaN special case
+        assert np.isnan(h.threshold)  # 0 → NaN special case
 
     def test_date_synthesized(self):
         h = make_header(year=2023, month=10, dom=14, hour=0, minute=9, second=15)
@@ -142,7 +143,7 @@ class TestRsfHeader:
 
     def test_data_format_code(self):
         h = make_header(data_format=4)
-        assert h.data_format == 4   # RSF = 4
+        assert h.data_format == 4  # RSF = 4
 
     def test_phase_code_field(self):
         h = make_header(phase_code=2)
@@ -156,6 +157,7 @@ class TestRsfHeader:
 # ---------------------------------------------------------------------------
 # RsfFreuencyGroup
 # ---------------------------------------------------------------------------
+
 
 class TestRsfFrequencyGroup:
     def test_azimuth_converted_to_degrees(self):
@@ -178,8 +180,9 @@ class TestRsfFrequencyGroup:
         np.testing.assert_array_almost_equal(fg.amplitude, [15.0, 15.0, 15.0, 15.0])
 
     def test_amplitude_below_mpa_zeroed(self):
-        fg = make_frequency_group(n=4, mpa=10.0,
-                                  amplitude=np.array([3.0, 15.0, 3.0, 15.0]))
+        fg = make_frequency_group(
+            n=4, mpa=10.0, amplitude=np.array([3.0, 15.0, 3.0, 15.0])
+        )
         fg.setup()
         # raw 3 * 3 = 9 < mpa 10 → 0; raw 15 * 3 = 45 > mpa 10 → kept
         assert fg.amplitude[0] == 0.0
@@ -230,7 +233,7 @@ class TestRsfFrequencyGroup:
     def test_additional_gain_converted(self):
         fg = make_frequency_group(additional_gain=4.0)
         fg.setup()
-        assert fg.additional_gain == pytest.approx(12.0)   # 4 × 3 dB
+        assert fg.additional_gain == pytest.approx(12.0)  # 4 × 3 dB
 
     def test_frequency_reading_converted_to_hz(self):
         fg = make_frequency_group(frequency_reading=300.0)
@@ -238,8 +241,9 @@ class TestRsfFrequencyGroup:
         assert fg.frequency_reading == pytest.approx(300.0 * 10e3)
 
     def test_azm_directions_set(self):
-        fg = make_frequency_group(n=6,
-                                  azimuth=np.array([0, 1, 2, 3, 4, 5], dtype=float))
+        fg = make_frequency_group(
+            n=6, azimuth=np.array([0, 1, 2, 3, 4, 5], dtype=float)
+        )
         fg.setup()
         expected = ["N", "NE", "SE", "S", "SW", "NW"]
         assert fg.azm_directions == expected
@@ -254,6 +258,7 @@ class TestRsfFrequencyGroup:
 # ---------------------------------------------------------------------------
 # RsfDataUnit.setup()
 # ---------------------------------------------------------------------------
+
 
 class TestRsfDataUnit:
     def test_setup_populates_height_vectors(self):
@@ -278,6 +283,7 @@ class TestRsfDataUnit:
 # ---------------------------------------------------------------------------
 # RsfDataFile
 # ---------------------------------------------------------------------------
+
 
 class TestRsfDataFile:
     def test_container_holds_units(self):

@@ -75,6 +75,7 @@ setup(
             "pytz",
             "timezonefinder",
             "SciencePlots",
+            "xarray",
         ]
     },
     include_package_data=True,

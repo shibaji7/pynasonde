@@ -6,6 +6,38 @@ reading complex baseband IQ recordings, performing complementary-code
 correlation, assembling range–frequency power grids, and writing results to a
 NetCDF product.  The logic mirrors the original Julia implementation as closely
 as possible while adopting Pythonic structure and naming.
+
+----------------------------------------------------------------------
+Integration depth and the "how many .bin files?" question
+----------------------------------------------------------------------
+Each sounding epoch requires reading a block of one-second IQ recordings.
+The total duration (and therefore the number of files) is determined by
+the program parameters::
+
+    n_coarse = (upper_freq - lower_freq) / coarse_step   # e.g. 435
+    pulses_per_freq = n_rep × 2 (comp. pair) × n_pol     # e.g. 32
+    total_pulses = n_coarse × pulses_per_freq              # e.g. 13 920
+    sounding_duration_s = total_pulses × IPP               # e.g. 139 s
+
+For the default Kirtland schedule (IPP = 10 ms, nRep = 8, O+X, 2–15 MHz):
+each sounding reads **~139 one-second .bin files**.  The 12-minute cadence
+gives enough margin so that the *next* sounding starts only after all data
+for the current one has been collected.
+
+Reducing ``Number of Integrated Repeats`` (nRep) trades SNR for cadence:
+
++------+-------------------+-------------------+------------+
+| nRep | Sounding duration | Min. cadence      | SNR loss   |
++======+===================+===================+============+
+|  8   |     ~139 s        |  ~3 min           | baseline   |
+|  4   |      ~70 s        |  ~2 min           |  −1.5 dB   |
+|  2   |      ~35 s        |  ~1 min           |  −3.0 dB   |
+|  1   |      ~17 s        |  ~30 s            |  −4.5 dB   |
++------+-------------------+-------------------+------------+
+
+SNR scales as √nRep because the correlation voltage averages coherently
+across repeats before the Doppler FFT.  For strong daytime F-layer echoes
+nRep = 4 is usually sufficient; for weak or disturbed conditions keep nRep = 8.
 """
 
 from __future__ import annotations
@@ -16,29 +48,277 @@ import math
 import socket
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 
 import netCDF4
 import numpy as np
 from loguru import logger
+from scipy import fft as sp_fft
 
 from pynasonde.digisonde.raw.iq_reader import IQStream
 
 # ---------------------------------------------------------------------------
 # Constants and phase codes
 
+#: 16-chip complementary code A (Barker-like, confirmed against Julia source)
 p_code_a = np.array(
     [+1, +1, -1, +1, +1, +1, +1, -1, -1, +1, +1, +1, -1, +1, -1, -1],
     dtype=np.complex128,
 )
+#: 16-chip complementary code B
 p_code_b = np.array(
     [-1, -1, +1, -1, -1, -1, -1, +1, -1, +1, +1, +1, -1, +1, -1, -1],
     dtype=np.complex128,
 )
-CHIP_BW = 30_000.0  # Hz
-SPEED_OF_LIGHT = 2.99792458e5  # km / s
+
+#: Chip bandwidth of the DPS4D waveform (Hz).  Sets range resolution
+#: (≈ 5 km) and the number of range gates per IPP.
+CHIP_BW: float = 30_000.0
+
+#: Speed of light used for group-path → range conversion (km s⁻¹).
+SPEED_OF_LIGHT: float = 2.99792458e5
+
+#: Artificial group-path offset applied by the Digisonde hardware (s).
+#: Confirmed by E. Dao 2017-07-26.
+DIGISONDE_DELAY: float = 220e-6
+
 HOSTNAME = socket.gethostname()
 _UTC = dt.timezone.utc
+
+
+# ---------------------------------------------------------------------------
+# Result container
+
+
+@dataclasses.dataclass
+class IonogramResult:
+    """Container for a single processed Digisonde sounding.
+
+    All arrays are in physical units.  Use :meth:`to_netcdf` to write the
+    standard compressed NetCDF product, or :meth:`to_xarray` to get an
+    in-memory ``xarray.Dataset`` for interactive analysis.
+
+    Attributes
+    ----------
+    frequency_hz:
+        RF frequencies at which the sounding was taken, shape ``(n_freqs,)``,
+        in Hz.
+    range_km:
+        Virtual heights (group range) corresponding to each range gate, shape
+        ``(n_ranges,)``, in km.  The 220 µs Digisonde hardware delay has
+        already been subtracted.
+    time_unix:
+        Unix timestamp of the first pulse for each sounding frequency, shape
+        ``(n_freqs,)``.
+    power_o:
+        Ordinary-mode receive power (linear, arbitrary units), shape
+        ``(n_freqs, n_ranges)``.
+    power_x:
+        Extraordinary-mode receive power (linear, arbitrary units), same shape.
+        All zeros when ``Polarization != "O and X"``.
+    phase_o:
+        Ordinary-mode phase at the Doppler peak (radians), or ``None`` when
+        ``Save Phase`` was not requested.
+    phase_x:
+        Extraordinary-mode phase at the Doppler peak (radians), or ``None``.
+    program_id:
+        Identifier string from the program dictionary (e.g. ``"DPS4D_Kirtland0"``).
+    epoch:
+        UTC epoch of the sounding.
+    """
+
+    frequency_hz: np.ndarray
+    range_km: np.ndarray
+    time_unix: np.ndarray
+    power_o: np.ndarray
+    power_x: np.ndarray
+    phase_o: Optional[np.ndarray]
+    phase_x: Optional[np.ndarray]
+    program_id: str
+    epoch: dt.datetime
+
+    # ------------------------------------------------------------------
+    # Derived helpers
+
+    @property
+    def frequency_mhz(self) -> np.ndarray:
+        """Frequency axis in MHz."""
+        return self.frequency_hz * 1e-6
+
+    @property
+    def power_total(self) -> np.ndarray:
+        """Sum of O- and X-mode power (linear)."""
+        return self.power_o + self.power_x
+
+    def power_db(self, mode: str = "total") -> np.ndarray:
+        """Return SNR in dB, normalised so the median equals 0 dB.
+
+        Parameters
+        ----------
+        mode:
+            ``"total"`` (default), ``"O"``, or ``"X"``.
+
+        Returns
+        -------
+        np.ndarray
+            Array clipped to ``[0, 255]`` dB, shape ``(n_freqs, n_ranges)``.
+        """
+        src = {"total": self.power_total, "O": self.power_o, "X": self.power_x}[mode]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            db = 10.0 * np.log10(src)
+        db[~np.isfinite(db)] = np.nan
+        med = np.nanmedian(db)
+        db -= med if np.isfinite(med) else 0.0
+        return np.clip(np.nan_to_num(db, nan=0.0), 0, 255)
+
+    # ------------------------------------------------------------------
+    # Export methods
+
+    def to_netcdf(self, path: Path | str) -> None:
+        """Write the ionogram to a compressed NetCDF4 file.
+
+        Parameters
+        ----------
+        path:
+            Destination file path (parent directories must exist).
+        """
+        pow_uint8 = self.power_db("total").astype(np.uint8)
+        nc_path = Path(path)
+
+        dataset = netCDF4.Dataset(nc_path, "w", format="NETCDF4")
+        try:
+            n_freqs = len(self.frequency_hz)
+            n_ranges = len(self.range_km)
+            dataset.createDimension("frequency", n_freqs)
+            dataset.createDimension("range", n_ranges)
+
+            for name, value in (
+                ("system", "SORcer"),
+                ("ID", self.program_id),
+            ):
+                dataset.createDimension(f"{name}_strlen", len(value))
+                v = dataset.createVariable(name, "S1", (f"{name}_strlen",))
+                v[:] = np.array(list(value), dtype="S1")
+
+            dataset.createDimension("channel_dim", 1)
+            ch_var = dataset.createVariable("channel", "u1", ("channel_dim",))
+            ch_var[:] = np.array([0], dtype="u1")
+
+            pw = dataset.createVariable(
+                "power", "u1", ("frequency", "range"), zlib=True, complevel=9
+            )
+            pw.setncatts(
+                {
+                    "units": "dB",
+                    "long_name": "receive power",
+                    "notes": "SNR, noise estimate via median power",
+                }
+            )
+            pw[:, :] = pow_uint8
+
+            if self.phase_o is not None:
+                po = dataset.createVariable(
+                    "phaseOMode", "f4", ("frequency", "range"), zlib=True, complevel=9
+                )
+                po.setncatts({"units": "radians", "long_name": "ordinary mode phase"})
+                po[:, :] = self.phase_o.astype(np.float32)
+
+            if self.phase_x is not None:
+                px = dataset.createVariable(
+                    "phaseXMode", "f4", ("frequency", "range"), zlib=True, complevel=9
+                )
+                px.setncatts(
+                    {"units": "radians", "long_name": "extraordinary mode phase"}
+                )
+                px[:, :] = self.phase_x.astype(np.float32)
+
+            fv = dataset.createVariable(
+                "frequency", "f4", ("frequency",), zlib=True, complevel=9
+            )
+            fv.setncatts({"units": "MHz", "long_name": "radio frequency"})
+            fv[:] = self.frequency_mhz.astype(np.float32)
+
+            rv = dataset.createVariable(
+                "range", "f4", ("range",), zlib=True, complevel=9
+            )
+            rv.setncatts(
+                {
+                    "units": "km",
+                    "long_name": "group path",
+                    "notes": "group delay * speed of light",
+                }
+            )
+            rv[:] = self.range_km.astype(np.float32)
+
+            tv = dataset.createVariable(
+                "time", "f8", ("frequency",), zlib=True, complevel=9
+            )
+            tv.setncatts(
+                {
+                    "units": "seconds",
+                    "long_name": "Unix time",
+                    "notes": "since 1970-01-01T00:00:00Z, ignoring leap seconds",
+                }
+            )
+            tv[:] = self.time_unix
+        finally:
+            dataset.close()
+
+    def to_xarray(self):
+        """Return the ionogram as an ``xarray.Dataset``.
+
+        The dataset has dimensions ``(frequency, range)`` with frequency in MHz
+        and range in km.  Both linear power arrays (O- and X-mode) and the
+        normalised dB power are included as data variables.
+
+        Returns
+        -------
+        xarray.Dataset
+        """
+        import xarray as xr
+
+        coords = {
+            "frequency": ("frequency", self.frequency_mhz, {"units": "MHz"}),
+            "range": ("range", self.range_km, {"units": "km"}),
+        }
+        data_vars = {
+            "power_o": (
+                ("frequency", "range"),
+                self.power_o,
+                {"long_name": "O-mode power (linear)"},
+            ),
+            "power_x": (
+                ("frequency", "range"),
+                self.power_x,
+                {"long_name": "X-mode power (linear)"},
+            ),
+            "power_db": (
+                ("frequency", "range"),
+                self.power_db("total"),
+                {"units": "dB", "long_name": "Total SNR (median-normalised)"},
+            ),
+        }
+        if self.phase_o is not None:
+            data_vars["phase_o"] = (
+                ("frequency", "range"),
+                self.phase_o,
+                {"units": "radians", "long_name": "O-mode Doppler phase"},
+            )
+        if self.phase_x is not None:
+            data_vars["phase_x"] = (
+                ("frequency", "range"),
+                self.phase_x,
+                {"units": "radians", "long_name": "X-mode Doppler phase"},
+            )
+        return xr.Dataset(
+            data_vars=data_vars,
+            coords=coords,
+            attrs={
+                "program_id": self.program_id,
+                "epoch": self.epoch.isoformat(),
+                "created_by": "pynasonde.digisonde.raw.raw_parse",
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +353,7 @@ def _prev_power_of_two(value: float) -> int:
 def _next_smooth_235(target: int) -> int:
     """Return the smallest 5-smooth (2^a 3^b 5^c) number >= target."""
     best = None
-    limit = target * 4  # conservative upper bound
+    limit = target * 4
     for a in range(0, 20):
         for b in range(0, 20):
             value = (2**a) * (3**b)
@@ -102,6 +382,99 @@ def _interp_complex(
 
 
 # ---------------------------------------------------------------------------
+# Single-pulse IQ accessor
+
+
+def read_pulse(
+    program: Dict[str, object],
+    dir_iq: Path | str,
+    coarse_index: int,
+    fine_index: int = 0,
+    pol_index: int = 0,
+    rep_index: int = 0,
+    comp_index: int = 0,
+) -> np.ndarray:
+    """Read the raw complex IQ samples for one specific pulse.
+
+    This is the entry point for inspecting individual pulses without running
+    the full sounding pipeline.  The returned samples are in the ADC's native
+    baseband (full receiver bandwidth); use the FFT-domain mixing logic in
+    :func:`process` to tune to a narrower band around a specific frequency.
+
+    Parameters
+    ----------
+    program:
+        Same program dictionary passed to :func:`process`.
+    dir_iq:
+        Root directory of the IQ recording tree.
+    coarse_index:
+        Which coarse-frequency step to read (0-based).
+    fine_index:
+        Fine-frequency sub-step within the coarse step (0 for most programs).
+    pol_index:
+        Polarisation index: 0 = O-mode, 1 = X-mode.
+    rep_index:
+        Repeat (integration) index within the CIT, 0 … nRep-1.
+    comp_index:
+        Complementary-code index: 0 = code A, 1 = code B.
+
+    Returns
+    -------
+    np.ndarray
+        Complex64 array of length ``n_samples`` (next power-of-two of
+        ``IPP × f_sample``).
+
+    Examples
+    --------
+    >>> samples = read_pulse(program, "/media/data", coarse_index=0)
+    >>> import matplotlib.pyplot as plt
+    >>> plt.plot(samples.real[:500])
+    """
+    epoch = _ensure_datetime(program["Epoch"])
+    ipp_seconds = float(program["Inter-Pulse Period"])
+    fine_steps = int(program["Number of Fine Steps"])
+    repeats = int(program["Number of Integrated Repeats"])
+    multiplexing = bool(program["Fine Multiplexing"])
+    waveform = program["Wave Form"]
+    polarization = program.get("Polarization", "O and X")
+    n_pol = 2 if polarization == "O and X" else 1
+    rx_tag = program.get("rxTag", "ch0")
+
+    pulses_per_coarse = fine_steps * repeats
+    if waveform == "16-chip complementary":
+        pulses_per_coarse *= 2
+    if polarization == "O and X":
+        pulses_per_coarse *= 2
+
+    if multiplexing:
+        pulse_in_coarse = (
+            2 * n_pol * fine_steps * rep_index
+            + 2 * n_pol * fine_index
+            + 2 * pol_index
+            + comp_index
+        )
+    else:
+        pulse_in_coarse = (
+            2 * n_pol * repeats * fine_index
+            + 2 * n_pol * rep_index
+            + 2 * pol_index
+            + comp_index
+        )
+
+    pulse_index = coarse_index * pulses_per_coarse + pulse_in_coarse
+    sub_time = epoch + dt.timedelta(seconds=pulse_index * ipp_seconds)
+
+    stream = IQStream(dir_iq, epoch, rx_tag=rx_tag)
+    n_samples = _next_power_of_two(ipp_seconds * stream.f_sample)
+    try:
+        samples = stream.read_samples(sub_time, n_samples)
+    finally:
+        stream.close()
+
+    return samples
+
+
+# ---------------------------------------------------------------------------
 # Processing pipeline
 
 
@@ -113,12 +486,69 @@ def process(
     max_range: float = math.inf,
     nc_flag: bool = True,
     verbose: bool = True,
-) -> None:
-    """
-    Run a single Digisonde sounding program and write the resulting ionogram.
+) -> Optional[IonogramResult]:
+    """Run a single Digisonde sounding program and return an :class:`IonogramResult`.
 
-    Parameters mirror the Julia implementation.  Only IQ-mode processing is
-    currently supported (FFTMode must be false).
+    The pipeline mirrors the Julia ``Digisonde.process`` function:
+
+    1. Open the IQ stream via :class:`~pynasonde.digisonde.raw.iq_reader.IQStream`.
+    2. For every (frequency, polarisation, repeat, complementary-code) tuple:
+
+       a. Read ``n_samples`` raw IQ samples for the pulse's sub-time.
+       b. FFT → frequency-shift to baseband + decimate to chip bandwidth.
+       c. IFFT → optional fine-frequency residual mix.
+       d. Interpolate onto the 30 kHz chip grid.
+       e. Correlate with the reversed phase code via FFT convolution.
+       f. Accumulate into the CIT voltage array.
+
+    3. Vectorised Doppler FFT across all range gates → peak power and phase.
+    4. Optionally write a compressed NetCDF product.
+
+    Parameters
+    ----------
+    program:
+        Dictionary of sounding-program parameters.  Required keys:
+
+        * ``"Epoch"`` – :class:`datetime.datetime` or Unix timestamp
+        * ``"ID"`` – string identifier written into the NetCDF
+        * ``"Freq Stepping Law"`` – must be ``"linear"``
+        * ``"Wave Form"`` – must be ``"16-chip complementary"``
+        * ``"Lower Freq Limit"`` / ``"Upper Freq Limit"`` – Hz
+        * ``"Coarse Freq Step"`` / ``"Fine Freq step"`` – Hz
+        * ``"Number of Fine Steps"`` – int
+        * ``"Fine Multiplexing"`` – bool
+        * ``"Inter-Pulse Period"`` – seconds (IPP)
+        * ``"Number of Integrated Repeats"`` – int (nRep)
+        * ``"Interpulse Phase Switching"`` – bool
+        * ``"Polarization"`` – ``"O and X"`` or ``"O"``
+
+        Optional keys: ``"rxTag"`` (default ``"ch0"``),
+        ``"Save Phase"`` (default ``False``), ``"FFTMode"`` (default ``False``).
+    dir_iq:
+        Root directory containing the time-partitioned IQ recordings.
+    out_dir:
+        Root directory for NetCDF output.  A sub-path
+        ``<hostname>/<ID>/<YYYY-mm-dd>/`` is created automatically.
+    min_range, max_range:
+        Reserved for future range-gate masking (not yet applied).
+    nc_flag:
+        Write the NetCDF product when ``True`` (default).
+    verbose:
+        Emit progress messages via ``loguru``.
+
+    Returns
+    -------
+    IonogramResult or None
+        ``None`` only if the output file already existed and was skipped.
+
+    Notes
+    -----
+    **Integration depth and file count** — see module docstring for the full
+    table.  For the default Kirtland schedule (IPP = 10 ms, nRep = 8, O+X,
+    2–15 MHz at 30 kHz steps) each call reads ≈139 one-second ``.bin`` files
+    and takes about 139 s of wall-clock IQ data.  The 12-minute cadence in
+    :func:`main` leaves margin before the next sounding.  Reducing ``nRep``
+    proportionally shortens the sounding and trades SNR (scales as √nRep).
     """
 
     # ------------------------------------------------------------------
@@ -139,7 +569,7 @@ def process(
     if nc_path.exists():
         if verbose:
             logger.info(f"Skipping {nc_path} (already exists)")
-        return
+        return None
     if verbose:
         logger.info(f"Processing {program_id} at {epoch.isoformat()}")
 
@@ -175,16 +605,25 @@ def process(
     if polarization == "O and X":
         pulses_per_coarse *= 2
 
+    n_pulses_total = n_coarse * pulses_per_coarse
+    sounding_duration_s = n_pulses_total * ipp_seconds
+    if verbose:
+        logger.info(
+            f"Sounding: {n_coarse} coarse freqs × {pulses_per_coarse} pulses "
+            f"= {n_pulses_total} pulses, {sounding_duration_s:.0f} s of IQ data "
+            f"(≈{math.ceil(sounding_duration_s)} .bin files)"
+        )
+
     # ------------------------------------------------------------------
     # Open IQ stream and derive tuning parameters
     iq_stream = IQStream(dir_iq, epoch, rx_tag=rx_tag)
     f_low = iq_stream.f_center - iq_stream.f_sample / 2
 
-    # Range bins and arrays
+    # Range bins and axes
     n_ranges = int(math.floor(ipp_seconds * CHIP_BW))
     range_axis = (
         np.arange(n_ranges) / CHIP_BW
-    ) * SPEED_OF_LIGHT - 220e-6 * SPEED_OF_LIGHT
+    ) * SPEED_OF_LIGHT - DIGISONDE_DELAY * SPEED_OF_LIGHT
 
     # Frequency axis assembly
     freq_axis: List[float] = []
@@ -205,22 +644,18 @@ def process(
 
     # Sample buffers and FFT helpers
     n_samples = _next_power_of_two(ipp_seconds * iq_stream.f_sample)
-    logger.debug(f"Using {n_samples} samples per pulse")
+    logger.debug(f"n_samples={n_samples}, f_sample={iq_stream.f_sample:.0f} Hz")
     samples = np.zeros(n_samples, dtype=np.complex64)
     hz_per_bin = iq_stream.f_sample / n_samples
 
-    if not fft_mode:
-        decimation_factor = max(1, _prev_power_of_two(iq_stream.f_sample / CHIP_BW))
-        samples_ds = np.zeros(n_samples // decimation_factor, dtype=np.complex64)
-        n_ds = samples_ds.size
-        idx_front = np.arange(0, n_ds // 2 + (n_ds % 2))
-        idx_back = np.arange(0, n_ds // 2)
-        f_sample_ds = iq_stream.f_sample * n_ds / n_samples
-        window_ds = np.hamming(n_ds).astype(np.float32)
-        mix_signal = np.zeros(n_ds, dtype=np.complex64)
-        t_ds = np.arange(n_ds, dtype=np.float64) / f_sample_ds
-    else:
-        raise NotImplementedError("FFTMode true path is not implemented.")
+    decimation_factor = max(1, _prev_power_of_two(iq_stream.f_sample / CHIP_BW))
+    samples_ds = np.zeros(n_samples // decimation_factor, dtype=np.complex64)
+    n_ds = samples_ds.size
+    idx_front = np.arange(0, n_ds // 2 + (n_ds % 2))
+    idx_back = np.arange(0, n_ds // 2)
+    f_sample_ds = iq_stream.f_sample * n_ds / n_samples
+    window_ds = np.hamming(n_ds).astype(np.float32)
+    mix_signal = np.zeros(n_ds, dtype=np.complex64)
 
     t_chips = np.arange(0, ipp_seconds, 1.0 / CHIP_BW)
     n_chips = t_chips.size
@@ -236,9 +671,12 @@ def process(
     p_code_b_pad = np.concatenate(
         (p_code_b[::-1], np.zeros(fft_length - n_pcode, dtype=np.complex128))
     )
-    p_code_a_fft = np.fft.fft(p_code_a_pad)
-    p_code_b_fft = np.fft.fft(p_code_b_pad)
+    p_code_a_fft = sp_fft.fft(p_code_a_pad)
+    p_code_b_fft = sp_fft.fft(p_code_b_pad)
     s_cg_pad = np.zeros(fft_length, dtype=np.complex128)
+
+    # t_ds is fixed for the whole sounding — compute once.
+    t_ds = np.arange(n_ds, dtype=np.float64) / f_sample_ds
 
     # ------------------------------------------------------------------
     # Main processing loops
@@ -257,7 +695,7 @@ def process(
                 cit_voltage.fill(0.0)
 
                 for rep_index in range(repeats):
-                    for comp_index in range(2):  # complementary pair
+                    for comp_index in range(2):  # complementary pair A/B
                         if multiplexing:
                             pulse_in_coarse = (
                                 2 * n_pol * fine_steps * rep_index
@@ -283,13 +721,13 @@ def process(
 
                         try:
                             samples[:] = iq_stream.read_samples(sub_time, n_samples)
-                        except Exception as exc:  # File I/O errors
+                        except Exception as exc:
                             if verbose:
                                 logger.warning(f"IQ sample read failed: {exc}")
                             continue
 
-                        # Frequency translation / decimation via FFT domain slicing
-                        samples_fft = np.fft.fft(samples)
+                        # Coarse mixing + decimation (FFT domain)
+                        samples_fft = sp_fft.fft(samples, workers=-1)
                         i_tune_precise = (iq_stream.f_center - tune_freq) / hz_per_bin
                         i_tune = int(round(i_tune_precise))
                         samples_ds[idx_front] = samples_fft[
@@ -298,174 +736,85 @@ def process(
                         samples_ds[-idx_back.size :] = samples_fft[
                             (-1 - i_tune - idx_back) % n_samples
                         ]
-
                         f_intermediate = iq_stream.f_center - i_tune * hz_per_bin
                         samples_ds *= window_ds
-                        samples_time = np.fft.ifft(samples_ds)
+                        samples_time = sp_fft.ifft(samples_ds, workers=-1)
 
+                        # Fine-frequency residual mix (cached per frequency step)
                         if mix_offset != 0.0 or new_mix:
                             mix_offset = tune_freq - f_intermediate
                             if mix_offset != 0.0:
                                 mix_signal[:] = np.exp(-2j * np.pi * mix_offset * t_ds)
                                 samples_time *= mix_signal
                             new_mix = False
-                        else:
-                            samples_time = samples_time
 
-                        # Interpolate onto chip grid
+                        # Interpolate onto 30 kHz chip grid
                         samples_chip = _interp_complex(t_ds, samples_time, t_chips)
 
-                        # Select phase code
-                        if comp_index == 0:
-                            code_fft = p_code_a_fft.copy()
-                        else:
-                            code_fft = p_code_b_fft.copy()
+                        # Phase-code selection (code A or B; optional phase switching)
+                        code_fft = (
+                            p_code_a_fft.copy()
+                            if comp_index == 0
+                            else p_code_b_fft.copy()
+                        )
                         if phase_switching and (rep_index % 2 == 1):
                             code_fft *= -1
 
+                        # Matched-filter correlation via FFT convolution
                         s_cg_pad[:n_chips] = samples_chip
                         s_cg_pad[n_chips:] = 0.0
-                        s_fft = np.fft.fft(s_cg_pad)
+                        s_fft = sp_fft.fft(s_cg_pad, workers=-1)
                         s_fft *= code_fft
-                        s_ifft = np.fft.ifft(s_fft)
+                        s_ifft = sp_fft.ifft(s_fft, workers=-1)
                         correlation = s_ifft[n_pcode - 1 : n_conv]
 
                         cit_voltage[:, rep_index] += correlation[:n_ranges].astype(
                             np.complex64
                         )
 
-                # Doppler FFT per range gate
-                for range_index in range(n_ranges):
-                    doppler_spectrum = np.fft.fft(cit_voltage[range_index, :])
-                    range_power = np.max(np.abs(doppler_spectrum)) ** 2
-                    if save_phase:
-                        max_bin = np.argmax(np.abs(doppler_spectrum))
-                        range_phase = np.angle(doppler_spectrum[max_bin])
-                    if pol_index == 0:
-                        iono_power_o[freq_counter - 1, range_index] += range_power
-                        if save_phase and iono_phase_o is not None:
-                            iono_phase_o[freq_counter - 1, range_index] += range_phase
-                    else:
-                        iono_power_x[freq_counter - 1, range_index] += range_power
-                        if save_phase and iono_phase_x is not None:
-                            iono_phase_x[freq_counter - 1, range_index] += range_phase
+                # Doppler FFT — vectorised across all range gates at once
+                doppler_spectra = sp_fft.fft(cit_voltage, axis=1, workers=-1)
+                doppler_abs = np.abs(doppler_spectra)
+                range_powers = np.max(doppler_abs, axis=1) ** 2  # (n_ranges,)
+                if pol_index == 0:
+                    iono_power_o[freq_counter - 1, :] += range_powers
+                    if save_phase and iono_phase_o is not None:
+                        max_bins = np.argmax(doppler_abs, axis=1)
+                        iono_phase_o[freq_counter - 1, :] += np.angle(
+                            doppler_spectra[np.arange(n_ranges), max_bins]
+                        )
+                else:
+                    iono_power_x[freq_counter - 1, :] += range_powers
+                    if save_phase and iono_phase_x is not None:
+                        max_bins = np.argmax(doppler_abs, axis=1)
+                        iono_phase_x[freq_counter - 1, :] += np.angle(
+                            doppler_spectra[np.arange(n_ranges), max_bins]
+                        )
 
     iq_stream.close()
     if verbose:
         logger.info(f"Completed {program_id}")
 
-    if not nc_flag:
-        return
-
     # ------------------------------------------------------------------
-    # NetCDF output
-    pow_total = iono_power_o + iono_power_x
-    with np.errstate(divide="ignore", invalid="ignore"):
-        pow_db = 10.0 * np.log10(pow_total)
-    pow_db[~np.isfinite(pow_db)] = np.nan
-    median_val = np.nanmedian(pow_db)
-    if not np.isfinite(median_val):
-        median_val = 0.0
-    pow_db -= median_val
-    pow_db = np.clip(pow_db, 0, 255)
-    pow_db = np.nan_to_num(pow_db, nan=0.0)
-    pow_uint8 = pow_db.astype(np.uint8)
+    # Build result object
+    result = IonogramResult(
+        frequency_hz=np.asarray(freq_axis, dtype=np.float64),
+        range_km=range_axis.astype(np.float64),
+        time_unix=np.asarray(time_axis, dtype=np.float64),
+        power_o=iono_power_o,
+        power_x=iono_power_x,
+        phase_o=iono_phase_o,
+        phase_x=iono_phase_x,
+        program_id=program_id,
+        epoch=epoch,
+    )
 
-    freq_axis_mhz = np.asarray(freq_axis, dtype=np.float32) * 1e-6
-    range_axis_km = range_axis.astype(np.float32)
-    time_axis_arr = np.asarray(time_axis, dtype=np.float64)
+    if nc_flag:
+        result.to_netcdf(nc_path)
+        if verbose:
+            logger.info(f"Wrote {nc_path}")
 
-    dataset = netCDF4.Dataset(nc_path, "w", format="NETCDF4")
-    try:
-        dataset.createDimension("frequency", n_freqs)
-        dataset.createDimension("range", n_ranges)
-
-        system_str = "SORcer"
-        dataset.createDimension("system_strlen", len(system_str))
-        system_var = dataset.createVariable("system", "S1", ("system_strlen",))
-        system_var.setncatts({"long_name": "system identifier"})
-        system_var[:] = np.array(list(system_str), dtype="S1")
-        dataset.createDimension("id_strlen", len(program_id))
-        id_var = dataset.createVariable("ID", "S1", ("id_strlen",))
-        id_var.setncatts({"long_name": "transmitter/receiver identifier"})
-        id_var[:] = np.array(list(program_id), dtype="S1")
-        dataset.createDimension("channel_dim", 1)
-        channel_var = dataset.createVariable("channel", "u1", ("channel_dim",))
-        channel_var.setncatts({"long_name": "receiver channel"})
-        try:
-            channel_index = int("".join(filter(str.isdigit, rx_tag)))
-        except ValueError:
-            channel_index = 0
-        channel_var[:] = np.array([channel_index], dtype="u1")
-        power_var = dataset.createVariable(
-            "power", "u1", ("frequency", "range"), zlib=True, complevel=9
-        )
-        power_var.setncatts(
-            {
-                "units": "dB",
-                "long_name": "receive power",
-                "notes": "SNR, noise estimate via median power",
-            }
-        )
-        power_var[:, :] = pow_uint8
-
-        if save_phase and iono_phase_o is not None:
-            phase_o_var = dataset.createVariable(
-                "phaseOMode", "f4", ("frequency", "range"), zlib=True, complevel=9
-            )
-            phase_o_var.setncatts(
-                {
-                    "units": "radians",
-                    "long_name": "ordinary mode phase",
-                }
-            )
-            phase_o_var[:, :] = iono_phase_o.astype(np.float32)
-
-            if n_pol == 2 and iono_phase_x is not None:
-                phase_x_var = dataset.createVariable(
-                    "phaseXMode", "f4", ("frequency", "range"), zlib=True, complevel=9
-                )
-                phase_x_var.setncatts(
-                    {
-                        "units": "radians",
-                        "long_name": "extraordinary mode phase",
-                    }
-                )
-                phase_x_var[:, :] = iono_phase_x.astype(np.float32)
-            print(4)
-        print(5)
-        freq_var = dataset.createVariable(
-            "frequency", "f4", ("frequency",), zlib=True, complevel=9
-        )
-        freq_var.setncatts({"units": "MHz", "long_name": "radio frequency"})
-        freq_var[:] = freq_axis_mhz
-        print(6)
-        range_var = dataset.createVariable(
-            "range", "f4", ("range",), zlib=True, complevel=9
-        )
-        range_var.setncatts(
-            {
-                "units": "km",
-                "long_name": "group path",
-                "notes": "group delay * speed of light",
-            }
-        )
-        range_var[:] = range_axis_km
-        print(7)
-        time_var = dataset.createVariable(
-            "time", "f8", ("frequency",), zlib=True, complevel=9
-        )
-        time_var.setncatts(
-            {
-                "units": "seconds",
-                "long_name": "Unix time",
-                "notes": "since 1970-01-01T00:00:00Z, ignoring leap seconds",
-            }
-        )
-        time_var[:] = time_axis_arr
-        print(8)
-    finally:
-        dataset.close()
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -473,6 +822,20 @@ def process(
 
 
 def main() -> None:
+    """Process 10 consecutive soundings from the 2023-10-14 Kirtland dataset.
+
+    Integration tradeoff note
+    -------------------------
+    Each call to :func:`process` with the parameters below reads approximately
+    139 one-second ``.bin`` files (≈ 139 s of IQ data).  The 12-minute spacing
+    between epochs ensures the sounding finishes before the next one begins.
+
+    To shorten sounding time at the cost of SNR, reduce
+    ``"Number of Integrated Repeats"``.  Halving nRep from 8 → 4 cuts
+    acquisition time to ≈70 s (enabling a 2-minute cadence) but reduces the
+    coherent-integration gain by ≈1.5 dB.  See the module docstring for the
+    full tradeoff table.
+    """
     epochs = [
         dt.datetime(2023, 10, 14, 16, 0, tzinfo=_UTC) + dt.timedelta(minutes=12 * idx)
         for idx in range(0, 120 // 12)
@@ -493,13 +856,30 @@ def main() -> None:
             "Fine Freq step": 5e3,
             "Fine Multiplexing": False,
             "Inter-Pulse Period": 2 * 5e-3,
-            "Number of Integrated Repeats": 8,
+            "Number of Integrated Repeats": 8,  # reduce to 4 for 2-min cadence (−1.5 dB)
             "Interpulse Phase Switching": False,
             "Wave Form": "16-chip complementary",
             "Polarization": "O and X",
         }
         try:
-            process(program, dir_iq="/media/chakras4/69F9D939661D263B", verbose=True)
+            result = process(
+                program, dir_iq="/media/chakras4/69F9D939661D263B", verbose=True
+            )
+            if result is not None:
+                # Access arrays directly, e.g. for a quick plot:
+                #   import matplotlib.pyplot as plt
+                #   plt.pcolormesh(result.range_km, result.frequency_mhz,
+                #                  result.power_db())
+                #   plt.show()
+                #
+                # Or convert to xarray for label-aware analysis:
+                #   ds = result.to_xarray()
+                #   ds["power_db"].plot()
+                logger.info(
+                    f"Result: freq {result.frequency_mhz[0]:.2f}–"
+                    f"{result.frequency_mhz[-1]:.2f} MHz, "
+                    f"{len(result.range_km)} range gates"
+                )
         except Exception as exc:
             import traceback
 

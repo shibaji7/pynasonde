@@ -21,10 +21,10 @@ from pynasonde.digisonde.digi_plots import (
     search_color_schemes,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers: synthetic DataFrames
 # ---------------------------------------------------------------------------
+
 
 def _sao_height_df(n_times=3, n_heights=8):
     """Time × height plasma-frequency DataFrame (for isodensity / TS plots)."""
@@ -33,22 +33,29 @@ def _sao_height_df(n_times=3, n_heights=8):
     for t_idx in range(n_times):
         t = base + dt.timedelta(hours=t_idx)
         for h in np.linspace(100, 400, n_heights):
-            records.append({"datetime": t, "th": float(h),
-                            "pf": float(3.0 + t_idx + h / 200.0),
-                            "ed": float(1e10 * t_idx + h * 1e8)})
+            records.append(
+                {
+                    "datetime": t,
+                    "th": float(h),
+                    "pf": float(3.0 + t_idx + h / 200.0),
+                    "ed": float(1e10 * t_idx + h * 1e8),
+                }
+            )
     return pd.DataFrame.from_records(records)
 
 
 def _scalar_ts_df(n=4):
     """Simple scalar time-series DataFrame."""
     base = dt.datetime(2024, 4, 9, 0, 0, 0)
-    return pd.DataFrame({
-        "datetime": [base + dt.timedelta(hours=h) for h in range(n)],
-        "foF2": np.linspace(5, 8, n),
-        "foF1": np.linspace(4, 6, n),
-        "hmF2": np.linspace(200, 260, n),
-        "hmF1": np.linspace(150, 200, n),
-    })
+    return pd.DataFrame(
+        {
+            "datetime": [base + dt.timedelta(hours=h) for h in range(n)],
+            "foF2": np.linspace(5, 8, n),
+            "foF1": np.linspace(4, 6, n),
+            "hmF2": np.linspace(200, 260, n),
+            "hmF1": np.linspace(150, 200, n),
+        }
+    )
 
 
 def _dft_df(n_bins=16, n_heights=4, n_blocks=2):
@@ -57,32 +64,37 @@ def _dft_df(n_bins=16, n_heights=4, n_blocks=2):
     for blk in range(n_blocks):
         for h in np.linspace(100, 400, n_heights):
             for d in range(n_bins):
-                records.append({
-                    "block_idx": blk,
-                    "doppler_bin": d - n_bins // 2,
-                    "height_km": float(h),
-                    "amplitude": float(20.0 + blk * 5 + d * 0.5),
-                    "frequency_reading": float((blk + 1) * 5e6),
-                })
+                records.append(
+                    {
+                        "block_idx": blk,
+                        "doppler_bin": d - n_bins // 2,
+                        "height_km": float(h),
+                        "amplitude": float(20.0 + blk * 5 + d * 0.5),
+                        "frequency_reading": float((blk + 1) * 5e6),
+                    }
+                )
     return pd.DataFrame.from_records(records)
 
 
 def _rsf_df(n=20):
     """Synthetic RSF direction-ionogram DataFrame."""
     import numpy as np
+
     rng = np.random.default_rng(42)
     azm_dirs = ["N", "NE", "SE", "S", "SW", "NW"]
     pols = ["O", "X"]
     records = []
     for i in range(n):
-        records.append({
-            "frequency_reading": float(rng.integers(3, 15)) * 1e6,
-            "height": float(rng.integers(100, 400)),
-            "amplitude": float(rng.integers(5, 50)),
-            "azm_directions": azm_dirs[i % len(azm_dirs)],
-            "pol": pols[i % len(pols)],
-            "dop_num": float(rng.integers(0, 8)),
-        })
+        records.append(
+            {
+                "frequency_reading": float(rng.integers(3, 15)) * 1e6,
+                "height": float(rng.integers(100, 400)),
+                "amplitude": float(rng.integers(5, 50)),
+                "azm_directions": azm_dirs[i % len(azm_dirs)],
+                "pol": pols[i % len(pols)],
+                "dop_num": float(rng.integers(0, 8)),
+            }
+        )
     return pd.DataFrame.from_records(records)
 
 
@@ -90,17 +102,20 @@ def _dvl_df(n=4):
     """Synthetic drift velocity DataFrame."""
     base = dt.datetime(2024, 4, 9, 0, 0, 0)
     hours = list(range(n))
-    return pd.DataFrame({
-        "datetime": [base + dt.timedelta(hours=h) for h in hours],
-        "t_hr": [float(h) for h in hours],   # numeric alias used in tests
-        "Vx": np.linspace(-20, 20, n),
-        "Vx_err": np.ones(n) * 2.0,
-    })
+    return pd.DataFrame(
+        {
+            "datetime": [base + dt.timedelta(hours=h) for h in hours],
+            "t_hr": [float(h) for h in hours],  # numeric alias used in tests
+            "Vx": np.linspace(-20, 20, n),
+            "Vx_err": np.ones(n) * 2.0,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # search_color_schemes
 # ---------------------------------------------------------------------------
+
 
 class TestSearchColorSchemes:
     def test_returns_list(self):
@@ -132,6 +147,7 @@ class TestSearchColorSchemes:
 # SaoSummaryPlots.plot_ionogram
 # ---------------------------------------------------------------------------
 
+
 class TestSaoSummaryPlotsIonogram:
     def test_plot_ionogram_ionogram_kind(self, tmp_path):
         df = _sao_height_df(n_times=1, n_heights=5)
@@ -154,8 +170,7 @@ class TestSaoSummaryPlotsIonogram:
     def test_plot_ionogram_with_text(self, tmp_path):
         df = _sao_height_df(n_times=1, n_heights=5)
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.plot_ionogram(df, xparam="pf", yparam="th",
-                              text="KR835 / 2024-04-09")
+        plotter.plot_ionogram(df, xparam="pf", yparam="th", text="KR835 / 2024-04-09")
         out = tmp_path / "ionogram_text.png"
         plotter.save(out)
         plotter.close()
@@ -175,12 +190,12 @@ class TestSaoSummaryPlotsIonogram:
 # SaoSummaryPlots.add_isodensity_contours
 # ---------------------------------------------------------------------------
 
+
 class TestSaoSummaryPlotsIsodensity:
     def test_isodensity_basic(self, tmp_path):
         df = _sao_height_df(n_times=4, n_heights=10)
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_isodensity_contours(df, xparam="datetime",
-                                        yparam="th", zparam="pf")
+        plotter.add_isodensity_contours(df, xparam="datetime", yparam="th", zparam="pf")
         out = tmp_path / "isodensity.png"
         plotter.save(out)
         plotter.close()
@@ -189,9 +204,9 @@ class TestSaoSummaryPlotsIsodensity:
     def test_isodensity_with_text(self, tmp_path):
         df = _sao_height_df(n_times=4, n_heights=10)
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_isodensity_contours(df, xparam="datetime",
-                                        yparam="th", zparam="pf",
-                                        text="Station/2024-04-09")
+        plotter.add_isodensity_contours(
+            df, xparam="datetime", yparam="th", zparam="pf", text="Station/2024-04-09"
+        )
         out = tmp_path / "isodensity_text.png"
         plotter.save(out)
         plotter.close()
@@ -200,9 +215,9 @@ class TestSaoSummaryPlotsIsodensity:
     def test_isodensity_with_prange(self, tmp_path):
         df = _sao_height_df(n_times=4, n_heights=10)
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_isodensity_contours(df, xparam="datetime",
-                                        yparam="th", zparam="pf",
-                                        prange=[2.0, 10.0])
+        plotter.add_isodensity_contours(
+            df, xparam="datetime", yparam="th", zparam="pf", prange=[2.0, 10.0]
+        )
         out = tmp_path / "isodensity_prange.png"
         plotter.save(out)
         plotter.close()
@@ -213,12 +228,19 @@ class TestSaoSummaryPlotsIsodensity:
 # SaoSummaryPlots.add_TS — title and add_cbar=False branches
 # ---------------------------------------------------------------------------
 
+
 class TestSaoSummaryPlotsAddTS:
     def test_add_ts_with_title(self, tmp_path):
         df = _sao_height_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_TS(df, xparam="datetime", yparam="th", zparam="pf",
-                       prange=[3, 8], title="Test Plot")
+        plotter.add_TS(
+            df,
+            xparam="datetime",
+            yparam="th",
+            zparam="pf",
+            prange=[3, 8],
+            title="Test Plot",
+        )
         out = tmp_path / "add_ts_title.png"
         plotter.save(out)
         plotter.close()
@@ -227,8 +249,14 @@ class TestSaoSummaryPlotsAddTS:
     def test_add_ts_no_cbar(self, tmp_path):
         df = _sao_height_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_TS(df, xparam="datetime", yparam="th", zparam="pf",
-                       prange=[3, 8], add_cbar=False)
+        plotter.add_TS(
+            df,
+            xparam="datetime",
+            yparam="th",
+            zparam="pf",
+            prange=[3, 8],
+            add_cbar=False,
+        )
         out = tmp_path / "add_ts_nocbar.png"
         plotter.save(out)
         plotter.close()
@@ -237,8 +265,14 @@ class TestSaoSummaryPlotsAddTS:
     def test_add_ts_scatter_type(self, tmp_path):
         df = _sao_height_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_TS(df, xparam="datetime", yparam="th", zparam="pf",
-                       prange=[3, 8], plot_type="scatter")
+        plotter.add_TS(
+            df,
+            xparam="datetime",
+            yparam="th",
+            zparam="pf",
+            prange=[3, 8],
+            plot_type="scatter",
+        )
         out = tmp_path / "add_ts_scatter.png"
         plotter.save(out)
         plotter.close()
@@ -247,8 +281,14 @@ class TestSaoSummaryPlotsAddTS:
     def test_add_ts_with_zparam_lim(self, tmp_path):
         df = _sao_height_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.add_TS(df, xparam="datetime", yparam="th", zparam="pf",
-                       prange=[3, 8], zparam_lim=6.0)
+        plotter.add_TS(
+            df,
+            xparam="datetime",
+            yparam="th",
+            zparam="pf",
+            prange=[3, 8],
+            zparam_lim=6.0,
+        )
         out = tmp_path / "add_ts_zparam_lim.png"
         plotter.save(out)
         plotter.close()
@@ -259,13 +299,12 @@ class TestSaoSummaryPlotsAddTS:
 # SaoSummaryPlots.plot_TS — no right_yparams and with title
 # ---------------------------------------------------------------------------
 
+
 class TestSaoSummaryPlotsPlotTS:
     def test_plot_ts_no_right_yparams(self, tmp_path):
         df = _scalar_ts_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.plot_TS(df, xparam="datetime",
-                        left_yparams=["foF2"],
-                        right_yparams=[])
+        plotter.plot_TS(df, xparam="datetime", left_yparams=["foF2"], right_yparams=[])
         out = tmp_path / "plot_ts_no_right.png"
         plotter.save(out)
         plotter.close()
@@ -274,10 +313,13 @@ class TestSaoSummaryPlotsPlotTS:
     def test_plot_ts_with_title(self, tmp_path):
         df = _scalar_ts_df()
         plotter = SaoSummaryPlots(figsize=(3, 3))
-        plotter.plot_TS(df, xparam="datetime",
-                        left_yparams=["foF2"],
-                        right_yparams=["hmF2"],
-                        title="SAO Timeseries")
+        plotter.plot_TS(
+            df,
+            xparam="datetime",
+            left_yparams=["foF2"],
+            right_yparams=["hmF2"],
+            title="SAO Timeseries",
+        )
         out = tmp_path / "plot_ts_title.png"
         plotter.save(out)
         plotter.close()
@@ -287,6 +329,7 @@ class TestSaoSummaryPlotsPlotTS:
 # ---------------------------------------------------------------------------
 # SkySummaryPlots.plot_doppler_waterfall
 # ---------------------------------------------------------------------------
+
 
 class TestSkySummaryPlotsWaterfall:
     def test_waterfall_auto_block(self, tmp_path):
@@ -310,8 +353,9 @@ class TestSkySummaryPlotsWaterfall:
     def test_waterfall_with_text_and_prange(self, tmp_path):
         df = _dft_df()
         plotter = SkySummaryPlots(figsize=(3, 3))
-        plotter.plot_doppler_waterfall(df, block_idx=0,
-                                       text="Test", prange=[20.0, 40.0])
+        plotter.plot_doppler_waterfall(
+            df, block_idx=0, text="Test", prange=[20.0, 40.0]
+        )
         out = tmp_path / "waterfall_text.png"
         plotter.save(out)
         plotter.close()
@@ -320,8 +364,7 @@ class TestSkySummaryPlotsWaterfall:
     def test_waterfall_with_xlim_ylim(self, tmp_path):
         df = _dft_df()
         plotter = SkySummaryPlots(figsize=(3, 3))
-        plotter.plot_doppler_waterfall(df, block_idx=0,
-                                       xlim=[-5, 5], ylim=[100, 400])
+        plotter.plot_doppler_waterfall(df, block_idx=0, xlim=[-5, 5], ylim=[100, 400])
         out = tmp_path / "waterfall_lims.png"
         plotter.save(out)
         plotter.close()
@@ -331,6 +374,7 @@ class TestSkySummaryPlotsWaterfall:
 # ---------------------------------------------------------------------------
 # SkySummaryPlots.plot_doppler_spectra
 # ---------------------------------------------------------------------------
+
 
 class TestSkySummaryPlotsSpectra:
     def test_spectra_basic(self, tmp_path):
@@ -346,8 +390,7 @@ class TestSkySummaryPlotsSpectra:
         df = _dft_df()
         heights = df["height_km"].unique()[:3].tolist()
         plotter = SkySummaryPlots(figsize=(3, 3))
-        plotter.plot_doppler_spectra(df, block_idx=0,
-                                     selected_heights=heights)
+        plotter.plot_doppler_spectra(df, block_idx=0, selected_heights=heights)
         out = tmp_path / "spectra_heights.png"
         plotter.save(out)
         plotter.close()
@@ -356,9 +399,9 @@ class TestSkySummaryPlotsSpectra:
     def test_spectra_with_text_and_lims(self, tmp_path):
         df = _dft_df()
         plotter = SkySummaryPlots(figsize=(3, 3))
-        plotter.plot_doppler_spectra(df, block_idx=0,
-                                     text="DFT Spectra",
-                                     xlim=[-5, 5], ylim=[0, 60])
+        plotter.plot_doppler_spectra(
+            df, block_idx=0, text="DFT Spectra", xlim=[-5, 5], ylim=[0, 60]
+        )
         out = tmp_path / "spectra_text.png"
         plotter.save(out)
         plotter.close()
@@ -368,6 +411,7 @@ class TestSkySummaryPlotsSpectra:
 # ---------------------------------------------------------------------------
 # SkySummaryPlots.plot_drift_velocities
 # ---------------------------------------------------------------------------
+
 
 class TestSkySummaryPlotsDrift:
     # matplotlib capthick+datetime triggers a rotation bug; use numeric t_hr.
@@ -379,8 +423,12 @@ class TestSkySummaryPlotsDrift:
         df = _dvl_df()
         plotter = SkySummaryPlots(figsize=(3, 3))
         plotter.plot_drift_velocities(
-            df, xparam="t_hr", yparam="Vx", error="Vx_err",
-            major_locator=self._loc, minor_locator=self._loc,
+            df,
+            xparam="t_hr",
+            yparam="Vx",
+            error="Vx_err",
+            major_locator=self._loc,
+            minor_locator=self._loc,
         )
         out = tmp_path / "drift_basic.png"
         plotter.save(out)
@@ -391,9 +439,13 @@ class TestSkySummaryPlotsDrift:
         df = _dvl_df()
         plotter = SkySummaryPlots(figsize=(3, 3))
         plotter.plot_drift_velocities(
-            df, xparam="t_hr", yparam="Vx", error="Vx_err",
+            df,
+            xparam="t_hr",
+            yparam="Vx",
+            error="Vx_err",
             text="Drift Vx",
-            major_locator=self._loc, minor_locator=self._loc,
+            major_locator=self._loc,
+            minor_locator=self._loc,
         )
         out = tmp_path / "drift_text.png"
         plotter.save(out)
@@ -404,6 +456,7 @@ class TestSkySummaryPlotsDrift:
 # ---------------------------------------------------------------------------
 # RsfIonogram.add_direction_ionogram
 # ---------------------------------------------------------------------------
+
 
 class TestRsfIonogramDirection:
     def test_direction_ionogram_basic(self, tmp_path):

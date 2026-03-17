@@ -17,10 +17,10 @@ from pynasonde.digisonde.datatypes.sbfdatatypes import (
     SbfHeader,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_sbf_header(**overrides):
     defaults = dict(
@@ -38,10 +38,10 @@ def make_sbf_header(**overrides):
         stn_code_tx="KR835",
         schedule=1,
         program=1,
-        start_frequency=10000,      # ×100 Hz → 1 000 000 Hz
+        start_frequency=10000,  # ×100 Hz → 1 000 000 Hz
         coarse_frequency_step=100,  # ×1 kHz  → 100 000 Hz
-        stop_frequency=45000,       # ×100 Hz → 4 500 000 Hz
-        fine_frequency_step=10,     # ×1 kHz  → 10 000 Hz
+        stop_frequency=45000,  # ×100 Hz → 4 500 000 Hz
+        fine_frequency_step=10,  # ×1 kHz  → 10 000 Hz
         num_small_steps_in_scan=3,
         phase_code=1,
         option_code=0,
@@ -93,6 +93,7 @@ def make_sbf_group(n=8, **overrides):
 # SbfHeader
 # ---------------------------------------------------------------------------
 
+
 class TestSbfHeader:
     def test_start_frequency_to_hz(self):
         h = make_sbf_header(start_frequency=10000)
@@ -128,7 +129,7 @@ class TestSbfHeader:
 
     def test_threshold_nonzero(self):
         h = make_sbf_header(threshold=15)
-        assert h.threshold == pytest.approx(15.0)   # 3*(15-10)=15
+        assert h.threshold == pytest.approx(15.0)  # 3*(15-10)=15
 
     def test_threshold_zero_raw_gives_nan(self):
         h = make_sbf_header(threshold=0)
@@ -140,7 +141,7 @@ class TestSbfHeader:
 
     def test_data_format_is_5(self):
         h = make_sbf_header(data_format=5)
-        assert h.data_format == 5   # SBF = 5
+        assert h.data_format == 5  # SBF = 5
 
     def test_phase_codes(self):
         h = make_sbf_header(phase_code=2)
@@ -155,10 +156,10 @@ class TestSbfHeader:
 # SbfFreuencyGroup
 # ---------------------------------------------------------------------------
 
+
 class TestSbfFrequencyGroup:
     def test_azimuth_to_degrees(self):
-        g = make_sbf_group(n=6,
-                           azimuth=np.array([0, 1, 2, 3, 4, 5], dtype=float))
+        g = make_sbf_group(n=6, azimuth=np.array([0, 1, 2, 3, 4, 5], dtype=float))
         g.setup()
         np.testing.assert_array_equal(g.azimuth, [0, 60, 120, 180, 240, 300])
 
@@ -233,6 +234,7 @@ class TestSbfFrequencyGroup:
 # SbfDataUnit.setup()
 # ---------------------------------------------------------------------------
 
+
 class TestSbfDataUnit:
     def test_setup_populates_height_vectors(self):
         header = make_sbf_header(range_start=80, range_increment=5)
@@ -255,6 +257,7 @@ class TestSbfDataUnit:
 # ---------------------------------------------------------------------------
 # SbfDataFile
 # ---------------------------------------------------------------------------
+
 
 class TestSbfDataFile:
     def test_container_holds_units(self):

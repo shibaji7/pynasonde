@@ -660,7 +660,7 @@ class SaoSummaryPlots(DigiPlots):
         ax.xaxis.set_minor_locator(minor_locator)
         ax.xaxis.set_major_formatter(DateFormatter(DATE_FORMAT))
 
-        vmin, vmax = (prange if prange is not None else [fbins[0], fbins[-1]])
+        vmin, vmax = prange if prange is not None else [fbins[0], fbins[-1]]
 
         # ── Build a regular time × height grid for pcolormesh ─────────────────
         # Bin time into ionogram slots (detect cadence from unique timestamps)
@@ -698,7 +698,9 @@ class SaoSummaryPlots(DigiPlots):
                 Z_fill = np.where(np.isnan(Z.T), 0, Z.T)
                 T_grid, H_grid = np.meshgrid(t_num, h_edges)
                 cs = ax.contour(
-                    T_grid, H_grid, Z_fill,
+                    T_grid,
+                    H_grid,
+                    Z_fill,
                     levels=fbins,
                     colors=contour_colors,
                     linewidths=contour_lw,
@@ -714,7 +716,11 @@ class SaoSummaryPlots(DigiPlots):
 
         if text:
             ax.text(
-                0.02, 0.96, text, ha="left", va="top",
+                0.02,
+                0.96,
+                text,
+                ha="left",
+                va="top",
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size - 1},
             )
@@ -1023,7 +1029,9 @@ class SkySummaryPlots(DigiPlots):
 
         X, Y = np.meshgrid(dbins, heights)
         im = ax.pcolormesh(
-            X, Y, grid,
+            X,
+            Y,
+            grid,
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
@@ -1043,7 +1051,11 @@ class SkySummaryPlots(DigiPlots):
 
         if text:
             ax.text(
-                0.02, 0.96, text, ha="left", va="top",
+                0.02,
+                0.96,
+                text,
+                ha="left",
+                va="top",
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size - 1},
                 color="w",
@@ -1146,13 +1158,19 @@ class SkySummaryPlots(DigiPlots):
             ax.set_ylim(ylim)
 
         ax.legend(
-            title="Height", fontsize=self.font_size - 2, framealpha=0.7,
+            title="Height",
+            fontsize=self.font_size - 2,
+            framealpha=0.7,
             title_fontsize=self.font_size - 2,
         )
 
         if text:
             ax.text(
-                0.02, 0.96, text, ha="left", va="top",
+                0.02,
+                0.96,
+                text,
+                ha="left",
+                va="top",
                 transform=ax.transAxes,
                 fontdict={"size": self.font_size - 1},
             )
@@ -1364,15 +1382,15 @@ class RsfIonogram(DigiPlots):
     # Color palette matching Figure 3-8 legend in the DPS4D manual.
     # Order determines legend order.
     DIRECTION_COLORS = {
-        "Vo-":   "#8B0000",  # dark red      – O-pol, vertical, neg Doppler
-        "Vo+":   "#FF6B6B",  # salmon/pink   – O-pol, vertical, pos Doppler
-        "X-":    "#006400",  # dark green    – X-pol, vertical, neg Doppler
-        "X+":    "#90EE90",  # light green   – X-pol, vertical, pos Doppler
-        "NNE":   "#4169E1",  # royal blue    – NE azimuth direction
-        "E":     "#1E90FF",  # dodger blue   – SE azimuth direction
-        "W":     "#FFD700",  # gold          – SW azimuth direction
-        "SSW":   "#FFA500",  # orange        – S  azimuth direction
-        "NNW":   "#191970",  # midnight blue – NW azimuth direction
+        "Vo-": "#8B0000",  # dark red      – O-pol, vertical, neg Doppler
+        "Vo+": "#FF6B6B",  # salmon/pink   – O-pol, vertical, pos Doppler
+        "X-": "#006400",  # dark green    – X-pol, vertical, neg Doppler
+        "X+": "#90EE90",  # light green   – X-pol, vertical, pos Doppler
+        "NNE": "#4169E1",  # royal blue    – NE azimuth direction
+        "E": "#1E90FF",  # dodger blue   – SE azimuth direction
+        "W": "#FFD700",  # gold          – SW azimuth direction
+        "SSW": "#FFA500",  # orange        – S  azimuth direction
+        "NNW": "#191970",  # midnight blue – NW azimuth direction
         "NoVal": "#808080",  # gray          – undetermined amplitude
     }
 
@@ -1465,7 +1483,7 @@ class RsfIonogram(DigiPlots):
             "NE": "NNE",
             "SE": "E",
             "SW": "W",
-            "S":  "SSW",
+            "S": "SSW",
             "NW": "NNW",
         }
 
@@ -1538,7 +1556,6 @@ class RsfIonogram(DigiPlots):
             )
         return
 
-
     def add_directogram(
         self,
         df: pd.DataFrame,
@@ -1599,15 +1616,15 @@ class RsfIonogram(DigiPlots):
             del_ticks: If ``True``, suppress axis ticks.
         """
         DIRECTION_COLORS = {
-            "Vo-":  "#8B0000",
-            "Vo+":  "#FF6B6B",
-            "X-":   "#006400",
-            "X+":   "#90EE90",
-            "NNE":  "#4169E1",
-            "E":    "#1E90FF",
-            "W":    "#FFD700",
-            "SSW":  "#FFA500",
-            "NNW":  "#191970",
+            "Vo-": "#8B0000",
+            "Vo+": "#FF6B6B",
+            "X-": "#006400",
+            "X+": "#90EE90",
+            "NNE": "#4169E1",
+            "E": "#1E90FF",
+            "W": "#FFD700",
+            "SSW": "#FFA500",
+            "NNW": "#191970",
         }
         _WEST = {"W", "SSW", "NNW"}
         _AZM_TO_CATEGORY = {"NE": "NNE", "SE": "E", "SW": "W", "S": "SSW", "NW": "NNW"}
@@ -1626,8 +1643,9 @@ class RsfIonogram(DigiPlots):
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks)
         ax.set_xlim(dlim)
-        ax.set_xlabel("← WEST          [km]          EAST →",
-                      fontdict={"size": self.font_size})
+        ax.set_xlabel(
+            "← WEST          [km]          EAST →", fontdict={"size": self.font_size}
+        )
         ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
         ax.axvline(0, color="k", lw=0.8, ls="--", zorder=1)
 
@@ -1699,20 +1717,40 @@ class RsfIonogram(DigiPlots):
                 framealpha=0.8,
             )
 
-        ax.text(0.25, 0.98, "WEST", ha="center", va="top",
-                transform=ax.transAxes,
-                fontdict={"size": self.font_size - 1}, color="gray")
-        ax.text(0.75, 0.98, "EAST", ha="center", va="top",
-                transform=ax.transAxes,
-                fontdict={"size": self.font_size - 1}, color="gray")
+        ax.text(
+            0.25,
+            0.98,
+            "WEST",
+            ha="center",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"size": self.font_size - 1},
+            color="gray",
+        )
+        ax.text(
+            0.75,
+            0.98,
+            "EAST",
+            ha="center",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"size": self.font_size - 1},
+            color="gray",
+        )
 
         if not del_ticks:
             ax.tick_params(axis="both", labelsize=self.font_size - 1)
 
         if text:
-            ax.text(0.02, 0.05, text, ha="left", va="bottom",
-                    transform=ax.transAxes,
-                    fontdict={"size": self.font_size - 1})
+            ax.text(
+                0.02,
+                0.05,
+                text,
+                ha="left",
+                va="bottom",
+                transform=ax.transAxes,
+                fontdict={"size": self.font_size - 1},
+            )
         return
 
     def add_sky_directogram(
@@ -1755,7 +1793,14 @@ class RsfIonogram(DigiPlots):
             text: Optional title placed above the polar axes.
         """
         _AZM_TO_DEG = {"N": 0, "NE": 60, "SE": 120, "S": 180, "SW": 240, "NW": 300}
-        _AZM_LABELS = {0: "N\n(Vert.)", 60: "NNE", 120: "E", 180: "S", 240: "W", 300: "NNW"}
+        _AZM_LABELS = {
+            0: "N\n(Vert.)",
+            60: "NNE",
+            120: "E",
+            180: "S",
+            240: "W",
+            300: "NNW",
+        }
 
         utils.setsize(self.font_size)
         ax = self.get_axes(del_ticks=False)

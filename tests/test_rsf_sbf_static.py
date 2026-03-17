@@ -2,14 +2,14 @@
 
 import pytest
 
+from pynasonde.digisonde.parsers.mmm import ModMaxExtractor
 from pynasonde.digisonde.parsers.rsf import RsfExtractor
 from pynasonde.digisonde.parsers.sbf import SbfExtractor
-from pynasonde.digisonde.parsers.mmm import ModMaxExtractor
-
 
 # ---------------------------------------------------------------------------
 # RsfExtractor static methods
 # ---------------------------------------------------------------------------
+
 
 class TestRsfUnpackBcd:
     def test_int_format_zero(self):
@@ -61,9 +61,11 @@ class TestRsfAddDictsSelectedKeys:
     def test_merge_all_keys(self):
         d0 = {"a": 1}
         du = {"b": 2, "c": 3}
-        result = RsfExtractor(None).add_dicts_selected_keys.__func__(
-            None, d0, du, keys=None
-        ) if False else {**d0, **du}
+        result = (
+            RsfExtractor(None).add_dicts_selected_keys.__func__(None, d0, du, keys=None)
+            if False
+            else {**d0, **du}
+        )
         # Test the static method properly:
         ex = object.__new__(RsfExtractor)  # skip __init__
         result = ex.add_dicts_selected_keys({"a": 1}, {"b": 2, "c": 3}, keys=None)
@@ -81,6 +83,7 @@ class TestRsfAddDictsSelectedKeys:
 # ---------------------------------------------------------------------------
 # SbfExtractor instance methods (not @staticmethod in sbf.py)
 # ---------------------------------------------------------------------------
+
 
 class TestSbfUnpackBcd:
     def _ex(self):
@@ -117,6 +120,7 @@ class TestSbfAddDicts:
 # ---------------------------------------------------------------------------
 # ModMaxExtractor instance methods (not @staticmethod in mmm.py)
 # ---------------------------------------------------------------------------
+
 
 class TestMmmUnpackBcd:
     def _ex(self):

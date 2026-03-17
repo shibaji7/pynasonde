@@ -34,9 +34,16 @@ def _ensure_utc(epoch: dt.datetime) -> dt.datetime:
 
 
 def _subdir_for_epoch(
-    dir_iq: Path, epoch: dt.datetime, fmt: Optional[str] = "%H/%M"
+    dir_iq: Path, epoch: dt.datetime, fmt: Optional[str] = "%Y-%m-%d/%H/%M"
 ) -> Path:
-    """Build the sub-directory path that holds the IQ file for ``epoch``."""
+    """Build the sub-directory path that holds the IQ file for ``epoch``.
+
+    The Julia implementation uses the layout::
+
+        dirIQ/YYYY-mm-dd/HH/MM/<filename>.bin
+
+    so the default ``fmt`` includes the date component.
+    """
     return dir_iq / epoch.strftime(fmt)
 
 

@@ -92,9 +92,7 @@ class TestGetGriddedParameters:
         assert X is not None
 
     def test_xparam_time_skips_x_rounding(self):
-        times = pd.to_datetime(
-            ["2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02"]
-        )
+        times = pd.to_datetime(["2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02"])
         df = pd.DataFrame(
             {
                 "time": times,

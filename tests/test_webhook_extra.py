@@ -15,12 +15,14 @@ def _mock_resp(status=200, hrefs=None, content=b"data"):
             self.status_code = status
             self.text = "".join(f'<a href="{h}">link</a>' for h in (hrefs or []))
             self.content = content
+
     return R()
 
 
 # ---------------------------------------------------------------------------
 # download() — ngi=False, riq=False branch (lines 29->32, 32->26)
 # ---------------------------------------------------------------------------
+
 
 def test_download_ngi_false_riq_false(monkeypatch, tmp_path):
     """When ngi=False and riq=False, no requests are made."""
@@ -40,6 +42,7 @@ def test_download_ngi_false_riq_false(monkeypatch, tmp_path):
 
 def test_download_riq_only(monkeypatch, tmp_path):
     """ngi=False, riq=True exercises the riq branch (line 32->34)."""
+
     def fake_get(url):
         return _mock_resp(hrefs=["WI937_2024264000000.RIQ"])
 
@@ -55,8 +58,10 @@ def test_download_riq_only(monkeypatch, tmp_path):
 # __dump_files__ — href doesn't match (line 46->44)
 # ---------------------------------------------------------------------------
 
+
 def test_dump_files_href_not_matching(monkeypatch, tmp_path):
     """hrefs that don't match URSI or extension are silently skipped."""
+
     def fake_get(url):
         return _mock_resp(hrefs=["OTHER_file.ngi", "WI937_other.txt"])
 
@@ -71,6 +76,7 @@ def test_dump_files_href_not_matching(monkeypatch, tmp_path):
 # ---------------------------------------------------------------------------
 # __dump_files__ — file already exists (line 50->61)
 # ---------------------------------------------------------------------------
+
 
 def test_dump_files_file_already_exists(monkeypatch, tmp_path):
     """When file exists, download is skipped but itr counter still increments."""
@@ -99,6 +105,7 @@ def test_dump_files_file_already_exists(monkeypatch, tmp_path):
 # __check_all_sub_folders__ — 200 path and 404 path (lines 74-96)
 # ---------------------------------------------------------------------------
 
+
 def test_check_all_sub_folders_200(monkeypatch, tmp_path):
     """Status 200 with matching href → file written (lines 74-91)."""
     call_num = [0]
@@ -119,6 +126,7 @@ def test_check_all_sub_folders_200(monkeypatch, tmp_path):
 
 def test_check_all_sub_folders_404(monkeypatch, tmp_path):
     """Non-200 status → body not parsed (lines 74-78 only)."""
+
     def fake_get(url):
         return _mock_resp(status=404)
 
@@ -128,5 +136,3 @@ def test_check_all_sub_folders_404(monkeypatch, tmp_path):
     wh = Webhook()
     wh.__check_all_sub_folders__("http://x.com/", str(tmp_path), ["ngi"])
     assert list(tmp_path.iterdir()) == []
-
-

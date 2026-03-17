@@ -22,7 +22,9 @@ RSF_DIR = (
 RSF_ONE = f"{RSF_DIR}/KR835_2023287000000.RSF"
 
 # ── 1. Single ionogram: direction-coded plot ─────────────────────────────────
-extractor = RsfExtractor(RSF_ONE, extract_time_from_name=True, extract_stn_from_name=True)
+extractor = RsfExtractor(
+    RSF_ONE, extract_time_from_name=True, extract_stn_from_name=True
+)
 extractor.extract()
 df_one = extractor.to_pandas()
 

@@ -13,10 +13,10 @@ from pynasonde.vipir.riq.parsers.read_riq import (
     remove_morphological_noise,
 )
 
-
 # ---------------------------------------------------------------------------
 # Minimal Ionogram-like mock
 # ---------------------------------------------------------------------------
+
 
 def _make_ion(n_freq=10, n_range=20, n_ch=1, fill=10.0):
     ion = SimpleNamespace()
@@ -28,6 +28,7 @@ def _make_ion(n_freq=10, n_range=20, n_ch=1, fill=10.0):
 # ---------------------------------------------------------------------------
 # find_thresholds (lines 56-64)
 # ---------------------------------------------------------------------------
+
 
 class TestFindThresholds:
     def test_returns_two_items(self):
@@ -53,6 +54,7 @@ class TestFindThresholds:
 # ---------------------------------------------------------------------------
 # remove_morphological_noise (lines 88-96)
 # ---------------------------------------------------------------------------
+
 
 class TestRemoveMorphologicalNoise:
     def test_modifies_powerdB_inplace(self):
@@ -81,6 +83,7 @@ class TestRemoveMorphologicalNoise:
 # adaptive_gain_filter (lines 126-154) — including apply_median_filter branch
 # ---------------------------------------------------------------------------
 
+
 class TestAdaptiveGainFilter:
     def test_basic_no_median(self):
         ion = _make_ion(fill=5.0)
@@ -90,7 +93,8 @@ class TestAdaptiveGainFilter:
     def test_with_median_filter(self):
         ion = _make_ion(fill=5.0)
         result = adaptive_gain_filter(
-            ion, snr_threshold=0.0,
+            ion,
+            snr_threshold=0.0,
             apply_median_filter=True,
             median_filter_size=3,
         )
@@ -106,6 +110,7 @@ class TestAdaptiveGainFilter:
 # ---------------------------------------------------------------------------
 # Pulset dataclass (lines 167-174)
 # ---------------------------------------------------------------------------
+
 
 class TestPulset:
     def test_init_empty(self):

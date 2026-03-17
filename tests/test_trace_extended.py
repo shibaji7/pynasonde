@@ -12,10 +12,10 @@ from pynasonde.vipir.riq.parsers.trace import (
     get_clean_iq_by_heights,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helper: build a minimal sct namespace that trace functions accept
 # ---------------------------------------------------------------------------
+
 
 def _make_sct(tune_type=1, pulse_count=4, n_freqs=8, pri_us=1000.0):
     freq_ns = SimpleNamespace(
@@ -38,6 +38,7 @@ def _make_iq(n_pulses=8, n_gates=100, n_ch=1):
 # compute_phase
 # ---------------------------------------------------------------------------
 
+
 class TestComputePhase:
     def test_basic_shape(self):
         i = np.array([1.0, 0.0, -1.0, 0.0])
@@ -56,6 +57,7 @@ class TestComputePhase:
 # ---------------------------------------------------------------------------
 # get_clean_iq_by_heights
 # ---------------------------------------------------------------------------
+
 
 class TestGetCleanIqByHeights:
     def test_returns_six_items(self):
@@ -82,6 +84,7 @@ class TestGetCleanIqByHeights:
 # ---------------------------------------------------------------------------
 # extract_echo_traces — tune_type=1 path
 # ---------------------------------------------------------------------------
+
 
 class TestExtractEchoTracesTuneType1:
     def test_returns_array(self):
@@ -120,6 +123,7 @@ class TestExtractEchoTracesTuneType1:
 # ---------------------------------------------------------------------------
 # compute_phase_velocity — early-return branches
 # ---------------------------------------------------------------------------
+
 
 class TestComputePhaseVelocity:
     def test_tune_type1_returns_dict(self):

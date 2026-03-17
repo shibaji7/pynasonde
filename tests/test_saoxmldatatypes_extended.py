@@ -9,6 +9,7 @@ ProfileList, SystemInfo, SAORecord, SAORecordList.
 import pytest
 
 from pynasonde.digisonde.datatypes.saoxmldatatypes import (
+    URSI,
     CharacteristicList,
     Custom,
     Modeled,
@@ -22,13 +23,12 @@ from pynasonde.digisonde.datatypes.saoxmldatatypes import (
     Trace,
     TraceList,
     TraceValueList,
-    URSI,
 )
-
 
 # ---------------------------------------------------------------------------
 # URSI
 # ---------------------------------------------------------------------------
+
 
 class TestURSI:
     def test_val_coerced_to_float_from_string(self):
@@ -83,6 +83,7 @@ class TestURSI:
 # Modeled
 # ---------------------------------------------------------------------------
 
+
 class TestModeled:
     def test_basic_instantiation(self):
         m = Modeled(Name="hmF2", Val="310.5", Units="km")
@@ -96,8 +97,13 @@ class TestModeled:
         assert m.ModelOptions is None
 
     def test_with_model_fields(self):
-        m = Modeled(Name="foF2", Val="7.0", Units="MHz",
-                    ModelName="IRI-2016", ModelOptions="default")
+        m = Modeled(
+            Name="foF2",
+            Val="7.0",
+            Units="MHz",
+            ModelName="IRI-2016",
+            ModelOptions="default",
+        )
         assert m.ModelName == "IRI-2016"
         assert m.ModelOptions == "default"
 
@@ -106,10 +112,12 @@ class TestModeled:
 # Custom
 # ---------------------------------------------------------------------------
 
+
 class TestCustom:
     def test_basic_instantiation(self):
-        c = Custom(Name="TEC", Val="10.5", Units="TECU",
-                   Description="Total electron content")
+        c = Custom(
+            Name="TEC", Val="10.5", Units="TECU", Description="Total electron content"
+        )
         assert c.Name == "TEC"
         assert c.Val == "10.5"
         assert c.Units == "TECU"
@@ -128,6 +136,7 @@ class TestCustom:
 # ---------------------------------------------------------------------------
 # CharacteristicList
 # ---------------------------------------------------------------------------
+
 
 class TestCharacteristicList:
     def test_num_coerced_to_int(self):
@@ -169,6 +178,7 @@ class TestCharacteristicList:
 # TraceValueList
 # ---------------------------------------------------------------------------
 
+
 class TestTraceValueList:
     def test_basic_with_values(self):
         tvl = TraceValueList(Name="Amplitude", values=[1.0, 2.0, 3.0])
@@ -189,8 +199,12 @@ class TestTraceValueList:
 
     def test_all_fields(self):
         tvl = TraceValueList(
-            Name="Amplitude", Type="float", SigFig="3",
-            Units="dB", NoValue="-1.0", Description="Signal amplitude",
+            Name="Amplitude",
+            Type="float",
+            SigFig="3",
+            Units="dB",
+            NoValue="-1.0",
+            Description="Signal amplitude",
             values=[1.1, 2.2],
         )
         assert tvl.Type == "float"
@@ -201,6 +215,7 @@ class TestTraceValueList:
 # ---------------------------------------------------------------------------
 # Trace
 # ---------------------------------------------------------------------------
+
 
 class TestTrace:
     def test_basic_instantiation(self):
@@ -213,16 +228,20 @@ class TestTrace:
         assert t.Type == "standard"
 
     def test_optional_fields(self):
-        t = Trace(FrequencyList=[3.0], RangeList=[200.0],
-                  Layer="F2", Polarization="O", Num="1")
+        t = Trace(
+            FrequencyList=[3.0],
+            RangeList=[200.0],
+            Layer="F2",
+            Polarization="O",
+            Num="1",
+        )
         assert t.Layer == "F2"
         assert t.Polarization == "O"
         assert t.Num == "1"
 
     def test_trace_value_list(self):
         tvl = TraceValueList(Name="Amp", values=[10.0, 20.0])
-        t = Trace(FrequencyList=[3.0], RangeList=[200.0],
-                  TraceValueList=[tvl])
+        t = Trace(FrequencyList=[3.0], RangeList=[200.0], TraceValueList=[tvl])
         assert len(t.TraceValueList) == 1
         assert t.TraceValueList[0].Name == "Amp"
 
@@ -230,6 +249,7 @@ class TestTrace:
 # ---------------------------------------------------------------------------
 # TraceList
 # ---------------------------------------------------------------------------
+
 
 class TestTraceList:
     def test_empty_list(self):
@@ -247,6 +267,7 @@ class TestTraceList:
 # ---------------------------------------------------------------------------
 # ProfileValueList
 # ---------------------------------------------------------------------------
+
 
 class TestProfileValueList:
     def test_basic_instantiation(self):
@@ -268,6 +289,7 @@ class TestProfileValueList:
 # Tabulated
 # ---------------------------------------------------------------------------
 
+
 class TestTabulated:
     def test_basic_instantiation(self):
         tab = Tabulated(
@@ -280,8 +302,7 @@ class TestTabulated:
 
     def test_with_profile_value_lists(self):
         pvl = ProfileValueList(Name="PF", values=[3.0, 4.0])
-        tab = Tabulated(Num="2", AltitudeList=[100.0, 150.0],
-                        ProfileValueList=[pvl])
+        tab = Tabulated(Num="2", AltitudeList=[100.0, 150.0], ProfileValueList=[pvl])
         assert len(tab.ProfileValueList) == 1
         assert tab.ProfileValueList[0].Name == "PF"
 
@@ -289,6 +310,7 @@ class TestTabulated:
 # ---------------------------------------------------------------------------
 # Profile
 # ---------------------------------------------------------------------------
+
 
 class TestProfile:
     def test_basic_instantiation(self):
@@ -302,9 +324,12 @@ class TestProfile:
 
     def test_optional_fields(self):
         tab = Tabulated(Num="5", AltitudeList=[100.0, 200.0])
-        p = Profile(Algorithm="NHPC", AlgorithmVersion="3.0",
-                    Description="Electron density profile",
-                    Tabulated=tab)
+        p = Profile(
+            Algorithm="NHPC",
+            AlgorithmVersion="3.0",
+            Description="Electron density profile",
+            Tabulated=tab,
+        )
         assert p.Description == "Electron density profile"
         assert p.Tabulated is tab
         assert p.Tabulated.Num == "5"
@@ -313,6 +338,7 @@ class TestProfile:
 # ---------------------------------------------------------------------------
 # ProfileList
 # ---------------------------------------------------------------------------
+
 
 class TestProfileList:
     def test_empty_list(self):
@@ -331,6 +357,7 @@ class TestProfileList:
 # SystemInfo
 # ---------------------------------------------------------------------------
 
+
 class TestSystemInfo:
     def test_defaults_none(self):
         si = SystemInfo()
@@ -346,6 +373,7 @@ class TestSystemInfo:
 # ---------------------------------------------------------------------------
 # SAORecord
 # ---------------------------------------------------------------------------
+
 
 class TestSAORecord:
     def test_minimal_instantiation(self):
@@ -396,6 +424,7 @@ class TestSAORecord:
 # SAORecordList
 # ---------------------------------------------------------------------------
 
+
 class TestSAORecordList:
     def test_empty_list(self):
         srl = SAORecordList()
@@ -403,8 +432,7 @@ class TestSAORecordList:
 
     def test_with_records(self):
         r1 = SAORecord(CharacteristicList=CharacteristicList())
-        r2 = SAORecord(CharacteristicList=CharacteristicList(),
-                       URSICode="KR835")
+        r2 = SAORecord(CharacteristicList=CharacteristicList(), URSICode="KR835")
         srl = SAORecordList(SAORecord=[r1, r2])
         assert len(srl.SAORecord) == 2
         assert srl.SAORecord[1].URSICode == "KR835"

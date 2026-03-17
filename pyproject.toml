@@ -47,4 +47,5 @@ dev = [
   "timezonefinder",
   "SciencePlots",
   "scipy",
+  "xarray",
 ]

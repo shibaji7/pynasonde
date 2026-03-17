@@ -161,9 +161,7 @@ class DftExtractor(object):
                         }
                     )
         df = pd.DataFrame(rows)
-        logger.info(
-            f"to_pandas: {len(df)} rows from {len(self.blocks)} blocks"
-        )
+        logger.info(f"to_pandas: {len(df)} rows from {len(self.blocks)} blocks")
         return df
 
     def extract_header_from_amplitudes(self, amplitude_bytes: list) -> DftHeader:

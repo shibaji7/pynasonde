@@ -12,10 +12,10 @@ from pynasonde.digisonde.datatypes.mmmdatatypes import (
     ModMaxHeader,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_modmax_header(**overrides):
     defaults = dict(
@@ -30,7 +30,7 @@ def make_modmax_header(**overrides):
         program_set=None,
         program_type=None,
         journal=None,
-        nom_frequency=10000.0,      # ×100 → 1 000 000 Hz
+        nom_frequency=10000.0,  # ×100 → 1 000 000 Hz
         tape_ctrl=None,
         print_ctrl=None,
         mmm_opt=None,
@@ -38,9 +38,9 @@ def make_modmax_header(**overrides):
         print_gain_lev=None,
         ctrl_intm_tx=None,
         drft_use=None,
-        start_frequency=1.0,        # ×1e6 → 1 000 000 Hz
-        freq_step=0.1,              # ×1e6 → 100 000 Hz
-        stop_frequency=5.0,         # ×1e6 → 5 000 000 Hz
+        start_frequency=1.0,  # ×1e6 → 1 000 000 Hz
+        freq_step=0.1,  # ×1e6 → 100 000 Hz
+        stop_frequency=5.0,  # ×1e6 → 5 000 000 Hz
         trg=None,
         ch_a=None,
         ch_b=None,
@@ -68,34 +68,42 @@ def make_modmax_header(**overrides):
 # ModMaxHeader
 # ---------------------------------------------------------------------------
 
+
 class TestModMaxHeader:
     def test_nom_frequency_conversion(self):
         h = make_modmax_header(nom_frequency=10000.0)
-        assert h.nom_frequency == pytest.approx(1_000_000.0)   # ×100
+        assert h.nom_frequency == pytest.approx(1_000_000.0)  # ×100
 
     def test_start_frequency_conversion(self):
         h = make_modmax_header(start_frequency=1.0)
-        assert h.start_frequency == pytest.approx(1_000_000.0) # ×1e6
+        assert h.start_frequency == pytest.approx(1_000_000.0)  # ×1e6
 
     def test_freq_step_conversion(self):
         h = make_modmax_header(freq_step=0.5)
-        assert h.freq_step == pytest.approx(500_000.0)         # ×1e6
+        assert h.freq_step == pytest.approx(500_000.0)  # ×1e6
 
     def test_stop_frequency_conversion(self):
         h = make_modmax_header(stop_frequency=5.0)
         assert h.stop_frequency == pytest.approx(5_000_000.0)  # ×1e6
 
     def test_zero_frequencies(self):
-        h = make_modmax_header(nom_frequency=0.0, start_frequency=0.0,
-                               freq_step=0.0, stop_frequency=0.0)
+        h = make_modmax_header(
+            nom_frequency=0.0, start_frequency=0.0, freq_step=0.0, stop_frequency=0.0
+        )
         assert h.nom_frequency == pytest.approx(0.0)
         assert h.start_frequency == pytest.approx(0.0)
         assert h.freq_step == pytest.approx(0.0)
         assert h.stop_frequency == pytest.approx(0.0)
 
     def test_scalar_fields_stored(self):
-        h = make_modmax_header(sta_id="AB123", phase_code=2, num_samples=64,
-                               rep_rate=200, range_inc=10, range_start=100)
+        h = make_modmax_header(
+            sta_id="AB123",
+            phase_code=2,
+            num_samples=64,
+            rep_rate=200,
+            range_inc=10,
+            range_start=100,
+        )
         assert h.sta_id == "AB123"
         assert h.phase_code == 2
         assert h.num_samples == 64
@@ -123,6 +131,7 @@ class TestModMaxHeader:
 # ModMaxFreuencyGroup
 # ---------------------------------------------------------------------------
 
+
 class TestModMaxFrequencyGroup:
     def test_defaults(self):
         g = ModMaxFreuencyGroup()
@@ -135,8 +144,9 @@ class TestModMaxFrequencyGroup:
         assert g.mpa == 0.0
 
     def test_custom_values(self):
-        g = ModMaxFreuencyGroup(blk_type=2, frequency=5, frequency_k=5000,
-                                gain_param=3, sec=30, mpa=15.5)
+        g = ModMaxFreuencyGroup(
+            blk_type=2, frequency=5, frequency_k=5000, gain_param=3, sec=30, mpa=15.5
+        )
         assert g.blk_type == 2
         assert g.frequency == 5
         assert g.frequency_k == 5000
@@ -152,6 +162,7 @@ class TestModMaxFrequencyGroup:
 # ---------------------------------------------------------------------------
 # ModMaxDataUnit
 # ---------------------------------------------------------------------------
+
 
 class TestModMaxDataUnit:
     def test_empty_unit(self):
