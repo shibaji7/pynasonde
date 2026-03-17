@@ -77,6 +77,7 @@ setup(
             "SciencePlots",
             "xarray",
             "joblib",
+            "pysolar",
         ]
     },
     include_package_data=True,
