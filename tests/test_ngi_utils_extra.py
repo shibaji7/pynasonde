@@ -1,7 +1,5 @@
 """Additional tests to cover uncovered branches in pynasonde.vipir.ngi.utils."""
 
-import datetime as dt
-
 import numpy as np
 import pandas as pd
 import pytest

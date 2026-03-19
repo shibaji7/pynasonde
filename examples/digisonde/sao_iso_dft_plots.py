@@ -8,15 +8,13 @@ Produces three figures:
 3. Doppler spectra     – amplitude vs Doppler bin, one line per height.
 """
 
-import glob
-
 import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots, SkySummaryPlots
+from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.digisonde.parsers.dft import DftExtractor
 from pynasonde.digisonde.parsers.sao import SaoExtractor
-from pynasonde.digisonde.digi_utils import setsize
 
 SAO_DIR = (
     "/tmp/chakras4/Crucial X9/APEP/AFRL_Digisondes/"

@@ -14,7 +14,7 @@ offers simple, documented methods for common visualizations.
 
 import datetime as dt
 from types import SimpleNamespace
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import matplotlib.dates as mdates
 import matplotlib.patches as mpatches

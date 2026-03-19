@@ -1,7 +1,6 @@
 """Additional webhook tests to cover remaining branches (lines 74-96 etc.)."""
 
 import datetime as dt
-import os
 from pathlib import Path
 
 import pytest

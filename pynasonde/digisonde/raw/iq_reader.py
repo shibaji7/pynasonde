@@ -16,7 +16,7 @@ import datetime as dt
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 from loguru import logger

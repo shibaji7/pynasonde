@@ -7,7 +7,6 @@ from loguru import logger
 
 def get_matlab_pynasonde_lib():
     import importlib.util
-    import os
     import pathlib
 
     pynasonde_spec = importlib.util.find_spec("pynasonde")

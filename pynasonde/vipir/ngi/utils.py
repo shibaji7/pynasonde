@@ -144,7 +144,6 @@ def setsize(size=8):
 
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    import scienceplots
 
     plt.style.use(["science", "ieee"])
     plt.rcParams.update(

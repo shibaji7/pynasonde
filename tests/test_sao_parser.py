@@ -1,7 +1,5 @@
 """Tests for selected helper methods in the SAO parser."""
 
-import pathlib
-
 from pynasonde.digisonde.parsers.sao import SaoExtractor
 
 

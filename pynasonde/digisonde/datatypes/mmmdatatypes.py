@@ -6,7 +6,6 @@ help the parser provide structured access to parsed fields and perform
 lightweight unit conversions in ``__post_init__`` where necessary.
 """
 
-import datetime as dt
 from dataclasses import dataclass
 from typing import List
 

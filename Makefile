@@ -74,7 +74,7 @@ format:
 	echo "  Running formatters (isort → autoflake → black)..."
 	echo ""
 	isort -rc -sl .
-	autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots -r .
+	autoflake --in-place --imports=SDCarto,scienceplots -r .
 	isort -rc -m 3 .
 	black .
 	echo "  ✔  Format complete."
@@ -112,7 +112,7 @@ build-dist:
 	echo "  (runs format → clean artefacts → python -m build)"
 	echo ""
 	isort -rc -sl .
-	autoflake --in-place --remove-all-unused-imports=False --imports=SDCarto,scienceplots -r .
+	autoflake --in-place --imports=SDCarto,scienceplots -r .
 	isort -rc -m 3 .
 	black .
 	rm -rf dist/ build/ pynasonde.egg-info/ *.egg-info/

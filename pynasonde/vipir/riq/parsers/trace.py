@@ -4,7 +4,7 @@ Functions here are reused by the RIQ parsers to normalize raw I/Q samples,
 select candidate echo ranges, and derive phase-related diagnostics.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
