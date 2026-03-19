@@ -21,7 +21,7 @@ SHELL     := /bin/bash
 .PHONY: help clean format install-dev test build-dist sync check release
 
 VERSION   ?= __UNSET__
-FULL_VER  := $(VERSION).0
+FULL_VER  := $(VERSION)
 TAG       := v$(FULL_VER)
 MSG       ?=
 
@@ -42,8 +42,8 @@ help:
 	@echo ""
 	@echo "  Release"
 	@echo "  ───────────────────────────────────────────────────────────────"
-	@echo "  make check   VERSION=X.Y   Version consistency check (read-only)"
-	@echo "  make release VERSION=X.Y   Full release pipeline (interactive)"
+	@echo "  make check   VERSION=X.Y.Z   Version consistency check (read-only)"
+	@echo "  make release VERSION=X.Y.Z   Full release pipeline (interactive)"
 	@echo "  ═══════════════════════════════════════════════════════════════"
 	@echo ""
 
@@ -191,12 +191,12 @@ check:
 	@set -euo pipefail
 	if [[ "$(VERSION)" == "__UNSET__" ]]; then
 	  echo ""
-	  echo "  ERROR: No version provided.  Usage:  make check VERSION=1.2"
+	  echo "  ERROR: No version provided.  Usage:  make check VERSION=1.1.0"
 	  echo ""
 	  exit 1
 	fi
-	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+$$'; then
-	  echo "ERROR: VERSION must be MAJOR.MINOR (e.g. 1.2), got '$(VERSION)'"
+	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then
+	  echo "ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'"
 	  exit 1
 	fi
 	echo ""
@@ -227,12 +227,12 @@ release:
 	if [[ "$(VERSION)" == "__UNSET__" ]]; then
 	  echo ""
 	  echo "  ERROR: No version provided."
-	  echo "  Usage:  make release VERSION=X.Y   (e.g.  make release VERSION=1.2)"
+	  echo "  Usage:  make release VERSION=X.Y.Z   (e.g.  make release VERSION=1.1.0)"
 	  echo ""
 	  exit 1
 	fi
-	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+$$'; then
-	  echo "ERROR: VERSION must be MAJOR.MINOR (e.g. 1.2), got '$(VERSION)'"
+	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then
+	  echo "ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'"
 	  exit 1
 	fi
 
