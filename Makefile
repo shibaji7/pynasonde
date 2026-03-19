@@ -331,18 +331,47 @@ release:
 
 	if ! command -v twine &>/dev/null; then
 	  echo "  ⚠  twine not found in active environment."
-	  echo "     Will install with:  pip install twine"
+	  echo "     Will install with:  pip install --upgrade twine"
 	  echo ""
-	  if confirm "Install 'twine' package now?"; then
-	    pip install twine
+	  if confirm "Install twine now?"; then
+	    pip install --upgrade twine
 	    echo "  ✔  twine installed."
 	  else
-	    echo "  ↳ Skipping — install manually with:  pip install twine"
+	    echo "  ↳ Skipping — install manually with:  pip install --upgrade twine"
 	    SKIP_TWINE=true
 	  fi
 	fi
 
 	if [[ "$${SKIP_TWINE:-false}" != "true" ]]; then
+	  # Validate dist metadata before uploading — catches 'license-file' /
+	  # Metadata-Version 2.4 issues that arise when twine is out of date.
+	  echo "  Running pre-upload metadata check:  twine check dist/*"
+	  if ! python -m twine check dist/* ; then
+	    echo ""
+	    echo "  ⚠  twine check failed — this is usually caused by an outdated twine"
+	    echo "     that does not understand Metadata-Version 2.4 (License-File field)."
+	    echo "     Will run:  pip install --upgrade twine"
+	    echo ""
+	    if confirm "Upgrade twine and retry check?"; then
+	      pip install --upgrade twine
+	      echo "  ✔  twine upgraded to $$(twine --version)"
+	      if ! python -m twine check dist/* ; then
+	        echo "  ✗  twine check still failing after upgrade — aborting upload."
+	        SKIP_TWINE=true
+	      else
+	        echo "  ✔  twine check passed after upgrade."
+	      fi
+	    else
+	      echo "  ↳ Skipping upload."
+	      SKIP_TWINE=true
+	    fi
+	  else
+	    echo "  ✔  twine check passed."
+	  fi
+	fi
+
+	if [[ "$${SKIP_TWINE:-false}" != "true" ]]; then
+	  echo ""
 	  echo "  Will run:"
 	  echo "    python -m twine upload dist/*"
 	  echo ""
