@@ -246,13 +246,32 @@ release:
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	echo ""
 
-	echo "  Will run:  git push origin $(TAG)"
-	echo ""
-	if confirm "Push tag $(TAG) to GitHub?"; then
-	  git push origin $(TAG)
-	  echo "  ✔  Tag pushed."
+	REMOTE_TAG_EXISTS=false
+	if git ls-remote --tags origin "refs/tags/$(TAG)" | grep -q "$(TAG)"; then
+	  REMOTE_TAG_EXISTS=true
+	fi
+
+	if [[ "$$REMOTE_TAG_EXISTS" == "true" ]]; then
+	  echo "  ⚠  Tag $(TAG) already exists on the remote."
+	  echo "     A force-push will overwrite the remote tag — any GitHub release"
+	  echo "     or CI already pointing at it will be re-anchored."
+	  echo "  Will run:  git push origin --force $(TAG)"
+	  echo ""
+	  if confirm "Force-push tag $(TAG) to GitHub (overwrites remote)?"; then
+	    git push origin --force $(TAG)
+	    echo "  ✔  Tag force-pushed."
+	  else
+	    skip_step
+	  fi
 	else
-	  skip_step
+	  echo "  Will run:  git push origin $(TAG)"
+	  echo ""
+	  if confirm "Push tag $(TAG) to GitHub?"; then
+	    git push origin $(TAG)
+	    echo "  ✔  Tag pushed."
+	  else
+	    skip_step
+	  fi
 	fi
 
 	# ── 6. Create GitHub release ───────────────────────────────────────────
