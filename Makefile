@@ -290,21 +290,36 @@ release:
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	echo ""
 
-	echo "  Will run:"
-	echo "    rm -rf dist/ build/ *.egg-info"
-	echo "    python -m build --sdist --wheel"
-	echo ""
-	echo "  This produces dist/pynasonde-$(FULL_VER).tar.gz"
-	echo "                  dist/pynasonde-$(FULL_VER)-py3-none-any.whl"
-	echo ""
-	if confirm "Build distribution packages now?"; then
-	  rm -rf dist/ build/ pynasonde.egg-info/
-	  python -m build --sdist --wheel
+	if ! python -m build --version &>/dev/null; then
+	  echo "  ⚠  python -m build not found in active environment."
+	  echo "     Will install with:  pip install build"
 	  echo ""
-	  echo "  ✔  Build complete. Artifacts:"
-	  ls -lh dist/ | sed 's/^/    /'
-	else
-	  skip_step
+	  if confirm "Install 'build' package now?"; then
+	    pip install build
+	    echo "  ✔  build installed."
+	  else
+	    echo "  ↳ Skipping — install manually with:  pip install build"
+	    SKIP_BUILD=true
+	  fi
+	fi
+
+	if [[ "$${SKIP_BUILD:-false}" != "true" ]]; then
+	  echo "  Will run:"
+	  echo "    rm -rf dist/ build/ *.egg-info"
+	  echo "    python -m build --sdist --wheel"
+	  echo ""
+	  echo "  This produces dist/pynasonde-$(FULL_VER).tar.gz"
+	  echo "                  dist/pynasonde-$(FULL_VER)-py3-none-any.whl"
+	  echo ""
+	  if confirm "Build distribution packages now?"; then
+	    rm -rf dist/ build/ pynasonde.egg-info/
+	    python -m build --sdist --wheel
+	    echo ""
+	    echo "  ✔  Build complete. Artifacts:"
+	    ls -lh dist/ | sed 's/^/    /'
+	  else
+	    skip_step
+	  fi
 	fi
 
 	# ── 8. Upload to PyPI ──────────────────────────────────────────────────
@@ -315,9 +330,19 @@ release:
 	echo ""
 
 	if ! command -v twine &>/dev/null; then
-	  echo "  ⚠  twine not found — install with:  pip install twine"
-	  echo "     Then run:  python -m twine upload dist/*"
-	else
+	  echo "  ⚠  twine not found in active environment."
+	  echo "     Will install with:  pip install twine"
+	  echo ""
+	  if confirm "Install 'twine' package now?"; then
+	    pip install twine
+	    echo "  ✔  twine installed."
+	  else
+	    echo "  ↳ Skipping — install manually with:  pip install twine"
+	    SKIP_TWINE=true
+	  fi
+	fi
+
+	if [[ "$${SKIP_TWINE:-false}" != "true" ]]; then
 	  echo "  Will run:"
 	  echo "    python -m twine upload dist/*"
 	  echo ""
