@@ -207,7 +207,7 @@ release:
 	  echo "    git tag -a $(TAG) -m \"Release $(FULL_VER)\""
 	  echo ""
 	  echo "  Annotated tag message (edit if desired, then save & close editor):"
-	  DEFAULT_MSG="Release $(FULL_VER)"$'\n\n'"Precision ionospheric radio sounding tools — pynasonde $(FULL_VER)"$'\n\nChanges in this release:'$'\n  - Bump version to $(FULL_VER)'
+	  DEFAULT_MSG="Release $(FULL_VER)"$$'\n\n'"Precision ionospheric radio sounding tools — pynasonde $(FULL_VER)"$$'\n\nChanges in this release:'$$'\n  - Bump version to $(FULL_VER)'
 	  echo "    \"$$DEFAULT_MSG\""
 	  echo ""
 	  if confirm "Create annotated tag $(TAG) with the above message?"; then
@@ -266,7 +266,7 @@ release:
 	  echo "  ⚠  gh CLI not found — skipping GitHub release creation."
 	  echo "     Install from https://cli.github.com/ and re-run to create the release."
 	else
-	  RELEASE_NOTES="## pynasonde $(FULL_VER)"$'\n\n'"Precision ionospheric radio sounding tools."$'\n\n'"### Installation"$'\n\n'"```bash"$'\n'"pip install pynasonde==$(FULL_VER)"$'\n'"```"$'\n\n'"### Changelog"$'\n\n'"- Version bump to $(FULL_VER)"
+	  RELEASE_NOTES="## pynasonde $(FULL_VER)"$$'\n\n'"Precision ionospheric radio sounding tools."$$'\n\n'"### Installation"$$'\n\n'"```bash"$$'\n'"pip install pynasonde==$(FULL_VER)"$$'\n'"```"$$'\n\n'"### Changelog"$$'\n\n'"- Version bump to $(FULL_VER)"
 	  echo "  Will run:"
 	  echo "    gh release create $(TAG) \\"
 	  echo "        --title \"pynasonde $(FULL_VER)\" \\"
