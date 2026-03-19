@@ -74,7 +74,7 @@ p.add_isodensity_contours(
     fbins=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     text="KR835  2023-10-14",
 )
-p.save("tmp/sao_isodensity_KR835.png")
+p.save("docs/examples/figures/sao_isodensity_KR835.png")
 p.close()
 ```
 
@@ -97,7 +97,7 @@ sk.plot_doppler_waterfall(
     cmap="inferno",
     text=title_dft,
 )
-sk.save("tmp/dft_doppler_waterfall_KR835.png")
+sk.save("docs/examples/figures/dft_doppler_waterfall_KR835.png")
 sk.close()
 ```
 
@@ -111,7 +111,7 @@ sk2.plot_doppler_spectra(
     cmap="viridis",
     text=title_dft,
 )
-sk2.save("tmp/dft_doppler_spectra_KR835.png")
+sk2.save("docs/examples/figures/dft_doppler_spectra_KR835.png")
 sk2.close()
 ```
 
@@ -140,9 +140,20 @@ python examples/digisonde/sao_iso_dft_plots.py
 
 ## Output Figures
 
-- `tmp/sao_isodensity_KR835.png` — daily isodensity contour
-- `tmp/dft_doppler_waterfall_KR835.png` — Doppler waterfall
-- `tmp/dft_doppler_spectra_KR835.png` — per-height Doppler spectra
+<figure markdown>
+![SAO Isodensity Contours](../figures/sao_isodensity_KR835.png)
+<figcaption>Figure 1: Daily isodensity contour for KR835, 14 October 2023. Time on the x-axis, virtual height on the y-axis; color indicates plasma frequency (MHz) at each height.</figcaption>
+</figure>
+
+<figure markdown>
+![DFT Doppler Waterfall](../figures/dft_doppler_waterfall_KR835.png)
+<figcaption>Figure 2: Doppler waterfall from <code>KR835_2023287000915.DFT</code>. Doppler bin on the x-axis, height on the y-axis; amplitude color highlights the dominant drift signal.</figcaption>
+</figure>
+
+<figure markdown>
+![DFT Doppler Spectra](../figures/dft_doppler_spectra_KR835.png)
+<figcaption>Figure 3: Per-height Doppler spectra for the same DFT block. Each line corresponds to a sampled height bin, colored from low (purple) to high (yellow) altitude.</figcaption>
+</figure>
 
 ## Related Files
 

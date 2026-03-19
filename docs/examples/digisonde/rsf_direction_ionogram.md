@@ -64,7 +64,7 @@ r.add_direction_ionogram(
     lower_plimit=5,
     ms=1.0,
 )
-r.save("tmp/rsf_direction_ionogram_KR835.png")
+r.save("docs/examples/figures/rsf_direction_ionogram_KR835.png")
 r.close()
 ```
 
@@ -97,7 +97,7 @@ r.add_directogram(
     ms=0.5,
     text="KR835  2023-10-14",
 )
-r.save("tmp/rsf_directogram_KR835_daily.png")
+r.save("docs/examples/figures/rsf_directogram_KR835_daily.png")
 r.close()
 ```
 
@@ -137,8 +137,15 @@ python examples/digisonde/rsf_direction_ionogram.py
 
 ## Output Figures
 
-- `tmp/rsf_direction_ionogram_KR835.png` — single direction-coded ionogram
-- `tmp/rsf_directogram_KR835_daily.png` — full-day directogram
+<figure markdown>
+![RSF Direction Ionogram](../figures/rsf_direction_ionogram_KR835.png)
+<figcaption>Figure 1: Direction-coded ionogram for KR835 at 2023-10-14 00:00 UT. Each scatter point is a single echo colored by its arrival direction and polarization category.</figcaption>
+</figure>
+
+<figure markdown>
+![RSF Daily Directogram](../figures/rsf_directogram_KR835_daily.png)
+<figcaption>Figure 2: Full-day directogram for KR835, 14 October 2023. Y-axis is UT time; X-axis is ground distance D_i = √(H_i² − H_v²) in km, signed negative westward.</figcaption>
+</figure>
 
 ## Related Files
 

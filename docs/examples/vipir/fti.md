@@ -42,3 +42,21 @@ rti = generate_fti_profiles(
 `rti` is a long-form dataframe containing time, range, and the mode-specific
 power/noise columns, so you can perform additional filtering or statistics
 before or after plotting.
+
+## Output Figure
+
+<figure markdown>
+![VIPIR FTI Interval Plot](../figures/fti.WI937.2022j.png)
+<figcaption>Figure: O-mode frequency–time interval (FTI) plot for WI937 during the Speed Demon 2022 campaign (DOY 234). Each row shows a frequency band; color represents O-mode power.</figcaption>
+</figure>
+
+## Related Files
+
+- `examples/vipir/fti.py`
+- `pynasonde/vipir/ngi/source.py` — `DataSource`
+- `pynasonde/vipir/ngi/plotlib.py` — `Ionogram`
+
+## See Also
+
+- [NGI AutoScaler Sanity-Check Figures](scale_module.md)
+- [VIPIR RIQ Ionogram](proc_riq.md)

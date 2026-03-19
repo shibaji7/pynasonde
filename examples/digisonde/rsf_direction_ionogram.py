@@ -42,6 +42,7 @@ r.add_direction_ionogram(
     ms=1.0,
 )
 r.save("tmp/rsf_direction_ionogram_KR835.png")
+r.save("docs/examples/figures/rsf_direction_ionogram_KR835.png")
 r.close()
 
 # ── 2. Daily directogram: all RSF files for the day ─────────────────────────
@@ -69,4 +70,5 @@ r.add_directogram(
     text="KR835  2023-10-14",
 )
 r.save("tmp/rsf_directogram_KR835_daily.png")
+r.save("docs/examples/figures/rsf_directogram_KR835_daily.png")
 r.close()
