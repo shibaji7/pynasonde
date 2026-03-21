@@ -1616,10 +1616,6 @@ class RsfIonogram(DigiPlots):
             del_ticks: If ``True``, suppress axis ticks.
         """
         DIRECTION_COLORS = {
-            "Vo-": "#8B0000",
-            "Vo+": "#FF6B6B",
-            "X-": "#006400",
-            "X+": "#90EE90",
             "NNE": "#4169E1",
             "E": "#1E90FF",
             "W": "#FFD700",
@@ -1649,37 +1645,53 @@ class RsfIonogram(DigiPlots):
         ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
         ax.axvline(0, color="k", lw=0.8, ls="--", zorder=1)
 
-        df = df.copy()
+        # ── select only needed columns before copying to minimise peak memory ──
+        needed = ["date", "amplitude", "azm_directions", "pol", "dop_num", hparam]
+        df = df[needed].copy()
         df["amplitude"] = df["amplitude"].replace(0, np.nan)
-        df = df[df["amplitude"] >= lower_plimit]
-        df["_category"] = df.apply(_classify, axis=1)
-        df = df[df["_category"].notna()]
+        df = df[df["amplitude"] >= lower_plimit].reset_index(drop=True)
 
-        # Convert date to matplotlib float for y-axis
+        # ── vectorised classify (replaces row-wise apply) ─────────────────────
+        azm = df["azm_directions"]
+        mask_N   = azm == "N"
+        mask_O   = df["pol"] == "O"
+        mask_neg = df["dop_num"] < dop_split
+
+        cat = pd.Series(pd.NA, index=df.index, dtype="object")
+        cat = cat.mask(mask_N &  mask_O &  mask_neg, "Vo-")
+        cat = cat.mask(mask_N &  mask_O & ~mask_neg, "Vo+")
+        cat = cat.mask(mask_N & ~mask_O &  mask_neg, "X-")
+        cat = cat.mask(mask_N & ~mask_O & ~mask_neg, "X+")
+        for src, dst in _AZM_TO_CATEGORY.items():
+            cat = cat.mask(~mask_N & (azm == src), dst)
+        df["_category"] = cat
+        df = df[df["_category"].notna()].reset_index(drop=True)
+
+        # ── convert date to matplotlib float (no to_pydatetime() overhead) ───
         df["date"] = pd.to_datetime(df["date"], utc=True)
-        df["_t"] = mdates.date2num(df["date"].dt.to_pydatetime())
+        df["_t"] = mdates.date2num(df["date"])
 
-        # Per-ionogram H_v: group by timestamp, find H_v from peak vertical echo
-        def _compute_D(grp):
-            vert = grp[grp["azm_directions"] == "N"]
-            H_v = (
-                vert.loc[vert["amplitude"].idxmax(), hparam]
-                if not vert.empty
-                else grp[hparam].median()
-            )
-            H_i = grp[hparam].values
-            D = np.sqrt(np.maximum(H_i**2 - H_v**2, 0))
-            # Negate for west-side directions
-            mask_west = grp["_category"].isin(_WEST)
-            D = np.where(mask_west, -D, D)
-            # Vertical echoes stay at D=0
-            mask_vert = grp["_category"].isin({"Vo-", "Vo+", "X-", "X+"})
-            D = np.where(mask_vert, 0.0, D)
-            grp = grp.copy()
-            grp["_D"] = D
-            return grp
+        # ── vectorised D computation (replaces groupby.apply + per-group copy) ─
+        # Per-timestamp H_v: height of peak-amplitude vertical echo.
+        vert_mask = df["azm_directions"] == "N"
+        vert_df   = df.loc[vert_mask, ["_t", "amplitude", hparam]]
+        if not vert_df.empty:
+            peak_idx = vert_df.groupby("_t")["amplitude"].idxmax()
+            hv_map   = vert_df.loc[peak_idx].set_index("_t")[hparam]
+        else:
+            hv_map = pd.Series(dtype=float)
+        # Fallback: median height for timestamps without a vertical echo
+        median_h = df.groupby("_t")[hparam].median()
+        hv_series = median_h.copy()
+        hv_series.update(hv_map)
+        df["_H_v"] = df["_t"].map(hv_series)
 
-        df = df.groupby("_t", group_keys=False).apply(_compute_D)
+        H_i = df[hparam].to_numpy(float)
+        H_v = df["_H_v"].to_numpy(float)
+        D   = np.sqrt(np.maximum(H_i**2 - H_v**2, 0.0))
+        D   = np.where(df["_category"].isin(_WEST), -D, D)
+        D   = np.where(df["_category"].isin({"Vo-", "Vo+", "X-", "X+"}), 0.0, D)
+        df["_D"] = D
 
         legend_handles = []
         for label, color in DIRECTION_COLORS.items():
@@ -1743,7 +1755,7 @@ class RsfIonogram(DigiPlots):
 
         if text:
             ax.text(
-                0.02,
+                0.01,
                 0.05,
                 text,
                 ha="left",

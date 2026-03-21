@@ -77,7 +77,7 @@ r.add_directogram(
     df_day,
     dlim=[-800, 800],
     lower_plimit=5,
-    ms=0.5,
+    ms=1.5,
     text="KR835  2023-10-14",
 )
 r.save("tmp/rsf_directogram_KR835_daily.png")
