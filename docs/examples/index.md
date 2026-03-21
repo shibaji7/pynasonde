@@ -44,9 +44,29 @@
 
 <div class="doc-card-grid">
   <div class="doc-card">
+    <strong>RIQ — Echo Extraction (PL407)</strong>
+    Extract Dynasonde 7-parameter echoes (height, amplitude, V*, EP, PP, XL, YL) from a VIPIR PL407 <code>.RIQ</code> file and inspect the resulting echo cloud.
+    <br><a href="vipir/echo_extraction/">Open Example</a>
+  </div>
+  <div class="doc-card">
+    <strong>RIQ — Echo Extraction (WI937)</strong>
+    Full 8-receiver echo extraction from a WI937 <code>.RIQ</code> file, including direction cosines (XL, YL), EP wavefront residual, and polarization. Demonstrates SNR thresholding and height filtering.
+    <br><a href="vipir/echo_extraction_wi937/">Open Example</a>
+  </div>
+  <div class="doc-card">
     <strong>RIQ — Ionogram Filter (single &amp; multi-sounding)</strong>
-    Apply the five-stage <code>IonogramFilter</code> to reject RFI, non-planar wavefront returns, multi-hop ground echoes, and DBSCAN noise from a VIPIR echo cloud. A second script extends this with temporal coherence across multiple consecutive soundings.
+    Apply the six-stage <code>IonogramFilter</code> (RFI blanking, EP, multi-hop, DBSCAN, RANSAC, temporal coherence) to reject noise from a VIPIR echo cloud. Covers WI937, PL407, and multi-sounding configurations.
     <br><a href="vipir/ionogram_filter/">Open Example</a>
+  </div>
+  <div class="doc-card">
+    <strong>RIQ — Drift Velocity (WI937)</strong>
+    Estimate the 3-D ionospheric drift vector [Vx, Vy, Vz] from line-of-sight velocities using height-binned weighted least-squares with iterative sigma-clipping. Includes whole-sounding and height-resolved fits.
+    <br><a href="vipir/drift_velocity_wi937/">Open Example</a>
+  </div>
+  <div class="doc-card">
+    <strong>RIQ — Full Parameter Analysis (WI937)</strong>
+    End-to-end workflow: filter a WI937 sounding, then compare amplitude, EP, PP, V*, and 3-D drift velocity between raw and filtered echo clouds in a 3×3 diagnostic figure.
+    <br><a href="vipir/ionogram_full_analysis_wi937/">Open Example</a>
   </div>
   <div class="doc-card">
     <strong>RIQ — Ionogram from Raw Capture</strong>
@@ -80,3 +100,6 @@
 ![VIPIR Ionogram from RIQ](figures/ionogram_from_riq.png)
 ![VIPIR FTI Interval Plot](figures/fti.WI937.2022j.png)
 ![NGI AutoScaler QA](figures/ngi.scaler.png)
+![Ionogram Filter WI937](figures/ionogram_filter_wi937.png)
+![Drift Velocity WI937](figures/drift_velocity_wi937.png)
+![Full Parameter Analysis WI937](figures/ionogram_full_analysis_wi937.png)
