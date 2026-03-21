@@ -29,12 +29,16 @@ Data used: KR835 (Kirtland AFB), 14 October 2023, 480 RSF files.
 
 ### Daily directogram
 
-1. `glob.glob("KR835_*.RSF")` collects all 480 RSF files for the day.
-2. Each file is parsed with `RsfExtractor`; resulting DataFrames are concatenated.
-3. `RsfIonogram.add_directogram(...)` groups echoes by ionogram timestamp, computes
+1. `glob.glob("KR835_*.RSF")` collects all RSF files for the day.
+2. A module-level `_load_rsf` worker parses each file with `RsfExtractor`; failed
+   files are skipped with a warning rather than aborting the run.
+3. `multiprocessing.Pool.map` fans the worker across all files in parallel
+   (`N_PROCS = 8`), then failed results (`None`) are filtered out before
+   `pd.concat`.
+4. `RsfIonogram.add_directogram(...)` groups echoes by ionogram timestamp, computes
    the vertical reference height H_v from peak vertical echoes, and derives
    ground distance D_i = √(H_i² − H_v²) with sign negative for westward arrivals.
-4. Y-axis = UT time (`matplotlib.dates`), X-axis = D_i (km), scatter colored by
+5. Y-axis = UT time (`matplotlib.dates`), X-axis = D_i (km), scatter colored by
    echo category.
 
 ## Key Code
@@ -68,26 +72,44 @@ r.save("docs/examples/figures/rsf_direction_ionogram_KR835.png")
 r.close()
 ```
 
-### 2) Daily Directogram
+### 2) Daily Directogram — parallel loading
 
 ```python
 import glob
+
 import pandas as pd
+from joblib import Parallel, delayed
+from loguru import logger
 from pynasonde.digisonde.parsers.rsf import RsfExtractor
 from pynasonde.digisonde.digi_plots import RsfIonogram
 
 RSF_DIR = "path/to/SKYWAVE_DPS4D_2023_10_14"
+N_PROCS = 8   # tune to available CPU cores
 
-frames = []
-for fpath in sorted(glob.glob(f"{RSF_DIR}/KR835_*.RSF")):
+
+def _load_rsf(fpath: str) -> pd.DataFrame | None:
+    """Parse one RSF file; return its DataFrame or None on failure."""
     try:
         ex = RsfExtractor(fpath, extract_time_from_name=True)
         ex.extract()
-        frames.append(ex.to_pandas())
+        return ex.to_pandas()
     except Exception as e:
-        print(f"Skipped {fpath}: {e}")
+        logger.warning(f"Skipped {fpath}: {e}")
+        return None
 
-df_day = pd.concat(frames, ignore_index=True)
+
+all_files = sorted(glob.glob(f"{RSF_DIR}/KR835_*.RSF"))
+logger.info(f"Loading {len(all_files)} RSF files with {N_PROCS} workers")
+
+results = Parallel(n_jobs=N_PROCS, backend="loky")(
+    delayed(_load_rsf)(fpath) for fpath in all_files
+)
+
+df_day = pd.concat(
+    [df for df in results if df is not None],
+    ignore_index=True,
+)
+logger.info(f"Total records: {len(df_day)}")
 
 r = RsfIonogram(figsize=(6, 8), font_size=10)
 r.add_directogram(
@@ -100,6 +122,14 @@ r.add_directogram(
 r.save("docs/examples/figures/rsf_directogram_KR835_daily.png")
 r.close()
 ```
+
+!!! note "Why joblib instead of multiprocessing.Pool?"
+    `multiprocessing.Pool.map` sends results back through an OS pipe whose
+    buffer is typically 64 KB.  Large DataFrames overflow the pipe, causing
+    `BrokenPipeError: [Errno 32]`.  `joblib` with the `loky` backend uses
+    memory-mapped temporary files for large objects, so arbitrarily large
+    DataFrames are returned safely.  `joblib` is already a dependency of
+    pynasonde — no extra install needed.
 
 ## Echo Direction Color Scheme
 

@@ -80,6 +80,8 @@ nav:
             - Overview: examples/index.md
             - VIPIR Examples:
                     - Read/Plot RIQ: examples/vipir/proc_riq.md
+                    - Echo Extraction (7-param, PL407): examples/vipir/echo_extraction.md
+                    - Echo Extraction (7-param, WI937): examples/vipir/echo_extraction_wi937.md
                     - Read/Plot FTI: examples/vipir/fti.md
             - Digisonde Examples:
                     - SAO Height Profiles + F2: examples/digisonde/sao.md
@@ -120,6 +122,7 @@ nav:
                                 - Source: dev/vipir/ngi/source.md
                                 - Scale: dev/vipir/ngi/scale.md
                                 - Plot Utils: dev/vipir/ngi/plotlib.md
+                        - Echo Extractor: dev/vipir/riq/echo.md
                         - VIPIR RIQ Parsers:
                                 - Overview: dev/vipir/riq/parsers/index.md
                                 - Trace: dev/vipir/riq/parsers/trace.md

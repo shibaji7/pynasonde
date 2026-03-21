@@ -54,10 +54,17 @@ A class-level attribute, dataclass field, or `@property`.
 | [DVL Parser](digisonde/parsers/dvl.md) | Read Digisonde Velocity/DVL files |
 | [DFT Parser](digisonde/parsers/dft.md) | Read DFT spectral files |
 | [EDP Parser](digisonde/parsers/edp.md) | Electron density profile extraction |
+| [SBF Parser](digisonde/parsers/sbf.md) | Read binary SBF ionogram amplitude/phase blocks |
+| [MMM Parser](digisonde/parsers/mmm.md) | Read binary ModMax MMM ionogram blocks |
+| [Image Parser](digisonde/parsers/image.md) | Extract ionogram images (`IonogramImageExtractor`) |
 | [SAO XML Datatypes](digisonde/datatypes/saoxmldatatypes.md) | Dataclasses for SAO XML records |
 | [SBF Datatypes](digisonde/datatypes/sbfdatatypes.md) | Dataclasses for SBF binary format |
+| [MMM Datatypes](digisonde/datatypes/mmmdatatypes.md) | Dataclasses for MMM/ModMax binary format |
 | [DFT Datatypes](digisonde/datatypes/dftdatatypes.md) | Dataclasses for DFT spectral format |
 | [RSF Datatypes](digisonde/datatypes/rsfdatatypes.md) | Dataclasses for RSF binary records |
+| [Raw IQ Parse](digisonde/raw/raw_parse.md) | DPS4D raw IQ → ionogram pipeline (`process`, `IonogramResult`) |
+| [IQ Reader](digisonde/raw/iq_reader.md) | One-second `.bin` IQ file reader (`IQStream`) |
+| [Raw Plots](digisonde/raw/raw_plots.md) | Plotting helpers for raw IQ ionograms (`RawPlots`, `AFRLPlots`) |
 
 ### VIPIR
 
@@ -67,7 +74,8 @@ A class-level attribute, dataclass field, or `@property`.
 | [NGI Source](vipir/ngi/source.md) | `Dataset` / `DataSource` for loading NGI NetCDF files |
 | [NGI Scale](vipir/ngi/scale.md) | Auto-scaling, noise profiling, trace extraction |
 | [NGI Plot Utils](vipir/ngi/plotlib.md) | Ionogram and profile visualisation helpers |
-| [RIQ Trace](vipir/riq/parsers/trace.md) | IQ-data phase/velocity extraction from RIQ files |
+| [RIQ Echo Extractor](vipir/riq/echo.md) | Dynasonde-style seven-parameter echo extraction (`Echo`, `EchoExtractor`) |
+| [RIQ Ionogram Filter](vipir/riq/parsers/filter.md) | Five-stage post-extraction echo filter: RFI, EP, multi-hop, DBSCAN, temporal coherence (`IonogramFilter`) |
 | [RIQ Read](vipir/riq/parsers/read_riq.md) | Low-level RIQ binary reader and threshold routines |
 | [RIQ Utils](vipir/riq/utils.md) | RIQ format utility functions |
 | [SCT Datatypes](vipir/riq/datatypes/sct.md) | System configuration table dataclass |

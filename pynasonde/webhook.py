@@ -1,3 +1,23 @@
+"""HTTP download utilities for VIPIR ionosonde data files.
+
+This module provides the :class:`Webhook` dataclass which can download
+NGI ionogram images and RIQ raw-IQ files from an ionosonde data server
+(e.g. the Wallops VIPIR archive).  Files are scraped by listing the
+directory at the constructed URL and filtering for the configured station
+URSI code and file extension.
+
+Typical usage::
+
+    from pynasonde.webhook import Webhook
+    import datetime as dt
+
+    wh = Webhook(
+        URSI="WI937",
+        dates=[dt.datetime(2024, 9, 20)],
+    )
+    dest = wh.download(source="./data/", ngi=True, riq=True)
+"""
+
 import datetime as dt
 import os
 from dataclasses import dataclass, field

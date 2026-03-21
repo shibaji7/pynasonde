@@ -14,15 +14,25 @@ Each page combines a short narrative, mkdocstrings directives to auto-generate A
 Example quick start
 
 ```py
-# Basic example: load station metadata and create a simple plot
-from pynasonde.digisonde.digi_utils import load_station_csv
+# Short package-level imports (available after the sub-package __init__.py
+# files were populated — any of these forms work interchangeably):
+
+# Option A — short import via pynasonde.digisonde
+from pynasonde.digisonde import SaoExtractor, SaoSummaryPlots, load_station_csv
+
+# Option B — top-level package import
+from pynasonde import SaoExtractor, SaoSummaryPlots
+
+# Option C — original deep import (still valid)
+from pynasonde.digisonde.parsers.sao import SaoExtractor
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
+from pynasonde.digisonde.digi_utils import load_station_csv
 
 stations = load_station_csv()
 print(stations.head())
 
 # Create a simple plot container
 plotter = SaoSummaryPlots(fig_title='Example', nrows=1, ncols=1)
-# feed plotter with pre-built pandas DataFrame of Digisonde parameters
+# feed plotter with a pre-built pandas DataFrame of Digisonde parameters
 # plotter.add_TS(df)
 ```

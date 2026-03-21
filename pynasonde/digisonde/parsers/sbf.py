@@ -1,3 +1,24 @@
+"""Binary SBF format parser for Digisonde ionogram data.
+
+This module provides :class:`SbfExtractor`, a parser for the SBF (Scaled
+Binary Format) files produced by Digisonde DPS4D instruments.  SBF files
+store ionogram amplitude, Doppler, phase, and azimuth data in fixed-size
+4096-byte binary blocks, one block per sounding.
+
+Key constants:
+    ``SBF_IONOGRAM_SETTINGS`` — maps the number of height bins (128, 256, or
+    512) to the corresponding number of frequency blocks, range bins, and
+    byte length for each frequency-group record in the block.
+
+Typical usage::
+
+    extractor = SbfExtractor("KR835_2023286235715.SBF",
+                              extract_time_from_name=True,
+                              extract_stn_from_name=True)
+    extractor.extract()
+    df = extractor.to_pandas()
+"""
+
 import copy
 import datetime as dt
 import struct

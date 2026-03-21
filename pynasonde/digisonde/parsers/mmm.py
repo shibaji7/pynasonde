@@ -1,3 +1,23 @@
+"""Binary MMM/ModMax format parser for Digisonde ionogram data.
+
+This module provides :class:`ModMaxExtractor`, a parser for the MMM
+(ModMax) binary files produced by Digisonde instruments.  MMM files store
+sounder output in fixed-size 4096-byte blocks similar to the SBF format but
+with a distinct header and frequency-group layout.
+
+Key constants:
+    ``MMM_IONOGRAM_SETTINGS`` — maps the number of height bins (128, 256,
+    or 512) to the frequency-block/range-bin/byte-length metadata used
+    during parsing.
+
+Typical usage::
+
+    extractor = ModMaxExtractor("WP937_2022233235510.MMM",
+                                 extract_time_from_name=True,
+                                 extract_stn_from_name=True)
+    extractor.extract()
+"""
+
 import copy
 import datetime as dt
 import struct

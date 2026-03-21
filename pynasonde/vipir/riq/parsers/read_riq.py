@@ -26,7 +26,6 @@ from pynasonde.vipir.riq.datatypes.default_factory import (
 )
 from pynasonde.vipir.riq.datatypes.pct import Ionogram, PctType
 from pynasonde.vipir.riq.datatypes.sct import SctType
-from pynasonde.vipir.riq.parsers.trace import extract_echo_traces
 
 # Define a mapping for VIPIR version configurations
 VIPIR_VERSION_MAP = load_toml().vipir_data_format_maps
@@ -254,24 +253,42 @@ class RiqDataset:
                 if np.mod(j, riq.sct.frequency.pulse_count) == 0:
                     riq.pulsets.append(pulset)
                     pulset = Pulset()
-        # If tune_type is >=4, group pulses based on special frequency and pulse_count
+        # If tune_type is >=4, group pulses based on special frequency and pulse_count.
+        # In Log+Fixed ShuffleMode the sounding frequencies are transmitted in a
+        # scrambled (shuffled) order, so consecutive PRIs can be at different carrier
+        # frequencies.  Grouping by a modulo counter therefore produces pulsets with
+        # mixed frequencies, making coherent integration incoherent.
+        # The correct approach: separate swap pulses, then group the remaining pulses
+        # by their actual sounding frequency before splitting into pulse_count chunks.
         elif riq.sct.frequency.tune_type >= 4:
             riq.swap_pulsets = []
             riq.swap_frequency = riq.sct.frequency.base_table[1]
-            pulset = Pulset()
-            for j, pulse in zip(range(1, riq.sct.timing.pri_count + 1), riq.pulses):
-                if pulse.frequency == riq.swap_frequency:
-                    # Add PRI and PCT data to the current pulse set
+            pulse_count = int(riq.sct.frequency.pulse_count)
+
+            # Partition: swap vs. sounding
+            freq_groups: dict = {}  # float(frequency_kHz) → [PctType, ...]
+            for pulse in riq.pulses:
+                if float(pulse.frequency) == float(riq.swap_frequency):
                     riq.swap_pulsets.append(pulse)
                 else:
-                    # Add PRI and PCT data to the current pulse set
-                    pulset.append(pulse)
-                # Group pulses into sets of pulse_count
-                if np.mod(j, riq.sct.frequency.pulse_count * 2) == 0:
-                    riq.pulsets.append(pulset)
-                    pulset = Pulset()
+                    key = float(pulse.frequency)
+                    if key not in freq_groups:
+                        freq_groups[key] = []
+                    freq_groups[key].append(pulse)
+
+            # Build same-frequency pulsets of exactly pulse_count PCTs
+            for pcts in freq_groups.values():
+                for start in range(0, len(pcts), pulse_count):
+                    chunk = pcts[start : start + pulse_count]
+                    if chunk:
+                        ps = Pulset()
+                        ps.pcts = chunk
+                        riq.pulsets.append(ps)
+
             logger.info(
-                f"Swap Frequency: {riq.swap_frequency}, Number of swap_pulsets: {len(riq.swap_pulsets)}"
+                f"Swap Frequency: {riq.swap_frequency}, "
+                f"Number of swap_pulsets: {len(riq.swap_pulsets)}, "
+                f"Unique sounding freqs: {len(freq_groups)}"
             )
         else:
             raise NotImplementedError(
@@ -319,7 +336,6 @@ class RiqDataset:
             np.array([p.pulse_i for psets in self.pulsets for p in psets.pcts]),
             np.array([p.pulse_q for psets in self.pulsets for p in psets.pcts]),
         )
-        extract_echo_traces(self.sct, pulse_i, pulse_q)
         pulse_i, pulse_q = (
             pulse_i.reshape(
                 len(self.pulsets),

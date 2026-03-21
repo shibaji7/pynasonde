@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pynasonde",
-    version="1.1.0",
+    version="1.2.0",
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={

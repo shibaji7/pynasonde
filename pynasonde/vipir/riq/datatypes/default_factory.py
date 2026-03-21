@@ -1,3 +1,20 @@
+"""Default field descriptors for VIPIR RIQ binary record structures.
+
+This module contains ``SCT_default_factory`` — a list of ``(name, dtype,
+shape?)`` tuples that describe every field in a VIPIR Sounding
+Configuration Table (SCT) binary record.  The factory is consumed by
+:func:`pynasonde.vipir.riq.datatypes.sct.read_dtype` to deserialize
+SCT records from raw RIQ files using NumPy structured arrays.
+
+The layout mirrors the C-struct definition documented in the VIPIR/DPS4D
+instrument interface specification.  Each entry is a 2- or 3-tuple::
+
+    ("field_name", "numpy_dtype")
+    ("field_name", "numpy_dtype", (shape,))
+
+Shape is given only for array fields (e.g. ``rx_position (32, 3)``).
+"""
+
 from typing import List, Tuple
 
 SCT_default_factory: List[Tuple] = [

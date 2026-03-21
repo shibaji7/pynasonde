@@ -1,3 +1,27 @@
+"""Plotting helpers for DPS4D raw IQ recordings.
+
+This module provides figure classes that visualise the output of the raw
+IQ processing pipeline in :mod:`pynasonde.digisonde.raw.raw_parse`.
+
+Classes:
+    :class:`RawPlots` — base figure/axes manager for stack plots derived
+    from ``.bin`` recordings.  Provides axis formatting, title handling,
+    and ``save`` / ``close`` helpers mirroring those in
+    :class:`pynasonde.digisonde.digi_plots.DigiPlots`.
+
+    :class:`AFRLPlots` — subclass of :class:`RawPlots` with additional
+    methods tailored to AFRL/VIPIR-style ionogram presentations.
+
+Typical usage::
+
+    from pynasonde.digisonde.raw.raw_plots import RawPlots
+    rp = RawPlots(nrows=2, ncols=1, figsize=(6, 6))
+    ax = rp.axes[0]
+    # … populate ax …
+    rp.save("ionogram_raw.png")
+    rp.close()
+"""
+
 import datetime as dt
 from typing import List
 

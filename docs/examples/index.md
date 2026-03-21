@@ -44,6 +44,11 @@
 
 <div class="doc-card-grid">
   <div class="doc-card">
+    <strong>RIQ — Ionogram Filter (single &amp; multi-sounding)</strong>
+    Apply the five-stage <code>IonogramFilter</code> to reject RFI, non-planar wavefront returns, multi-hop ground echoes, and DBSCAN noise from a VIPIR echo cloud. A second script extends this with temporal coherence across multiple consecutive soundings.
+    <br><a href="vipir/ionogram_filter/">Open Example</a>
+  </div>
+  <div class="doc-card">
     <strong>RIQ — Ionogram from Raw Capture</strong>
     Read a VIPIR <code>.RIQ</code> file, clean the ionogram with the adaptive gain filter, and plot O/X-mode power on a frequency–virtual-height canvas.
     <br><a href="vipir/proc_riq/">Open Example</a>

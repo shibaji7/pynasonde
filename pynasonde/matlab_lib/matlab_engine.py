@@ -1,3 +1,29 @@
+"""MATLAB engine bridge for creating SAO summary plot figures.
+
+This module wraps the MATLAB Python engine (``matlab.engine``) to expose
+the MATLAB-based ``SaoSummaryPlots`` class to Python callers.  The bundled
+MATLAB library is located automatically from the installed ``pynasonde``
+package path.
+
+Requires the MATLAB Engine API for Python to be installed in the active
+environment.  See the MATLAB documentation for installation steps.
+
+Key API:
+    :func:`get_matlab_pynasonde_lib` — returns the file-system path of the
+    bundled MATLAB library shipped with ``pynasonde``.
+
+    :class:`CreateFig` — starts a MATLAB engine session, adds the library
+    path, and exposes :meth:`generate_scaled_TS_figure` which drives the
+    MATLAB ``SaoSummaryPlots`` object to produce publication-quality
+    time-series figures and save them to disk.
+
+Typical usage::
+
+    fig = CreateFig(fig_path="figures/")
+    fig.generate_scaled_TS_figure(data_dicts, "output.png")
+    fig.close()
+"""
+
 import matlab
 import matlab.engine
 import numpy as np

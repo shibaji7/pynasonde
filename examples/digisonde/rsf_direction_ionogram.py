@@ -10,6 +10,7 @@ Produces two figures:
 import glob
 
 import pandas as pd
+from joblib import Parallel, delayed
 from loguru import logger
 
 from pynasonde.digisonde.digi_plots import RsfIonogram
@@ -47,16 +48,26 @@ r.close()
 
 # ── 2. Daily directogram: all RSF files for the day ─────────────────────────
 all_files = sorted(glob.glob(f"{RSF_DIR}/KR835_*.RSF"))
+all_files = all_files[::4]
 logger.info(f"Loading {len(all_files)} RSF files for daily directogram")
 
-frames = []
-for fpath in all_files:
+def _load_rsf(fpath: str) -> pd.DataFrame | None:
+    """Parse one RSF file and return its DataFrame, or None on failure."""
     try:
         ex = RsfExtractor(fpath, extract_time_from_name=True)
         ex.extract()
-        frames.append(ex.to_pandas())
+        return ex.to_pandas()
     except Exception as e:
         logger.warning(f"Skipped {fpath}: {e}")
+        return None
+
+
+N_PROCS = 2   # tune to the number of available CPU cores
+results = Parallel(n_jobs=N_PROCS, backend="loky")(
+    delayed(_load_rsf)(fpath) for fpath in all_files
+)
+
+frames = [df for df in results if df is not None]
 
 df_day = pd.concat(frames, ignore_index=True)
 logger.info(f"Total records for daily directogram: {len(df_day)}")

@@ -1,4 +1,5 @@
 import datetime as dt
+from types import SimpleNamespace
 from typing import List
 
 import numpy as np
@@ -7,7 +8,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from pynasonde.digisonde.digi_utils import to_namespace
-from pynasonde.ngi.utils import TimeZoneConversion
+from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
 class EdpExtractor(object):

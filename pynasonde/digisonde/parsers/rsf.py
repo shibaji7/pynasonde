@@ -99,7 +99,7 @@ class RsfExtractor:
             for n in range(self.BLOCKS):
                 rsf_data_unit = RsfDataUnit(frequency_groups=[])
                 blk_size = self.DATA_BLOCK_SIZE
-                logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
+                # logger.debug(f"Reading block {n+1} of {self.BLOCKS}")
 
                 # Helper to read and unpack a byte
                 rb = lambda: file.read(1)[0]
@@ -193,7 +193,7 @@ class RsfExtractor:
                     rsf_data_unit.frequency_groups.append(fg)
                 rsf_data_unit.header = h
                 if blk_size > 0:
-                    logger.debug(f"Cleaning remaining {blk_size} bytes")
+                    # logger.debug(f"Cleaning remaining {blk_size} bytes")
                     file.read(blk_size)
                 rsf_data_unit.setup()
                 self.rsf_data.rsf_data_units.append(rsf_data_unit)
