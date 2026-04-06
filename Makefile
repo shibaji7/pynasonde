@@ -8,6 +8,12 @@
 #    make test                     Run pytest with coverage
 #    make build-dist               Format → clean → build sdist + wheel
 #    make sync [MSG="..."]         Commit + push (replaces sync.sh)
+#    make vega-sync                Copy NN-inversion module to VEGA HPC via scp
+#    make tutorials                Build both tutorial PDFs (keeps .tex + .pdf only)
+#    make tutorials-grad           Build only the graduate student tutorial
+#    make tutorials-researcher     Build only the researcher reference
+#	 make tutorials-nn        	   Build only the NN Invrsion tutorial / Paper
+#    make tutorials-clean          Remove all LaTeX auxiliary files from tutorials/
 #
 #  Release targets:
 #    make check   VERSION=X.Y      Consistency check only (no changes)
@@ -16,14 +22,128 @@
 #  Each release step describes what it will do and asks Y/N before running.
 # =============================================================================
 
-SHELL     := /bin/bash
+SHELL        := /bin/bash
+.DEFAULT_GOAL := help
 .ONESHELL:
-.PHONY: help clean format install-dev test build-dist sync check release
+.PHONY: help clean format install-dev test build-dist sync check release vega-sync
 
-VERSION   ?= __UNSET__
-FULL_VER  := $(VERSION)
+# VEGA HPC settings — override on the command line if needed
+VEGA_USER    ?= chakras4
+VEGA_HOST    ?= vegaln1.erau.edu
+VEGA_ROOT    ?= ~/Research/CodeBase/pynasonde
+
+# --------------------------------------------------------------------------- #
+#  vega-sync — copy only the NN-inversion module + pyproject.toml to VEGA
+#
+#  Usage:  make vega-sync
+#          make vega-sync VEGA_USER=myuser VEGA_HOST=vega.example.edu
+# --------------------------------------------------------------------------- #
+vega-sync:
+	@set -euo pipefail
+	echo ""
+	echo "  Syncing NN-inversion module to $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)/"
+	echo ""
+	echo "  Files to transfer:"
+	echo "    pynasonde/vipir/analysis/nn_inversion/  (full module)"
+	echo "    OMNI/  (full OMNI dataset, if not already present on VEGA)"
+	echo ""
+	ssh $(VEGA_USER)@$(VEGA_HOST) "mkdir -p $(VEGA_ROOT)/pynasonde/vipir/analysis"
+	scp -r pynasonde/vipir/analysis/nn_inversion \
+	    $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)/pynasonde/vipir/analysis/
+	scp -r /home/chakras4/OMNI/ $(VEGA_USER)@$(VEGA_HOST):~/
+	echo ""
+	echo "  ✔  Sync complete."
+	echo "     Remote: $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)"
+	echo ""
+
+VERSION      ?= __UNSET__
+FULL_VER     := $(VERSION)
+
+LATEX        := pdflatex -interaction=nonstopmode
+LATEX_AUXEXT := aux log out toc nav snm vrb bbl blg lof lot fls fdb_latexmk synctex.gz
+TUTORIAL_GRAD    := tutorials/grad_student
+TUTORIAL_RES     := tutorials/researcher
+TUTORIAL_METHODS := tutorials/methods_ppt
+TUTORIAL_NN	  := tutorials/nn_inv
 TAG       := v$(FULL_VER)
 MSG       ?=
+
+# Convenience phony aliases — only these are phony; the PDF targets are real files
+.PHONY: tutorials tutorials-grad tutorials-researcher tutorials-methods tutorials-nn tutorials-clean
+
+# --------------------------------------------------------------------------- #
+#  tutorials — build PDFs only when the .tex source is newer than the PDF
+#
+#  make tutorials            → rebuild whichever PDF is out of date
+#  make tutorials-grad       → alias for the grad PDF file target
+#  make tutorials-researcher → alias for the researcher PDF file target
+#  make tutorials-nn		 → alias for the NN PDF file target
+#  make tutorials-clean      → remove LaTeX aux files (keep .tex + .pdf)
+# --------------------------------------------------------------------------- #
+
+# Real file targets — make skips the recipe if PDF is newer than .tex
+WORKSHOP_PDF   := $(TUTORIAL_GRAD)/pynasonde_workshop.pdf
+METHODS_PDF    := $(TUTORIAL_RES)/pynasonde_methods.pdf
+METHODS_PPT_PDF := $(TUTORIAL_METHODS)/pynasonde_methods_ppt.pdf
+WORKSHOP_TEX   := $(TUTORIAL_GRAD)/pynasonde_workshop.tex
+METHODS_TEX    := $(TUTORIAL_RES)/pynasonde_methods.tex
+METHODS_PPT_TEX := $(TUTORIAL_METHODS)/pynasonde_methods_ppt.tex
+METHODS_NN_PDF := $(TUTORIAL_NN)/whitepaper_nn_inversion.pdf
+METHODS_NN_TEX := $(TUTORIAL_NN)/whitepaper_nn_inversion.tex
+
+tutorials: $(WORKSHOP_PDF) $(METHODS_PDF) $(METHODS_PPT_PDF)
+	@echo "  Tutorials up to date: $(WORKSHOP_PDF)  $(METHODS_PDF)  $(METHODS_PPT_PDF)"
+
+tutorials-grad: $(WORKSHOP_PDF)
+	@echo "  Tutorial up to date: $(WORKSHOP_PDF)"
+
+tutorials-researcher: $(METHODS_PDF)
+	@echo "  Tutorial up to date: $(METHODS_PDF)"
+
+tutorials-methods: $(METHODS_PPT_PDF)
+	@echo "  Tutorial up to date: $(METHODS_PPT_PDF)"
+
+tutorials-nn: $(METHODS_NN_PDF)
+	@echo "  Tutorial up to date: $(METHODS_NN_PDF)"
+
+$(WORKSHOP_PDF): $(WORKSHOP_TEX)
+	@echo ""
+	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	cd $(TUTORIAL_GRAD) && $(LATEX) pynasonde_workshop.tex && $(LATEX) pynasonde_workshop.tex
+	cd $(CURDIR)/$(TUTORIAL_GRAD) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  Output : $@"
+	@echo ""
+
+$(METHODS_PDF): $(METHODS_TEX)
+	@echo ""
+	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	cd $(TUTORIAL_RES) && $(LATEX) pynasonde_methods.tex && $(LATEX) pynasonde_methods.tex
+	cd $(CURDIR)/$(TUTORIAL_RES) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  Output : $@"
+	@echo ""
+
+$(METHODS_PPT_PDF): $(METHODS_PPT_TEX)
+	@echo ""
+	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	cd $(TUTORIAL_METHODS) && $(LATEX) pynasonde_methods_ppt.tex && $(LATEX) pynasonde_methods_ppt.tex
+	cd $(CURDIR)/$(TUTORIAL_METHODS) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  Output : $@"
+	@echo ""
+
+$(METHODS_NN_PDF): $(METHODS_NN_TEX)
+	@echo ""
+	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	cd $(TUTORIAL_NN) && $(LATEX) whitepaper_nn_inversion.tex && $(LATEX) whitepaper_nn_inversion.tex
+	cd $(CURDIR)/$(TUTORIAL_NN) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  Output : $@"
+	@echo ""
+
+tutorials-clean:
+	@cd $(CURDIR)/$(TUTORIAL_GRAD)    && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@cd $(CURDIR)/$(TUTORIAL_RES)     && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@cd $(CURDIR)/$(TUTORIAL_METHODS) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@cd $(CURDIR)/$(TUTORIAL_NN)      && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  LaTeX auxiliary files removed (kept .tex and .pdf)."
 
 # --------------------------------------------------------------------------- #
 help:
@@ -39,6 +159,12 @@ help:
 	@echo "  make build-dist             format → clean → sdist + wheel"
 	@echo "  make sync                   Commit all changes and push to GitHub"
 	@echo "  make sync MSG=\"my message\"  Commit with a custom message"
+	@echo "  make vega-sync              Copy NN-inversion module + pyproject.toml to VEGA"
+	@echo "  make tutorials              Build all three tutorial PDFs"
+	@echo "  make tutorials-grad         Build only the graduate student workshop"
+	@echo "  make tutorials-researcher   Build only the researcher reference"
+	@echo "  make tutorials-methods      Build only the methods overview PPT"
+	@echo "  make tutorials-clean        Remove LaTeX aux files (keep .tex + .pdf)"
 	@echo ""
 	@echo "  Release"
 	@echo "  ───────────────────────────────────────────────────────────────"

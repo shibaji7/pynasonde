@@ -83,6 +83,7 @@ nav:
                     - Echo Extraction (7-param, PL407): examples/vipir/echo_extraction.md
                     - Echo Extraction (7-param, WI937): examples/vipir/echo_extraction_wi937.md
                     - Read/Plot FTI: examples/vipir/fti.md
+                    - Es Layer Imaging (Capon A+B+C): examples/vipir/es_imaging.md
             - Digisonde Examples:
                     - SAO Height Profiles + F2: examples/digisonde/sao.md
                     - SAO Isodensity + DFT Waterfall: examples/digisonde/sao_dft.md
@@ -132,3 +133,16 @@ nav:
                                 - Overview: dev/vipir/riq/datatypes/index.md
                                 - SCT: dev/vipir/riq/datatypes/sct.md
                                 - PCT: dev/vipir/riq/datatypes/pct.md
+                        - VIPIR Analysis:
+                                - Overview: dev/vipir/analysis/index.md
+                                - Es Imaging:
+                                        - Package Overview: dev/vipir/analysis/es_imaging/index.md
+                                        - capon.py (EsCaponImager): dev/vipir/analysis/es_imaging/capon.md
+                                        - aggregator.py (RiqAggregator): dev/vipir/analysis/es_imaging/aggregator.md
+                                - Absorption: dev/vipir/analysis/absorption.md
+                                - True Height Inversion: dev/vipir/analysis/inversion.md
+                                - Polarization (O/X): dev/vipir/analysis/polarization.md
+                                - Spread-F: dev/vipir/analysis/spread_f.md
+                                - Ionogram Scaler: dev/vipir/analysis/scaler.md
+                                - Irregularities (EP): dev/vipir/analysis/irregularities.md
+                                - NeXtYZ 3-D Inversion: dev/vipir/analysis/nextyz.md

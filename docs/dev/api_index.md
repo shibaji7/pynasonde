@@ -80,3 +80,19 @@ A class-level attribute, dataclass field, or `@property`.
 | [RIQ Utils](vipir/riq/utils.md) | RIQ format utility functions |
 | [SCT Datatypes](vipir/riq/datatypes/sct.md) | System configuration table dataclass |
 | [PCT Datatypes](vipir/riq/datatypes/pct.md) | Pulse configuration table dataclass |
+
+### VIPIR Analysis
+
+| Module | Purpose |
+|--------|---------|
+| [Analysis Overview](vipir/analysis/index.md) | Physics analysis sub-package overview, pipeline diagram, all public imports |
+| [Es Imaging — Package](vipir/analysis/es_imaging/index.md) | Package overview: algorithm, instrument parameters, singularity constraints |
+| [Es Imaging — capon.py](vipir/analysis/es_imaging/capon.md) | `EsCaponImager` (single-cube Capon imager), `EsImagingResult` — full constructor, `fit()`, internal methods, plot API |
+| [Es Imaging — aggregator.py](vipir/analysis/es_imaging/aggregator.md) | `RiqAggregator` — multi-file A+B+C; `load()`, `combine()`, `fit()`; Option A/B/C combining strategy |
+| [Absorption](vipir/analysis/absorption.md) | `AbsorptionAnalyzer` → `LOFResult`, `DifferentialResult`, `TotalAbsorptionResult`, `AbsorptionProfileResult` |
+| [True Height Inversion](vipir/analysis/inversion.md) | `TrueHeightInversion` → `EDPResult` — Titheridge lamination method; N(h) profile |
+| [Polarization](vipir/analysis/polarization.md) | `PolarizationClassifier` → `PolarizationResult` — O/X mode labelling from PP chirality |
+| [Spread-F](vipir/analysis/spread_f.md) | `SpreadFAnalyzer` → `SpreadFResult` — range/frequency/mixed spread-F detection |
+| [Scaler](vipir/analysis/scaler.md) | `IonogramScaler` → `ScaledParameters` — foE, foF2, h′F, MUF, bootstrap uncertainty |
+| [Irregularities](vipir/analysis/irregularities.md) | `IrregularityAnalyzer` → `IrregularityProfile` — EP structure function, spectral index α |
+| [NeXtYZ](vipir/analysis/nextyz.md) | `NeXtYZInverter` → `NeXtYZResult`, `WedgePlane` — 3-D WSI + Hamiltonian ray tracing (Zabotin et al. 2006) |

@@ -57,3 +57,10 @@ dev = [
   "pysolar",
   "netCDF4",
 ]
+training = [
+  "torch>=2.0",
+  "iricore>=1.0",
+  "tqdm",
+  "tensorboard",
+  "h5py",
+]

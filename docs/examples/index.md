@@ -83,6 +83,21 @@
     Stage a day of NGI files, run the full autoscaling pipeline (median filter → image segmentation → Otsu + DBSCAN binary traces), and emit a QA sanity-check figure.
     <br><a href="vipir/scale_module/">Open Example</a>
   </div>
+  <div class="doc-card">
+    <strong>Analysis — Es Layer Imaging (Sanity Check)</strong>
+    Reproduce Liu et al. (2023) Fig. 1: synthetic two-layer benchmark with Z=50/100/150 subbands, confirming the Capon imager resolves a 2 km layer separation invisible to conventional ranging.
+    <br><a href="vipir/es_imaging/">Open Example</a>
+  </div>
+  <div class="doc-card">
+    <strong>Analysis — Es Layer Imaging (Single File)</strong>
+    Load a VIPIR RIQ file and run <code>EsCaponImager</code> to produce a high-resolution pseudospectrum with 10× finer range bins (150 m from a 1.499 km gate).
+    <br><a href="vipir/es_imaging/">Open Example</a>
+  </div>
+  <div class="doc-card">
+    <strong>Analysis — Es Layer Imaging (Multi-File A+B+C)</strong>
+    Combine 8 VIPIR files (4 pulses × 8 Rx each) via <code>RiqAggregator</code>: coherent Rx beamforming (+9 dB) then incoherent pulse and file averaging (÷32 variance) for ~24 dB total SNR improvement.
+    <br><a href="vipir/es_imaging/">Open Example</a>
+  </div>
 </div>
 
 ## Figure Gallery
@@ -103,3 +118,6 @@
 ![Ionogram Filter WI937](figures/ionogram_filter_wi937.png)
 ![Drift Velocity WI937](figures/drift_velocity_wi937.png)
 ![Full Parameter Analysis WI937](figures/ionogram_full_analysis_wi937.png)
+![Es Imaging Sanity Check (Liu et al. Fig. 1)](figures/es_imaging_sanity_check.png)
+![Es Imaging Single File](figures/analysis_es_imaging.png)
+![Es Imaging Slow RTI (A+B+C Aggregation)](figures/analysis_es_imaging_rti.png)

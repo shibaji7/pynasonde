@@ -469,8 +469,14 @@ class EchoExtractor:
         df = self.to_dataframe()
 
         _COLS = [
-            "height_bin_km", "vx_mps", "vy_mps", "vz_mps",
-            "residual_mps", "condition_number", "n_echoes", "n_rejected",
+            "height_bin_km",
+            "vx_mps",
+            "vy_mps",
+            "vz_mps",
+            "residual_mps",
+            "condition_number",
+            "n_echoes",
+            "n_rejected",
         ]
 
         if df.empty:
@@ -491,14 +497,15 @@ class EchoExtractor:
             return pd.DataFrame(columns=_COLS)
 
         # Direction cosines from echo geometry
-        valid["_l"] = valid["xl_km"] / valid["height_km"]   # East
-        valid["_m"] = valid["yl_km"] / valid["height_km"]   # North
+        valid["_l"] = valid["xl_km"] / valid["height_km"]  # East
+        valid["_m"] = valid["yl_km"] / valid["height_km"]  # North
         n_sq = (1.0 - valid["_l"] ** 2 - valid["_m"] ** 2).clip(lower=0.0)
-        valid["_n"] = np.sqrt(n_sq)                          # vertical (Up)
+        valid["_n"] = np.sqrt(n_sq)  # vertical (Up)
 
         # SNR weights (linear amplitude)
         valid["_w"] = (
-            np.power(10.0, valid["snr_db"] / 20.0) if snr_weight
+            np.power(10.0, valid["snr_db"] / 20.0)
+            if snr_weight
             else np.ones(len(valid))
         )
 
@@ -515,9 +522,7 @@ class EchoExtractor:
                 A = sub[["_l", "_m", "_n"]].to_numpy(dtype=float)
                 b = sub["velocity_mps"].to_numpy(dtype=float)
                 sqrt_w = np.sqrt(sub["_w"].to_numpy(dtype=float))
-                vel, *_ = np.linalg.lstsq(
-                    A * sqrt_w[:, None], b * sqrt_w, rcond=None
-                )
+                vel, *_ = np.linalg.lstsq(A * sqrt_w[:, None], b * sqrt_w, rcond=None)
                 # Per-echo LOS residuals (unweighted, for clipping)
                 r = b - A @ vel
                 std_r = float(np.std(r))
@@ -532,18 +537,26 @@ class EchoExtractor:
             sub = grp.iloc[mask]
             if len(sub) < min_echoes:
                 return dict(
-                    vx_mps=np.nan, vy_mps=np.nan, vz_mps=np.nan,
-                    residual_mps=np.nan, condition_number=np.nan,
-                    n_echoes=len(sub), n_rejected=n_input - len(sub),
+                    vx_mps=np.nan,
+                    vy_mps=np.nan,
+                    vz_mps=np.nan,
+                    residual_mps=np.nan,
+                    condition_number=np.nan,
+                    n_echoes=len(sub),
+                    n_rejected=n_input - len(sub),
                 )
             A = sub[["_l", "_m", "_n"]].to_numpy(dtype=float)
             b = sub["velocity_mps"].to_numpy(dtype=float)
             rms = float(np.sqrt(np.mean((b - A @ vel) ** 2)))
             cond = float(np.linalg.cond(A))
             return dict(
-                vx_mps=float(vel[0]), vy_mps=float(vel[1]), vz_mps=float(vel[2]),
-                residual_mps=rms, condition_number=cond,
-                n_echoes=len(sub), n_rejected=n_input - len(sub),
+                vx_mps=float(vel[0]),
+                vy_mps=float(vel[1]),
+                vz_mps=float(vel[2]),
+                residual_mps=rms,
+                condition_number=cond,
+                n_echoes=len(sub),
+                n_rejected=n_input - len(sub),
             )
 
         if height_bin_km is None:
@@ -687,9 +700,7 @@ class EchoExtractor:
             # φ₀ — gross phase: coherent mean phasor at the reference receiver
             # (index 0).  Averaging over all receivers would bias the phase by
             # the array factor, which depends on arrival direction.
-            echo.gross_phase_deg = float(
-                np.angle(np.mean(C[:, g, 0])) * _RAD2DEG
-            )
+            echo.gross_phase_deg = float(np.angle(np.mean(C[:, g, 0])) * _RAD2DEG)
 
             # V* — Doppler velocity from temporal phase rate
             echo.doppler_hz, echo.velocity_mps = self._compute_doppler(

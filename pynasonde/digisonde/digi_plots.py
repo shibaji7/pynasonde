@@ -1653,14 +1653,14 @@ class RsfIonogram(DigiPlots):
 
         # ── vectorised classify (replaces row-wise apply) ─────────────────────
         azm = df["azm_directions"]
-        mask_N   = azm == "N"
-        mask_O   = df["pol"] == "O"
+        mask_N = azm == "N"
+        mask_O = df["pol"] == "O"
         mask_neg = df["dop_num"] < dop_split
 
         cat = pd.Series(pd.NA, index=df.index, dtype="object")
-        cat = cat.mask(mask_N &  mask_O &  mask_neg, "Vo-")
-        cat = cat.mask(mask_N &  mask_O & ~mask_neg, "Vo+")
-        cat = cat.mask(mask_N & ~mask_O &  mask_neg, "X-")
+        cat = cat.mask(mask_N & mask_O & mask_neg, "Vo-")
+        cat = cat.mask(mask_N & mask_O & ~mask_neg, "Vo+")
+        cat = cat.mask(mask_N & ~mask_O & mask_neg, "X-")
         cat = cat.mask(mask_N & ~mask_O & ~mask_neg, "X+")
         for src, dst in _AZM_TO_CATEGORY.items():
             cat = cat.mask(~mask_N & (azm == src), dst)
@@ -1674,10 +1674,10 @@ class RsfIonogram(DigiPlots):
         # ── vectorised D computation (replaces groupby.apply + per-group copy) ─
         # Per-timestamp H_v: height of peak-amplitude vertical echo.
         vert_mask = df["azm_directions"] == "N"
-        vert_df   = df.loc[vert_mask, ["_t", "amplitude", hparam]]
+        vert_df = df.loc[vert_mask, ["_t", "amplitude", hparam]]
         if not vert_df.empty:
             peak_idx = vert_df.groupby("_t")["amplitude"].idxmax()
-            hv_map   = vert_df.loc[peak_idx].set_index("_t")[hparam]
+            hv_map = vert_df.loc[peak_idx].set_index("_t")[hparam]
         else:
             hv_map = pd.Series(dtype=float)
         # Fallback: median height for timestamps without a vertical echo
@@ -1688,9 +1688,9 @@ class RsfIonogram(DigiPlots):
 
         H_i = df[hparam].to_numpy(float)
         H_v = df["_H_v"].to_numpy(float)
-        D   = np.sqrt(np.maximum(H_i**2 - H_v**2, 0.0))
-        D   = np.where(df["_category"].isin(_WEST), -D, D)
-        D   = np.where(df["_category"].isin({"Vo-", "Vo+", "X-", "X+"}), 0.0, D)
+        D = np.sqrt(np.maximum(H_i**2 - H_v**2, 0.0))
+        D = np.where(df["_category"].isin(_WEST), -D, D)
+        D = np.where(df["_category"].isin({"Vo-", "Vo+", "X-", "X+"}), 0.0, D)
         df["_D"] = D
 
         legend_handles = []

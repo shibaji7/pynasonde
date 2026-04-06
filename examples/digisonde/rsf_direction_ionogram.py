@@ -51,6 +51,7 @@ all_files = sorted(glob.glob(f"{RSF_DIR}/KR835_*.RSF"))
 all_files = all_files[::4]
 logger.info(f"Loading {len(all_files)} RSF files for daily directogram")
 
+
 def _load_rsf(fpath: str) -> pd.DataFrame | None:
     """Parse one RSF file and return its DataFrame, or None on failure."""
     try:
@@ -62,7 +63,7 @@ def _load_rsf(fpath: str) -> pd.DataFrame | None:
         return None
 
 
-N_PROCS = 2   # tune to the number of available CPU cores
+N_PROCS = 2  # tune to the number of available CPU cores
 results = Parallel(n_jobs=N_PROCS, backend="loky")(
     delayed(_load_rsf)(fpath) for fpath in all_files
 )

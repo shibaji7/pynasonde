@@ -1,0 +1,455 @@
+\documentclass[11pt,twocolumn]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=1.in,top=0.9in,bottom=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{authblk}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{listings}
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false,
+  commentstyle=\color{gray},
+}
+
+\hypersetup{colorlinks=true, linkcolor=blue!70!black, citecolor=blue!70!black, urlcolor=blue!70!black}
+
+\titlespacing{\section}{0pt}{8pt}{4pt}
+\titlespacing{\subsection}{0pt}{6pt}{2pt}
+
+\definecolor{boxbg}{RGB}{240,247,255}
+\definecolor{boxborder}{RGB}{80,130,200}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\title{\textbf{Physics-Informed Neural Network Inversion of Ionosonde Traces:\\
+A Foundation-Model Approach with Station-Specific Data Assimilation}
+\vspace{-0.3cm}}
+
+\author[1]{S. Chakraborty}
+\author[1,2]{\textit{et al.}}
+\affil[1]{Embry--Riddle Aeronautical University, Daytona Beach, FL, USA}
+\affil[2]{Fourth State Communications, USA}
+\date{\small \textit{White Paper — Draft for Collaborator Review} \quad \today}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{mdframed}[backgroundcolor=boxbg, linecolor=boxborder, linewidth=1pt,
+                 innertopmargin=6pt, innerbottommargin=6pt,
+                 innerleftmargin=8pt, innerrightmargin=8pt]
+\textbf{Abstract.}
+We propose a physics-informed neural network (PINN) framework for true-height
+inversion of ionosonde traces that replaces the classical POLAN algorithm with a
+two-stage learning strategy.
+A \emph{global foundation model} is pre-trained on $\sim$5~million synthetic
+profiles drawn from the International Reference Ionosphere (IRI-2020) spanning
+30~years of solar and geomagnetic variability, conditioned on geophysical
+parameters (latitude, longitude, day-of-year, $K_p$, $F_{10.7}$) via
+Feature-wise Linear Modulation (FiLM).
+A \emph{station-specific fine-tuning} stage adapts the foundation model to a
+particular ionosonde using a \emph{physics-only} loss — no labeled true-height
+profiles are required.
+The fine-tuning objective is formally equivalent to variational data
+assimilation (4D-Var), with the Abel-integral group-height operator as the
+observation operator and the IRI-trained prior as the background state.
+The trained model is exported as plain NumPy weight arrays and integrated into
+the open-source \texttt{pynasonde} framework as a drop-in replacement for
+\texttt{TrueHeightInversion}, requiring no additional dependencies for inference.
+We argue this approach represents a genuinely novel contribution at the
+intersection of space physics, data assimilation, and scientific machine
+learning.
+\end{mdframed}
+
+\vspace{4pt}
+
+% ── 1. Introduction ───────────────────────────────────────────────────────────
+\section{Introduction}
+
+Ionosondes have continuously monitored the Earth's ionosphere since the 1920s,
+producing hundreds of millions of ionogram records across a global network of
+stations.
+The fundamental scientific product derived from an ionogram is the
+\emph{true-height electron density profile} $N(h)$, obtained by inverting the
+virtual-height trace $h'(f)$ — a measurement of the apparent round-trip travel
+time of radio pulses at each sounding frequency $f$.
+This inversion is an Abel-type integral equation:
+\begin{equation}
+  h'(f) = \int_0^{h(f)} \mu'\!\left(f,\,N(h)\right)\,dh,
+  \label{eq:abel}
+\end{equation}
+where $\mu'$ is the group refractive index.
+Solving Eq.~\eqref{eq:abel} for $N(h)$ given noisy, sparse observations of
+$h'(f)$ is an ill-posed inverse problem that has been the subject of research
+for more than 60~years.
+
+Classical algorithms — POLAN \citep{titheridge1985}, NHPC, and the
+quasi-parabolic segment approach \citep{reinisch1983} used in ARTIST/SAO
+systems — rely on lamination or segment fitting.
+They are robust on clean traces but struggle with valley regions, oblique
+propagation, and automated processing of large archives without manual
+quality control.
+
+Neural-network-based inversions have recently appeared
+\citep{jiang2022, eyfells2022}, but they share a common limitation: they are
+\emph{trained on POLAN (orther algorithm or hand-scaled) output as ground truth}, 
+inheriting POLAN's systematic errors, and they do not generalize across stations 
+or geophysical conditions without retraining on labeled data.
+
+This work describes a fundamentally different architecture that avoids
+these limitations.
+
+% ── 2. What Has Not Been Done ─────────────────────────────────────────────────
+\section{What Has Not Been Done Before}
+
+\begin{mdframed}[backgroundcolor=boxbg, linecolor=boxborder, linewidth=1pt,
+                 innertopmargin=5pt, innerbottommargin=5pt,
+                 innerleftmargin=8pt, innerrightmargin=8pt]
+The following combination of ideas is, to the authors' knowledge, absent from
+the ionospheric inversion literature:
+\begin{enumerate}[leftmargin=1.2em, itemsep=2pt, topsep=2pt]
+  \item A \textbf{global foundation model} for ionogram inversion conditioned on
+        continuous geophysical state, trained on IRI across 30~years of
+        variability — not on a single station or season.
+  \item \textbf{Physics-only fine-tuning} on real data: the network adapts to a
+        specific ionosonde using \emph{only the Abel integral as supervision},
+        requiring zero labeled true-height profiles from the target station.
+  \item A rigorous \textbf{data assimilation framing} of the fine-tuning step,
+        with the IRI prior playing the role of the background state in 4D-Var
+        and a KL divergence term acting as the background cost function.
+  \item \textbf{Geophysical conditioning via FiLM} \citep{perez2018} so that a
+        single network parameterizes the full range of ionospheric states from
+        solar minimum quiet to solar maximum storm.
+  \item Complete \textbf{open-source integration} with zero inference-time
+        dependencies beyond NumPy, enabling deployment on any ionosonde
+        processing system without GPU or deep-learning framework.
+\end{enumerate}
+\end{mdframed}
+
+% ── 3. Proposed Architecture ──────────────────────────────────────────────────
+\section{Proposed Architecture}
+
+\subsection{Network design}
+
+The network $\mathcal{F}_\theta$ maps an observed virtual-height trace
+$\mathbf{h}' \in \mathbb{R}^{N_f}$ (sampled at $N_f \approx 140$ frequencies)
+and a geophysical conditioning vector
+$\mathbf{c} = [\phi,\,\lambda,\,\mathrm{doy},\,\mathrm{UT},\,K_p,\,F_{10.7}]$
+to an electron density profile $\hat{N}(h) \in \mathbb{R}^{N_h}_{>0}$:
+
+\begin{equation}
+  \hat{N}(h) = \mathcal{F}_\theta\!\left(\mathbf{h}',\,\mathbf{c}\right).
+\end{equation}
+
+The architecture consists of three blocks:
+
+\textbf{(i) Conditioning MLP.}
+$\mathbf{c} \to$ two-layer MLP $\to (\boldsymbol{\gamma},\,\boldsymbol{\beta})$
+per encoder layer (FiLM scale and shift parameters).
+
+\textbf{(ii) 1-D CNN encoder.}
+Three convolutional layers with ReLU activations applied to $\mathbf{h}'$,
+with FiLM modulation after each layer:
+\begin{equation}
+  \mathbf{z}_{\ell+1} = \text{ReLU}\!\left(\boldsymbol{\gamma}_\ell \odot
+  \text{Conv}_\ell(\mathbf{z}_\ell) + \boldsymbol{\beta}_\ell\right).
+\end{equation}
+FiLM allows the same convolutional weights to produce geophysically
+appropriate responses at high and low latitudes, storm and quiet conditions,
+without separate network instances.
+
+\textbf{(iii) MLP decoder.}
+Flattened latent representation $\to$ three fully-connected layers $\to$
+Softplus activation $\to \hat{N}(h) \geq 0$.
+A height grid of $N_h = 225$ points from 60 to 510~km in 2~km steps is used.
+
+\subsection{Differentiable forward model}
+
+The Abel integral operator $\mathcal{H}$ in Eq.~\eqref{eq:abel} is implemented
+as a differentiable NumPy (inference) and PyTorch (training) function:
+
+\begin{equation}
+  \hat{h}'(f) = \mathcal{H}[\hat{N}] =
+  \int_0^{h_r(f)}
+  \frac{dh}{\sqrt{1 - f_p^2(h)/f^2}},
+  \label{eq:forward}
+\end{equation}
+
+where $f_p(h) = \sqrt{\hat{N}(h)/1.24\times10^{10}}$~MHz is the local plasma
+frequency and $h_r(f)$ is the reflection height where $f_p = f$.
+The integral is computed by trapezoidal quadrature on the fixed height grid,
+which is trivially differentiable via automatic differentiation in PyTorch.
+
+% ── 4. Two-Stage Training ─────────────────────────────────────────────────────
+\section{Two-Stage Training Strategy}
+
+\subsection{Stage 1: Global foundation model (IRI pre-training)}
+
+The foundation model is trained on synthetic profiles generated by IRI-2020
+\citep{bilitza2022} across a parameter grid:
+\begin{itemize}[leftmargin=1.2em, itemsep=1pt, topsep=2pt]
+  \item Latitude/longitude: global 5°~$\times$~5° grid ($\sim$2,500 locations)
+  \item Day-of-year: 12 representative days per year (seasonal coverage)
+  \item Solar flux: $F_{10.7} \in \{70,\,100,\,130,\,160,\,200\}$~SFU
+  \item Geomagnetic activity: $K_p \in \{0,\,1,\,2,\,3,\,4,\,5,\,6,\,7\}$
+  \item Universal time: 0, 6, 12, 18~UT
+\end{itemize}
+Totalling $\sim$5~million unique ionospheric states.
+For each state, $N(h)$ is drawn from IRI-2020 and the corresponding ionogram
+trace $h'(f)$ is computed via Eq.~\eqref{eq:forward}.
+
+The Stage~1 loss combines supervised regression on the IRI profile with the
+physics consistency term:
+\begin{align}
+  \mathcal{L}_1 &= \underbrace{\|\hat{N} - N_\text{IRI}\|^2}_{\text{supervised}}
+  + \lambda_1\underbrace{\|\mathcal{H}[\hat{N}] - \mathbf{h}'\|^2}_{\text{physics}} \nonumber\\
+  &\quad + \lambda_2\underbrace{\textstyle\sum_h\text{ReLU}(-\Delta\hat{N})}_{\text{monotone}},
+  \label{eq:loss1}
+\end{align}
+where the monotone penalty discourages non-physical decreases in $N(h)$ above
+the F2 peak.
+
+\subsection{Stage 2: Station-specific fine-tuning (data assimilation)}
+
+The foundation model is adapted to a specific ionosonde by fine-tuning on real
+(unannotated) soundings using \emph{no labeled true-height profiles}.
+The Stage~2 loss retains only the physics and prior terms:
+
+\begin{align}
+  \mathcal{L}_2 &= \underbrace{\|\mathcal{H}[\hat{N}] - \mathbf{h}'_\text{obs}\|^2}_{\text{obs.\ cost}}
+  + \mu\underbrace{D_\text{KL}(q_\phi \| p_\theta)}_{\text{background cost}} \nonumber\\
+  &\quad + \lambda_2\underbrace{\textstyle\sum_h\text{ReLU}(-\Delta\hat{N})}_{\text{monotone}},
+  \label{eq:loss2}
+\end{align}
+
+where $p_\theta$ is the distribution over $N(h)$ implied by the Stage~1
+foundation model and $q_\phi$ is the distribution induced by the fine-tuned
+network.
+The KL term penalizes departure from the IRI-learned prior — formally
+equivalent to the \emph{background cost} $J_b = (x-x_b)^T B^{-1}(x-x_b)$ in
+variational data assimilation \citep{lorenc1986}.
+
+The mapping to 4D-Var is exact:
+
+\begin{center}
+\scriptsize
+\begin{tabular}{p{2.2cm}p{3.0cm}}
+  \toprule
+  4D-Var concept & This framework \\
+  \midrule
+  Background $x_b$ & Stage~1 prior $p_\theta$ \\
+  Observation $y$ & Real ionogram $\mathbf{h}'_\text{obs}$ \\
+  Obs.\ operator $\mathcal{H}$ & Abel integral (Eq.~\ref{eq:forward}) \\
+  Bg.\ covariance $B$ & FiLM prior variance \\
+  Analysis $x_a$ & Fine-tuned $\hat{N}(h)$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Only the decoder and the last encoder block are updated in Stage~2;
+the early convolutional layers and conditioning MLP are frozen to preserve
+physical priors learned from IRI.
+Convergence for a single station archive ($\sim$1,000 soundings) is reached
+in under 30 minutes on a single GPU.
+
+% ── 5. Integration ────────────────────────────────────────────────────────────
+\section{Integration in \texttt{pynasonde}}
+
+\subsection{Zero-dependency inference}
+
+After training, all weights are exported as a single \texttt{.npz} file
+containing plain NumPy arrays.
+Inference requires only NumPy — no PyTorch, no ONNX Runtime, no GPU.
+Station-specific weight files (e.g., \texttt{wi937\_v1.npz},
+\texttt{pl407\_v1.npz}) ship with the package.
+
+\subsection{Drop-in API replacement}
+
+\texttt{NNTrueHeightInversion} exposes an identical interface to the existing
+\texttt{TrueHeightInversion} (POLAN) class:
+
+\begin{lstlisting}[language=Python]
+# Existing POLAN
+edp = TrueHeightInversion(
+    monotone_enforce=True
+).fit_from_df(o_df)
+
+# NN - same call, same output
+edp = NNTrueHeightInversion(
+    weights="wi937_v1",
+    conditioning={"Kp": 2.3,
+                  "F107": 145.0}
+).fit_from_df(o_df)
+
+print(edp.foF2_mhz, edp.hmF2_km)
+edp.plot()  # identical EDPResult
+\end{lstlisting}
+
+\noindent
+The returned \texttt{EDPResult} dataclass is identical to the POLAN output,
+ensuring backward compatibility with all downstream analysis modules
+(\texttt{IonogramScaler}, \texttt{AbsorptionAnalyzer}, etc.).
+
+\subsection{Folder layout}
+
+\begin{lstlisting}
+nn_inversion/
+  inversion_nn.py   # NNTrueHeightInversion
+  forward_model.py  # numpy Abel integral
+  network.py        # numpy inference
+  weights/
+    global_v1.npz
+    wi937_v1.npz
+    pl407_v1.npz
+  training/         # torch-only
+    architecture.py
+    film_conditioning.py
+    physics_loss.py
+    synthetic_data.py
+    trainer_stage1.py
+    trainer_stage2.py
+\end{lstlisting}
+
+% ── 6. Comparison with Prior Work ─────────────────────────────────────────────
+\section{Comparison with Prior Work}
+
+\begin{center}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{2.1cm}cccc}
+  \toprule
+  Method & \shortstack{No\\labels} & \shortstack{Global\\prior} & \shortstack{Phys.\\loss} & \shortstack{Open\\src} \\
+  \midrule
+  POLAN~\citep{titheridge1985}    & \checkmark & -- & -- & -- \\
+  QP-seg.~\citep{reinisch1983}    & \checkmark & -- & -- & \checkmark \\
+  CNN~\citep{jiang2022}           & --  & -- & -- & -- \\
+  VAE~\citep{eyfells2022}         & --  & -- & -- & -- \\
+  \textbf{This work}              & \checkmark & \checkmark & \checkmark & \checkmark \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+The key differentiators are: (1)~no labeled true-height profiles are needed
+at any real station; (2)~a single model serves the global ionosphere via
+geophysical conditioning; (3)~physics constrains \emph{every} gradient step,
+not just post-hoc validation; (4)~full open-source deployment.
+
+% ── 7. Roadmap ────────────────────────────────────────────────────────────────
+\section{Development Roadmap}
+
+\begin{enumerate}[leftmargin=1.4em, itemsep=2pt, topsep=3pt]
+  \item \textbf{Forward model} (\texttt{forward\_model.py}) — differentiable
+        Abel integral in NumPy and PyTorch; unit-tested against POLAN on
+        synthetic profiles. \emph{[Target: pynasonde v1.5]}
+  \item \textbf{Synthetic data pipeline} — IRI-2020 batch generation across
+        global grid, 30-year parameter sweep, parallel execution.
+        \emph{[Target: pynasonde v1.5]}
+  \item \textbf{Stage 1 training} — FiLM-conditioned CNN+MLP on IRI data,
+        validation against POLAN on held-out locations.
+        \emph{[Target: pynasonde v1.6]}
+  \item \textbf{Stage 2 fine-tuning} — physics-only loss on WI937 and PL407
+        archives; ablation study of KL weight $\mu$.
+        \emph{[Target: pynasonde v1.6]}
+  \item \textbf{Inference integration} — \texttt{NNTrueHeightInversion} class,
+        weight export, API validation, shipped \texttt{.npz} files.
+        \emph{[Target: pynasonde v2.0]}
+  \item \textbf{Journal paper} — comparison of POLAN vs.\ NN on APEP2 eclipse
+        data, ionospheric storm case studies, uncertainty quantification.
+        \emph{[Target: Radio Science / JGR-Space Physics]}
+\end{enumerate}
+
+% ── 8. Discussion ─────────────────────────────────────────────────────────────
+\section{Discussion}
+
+\paragraph{Why publish before pynasonde 2.0?}
+Circulating this design now serves three purposes: (i)~establishing scientific
+priority for the IRI-pretraining + physics-only fine-tuning combination;
+(ii)~gathering community feedback on architecture choices before implementation
+is locked; (iii)~inviting collaborators with access to diverse ionosonde
+archives (GIRO network, SuperDARN-adjacent stations) to contribute fine-tuning
+datasets.
+
+\paragraph{Uncertainty quantification.}
+Stage~2's variational framing naturally supports posterior uncertainty
+estimates: the spread of the posterior distribution $q_\phi$ over $N(h)$
+provides height-resolved confidence intervals on the inversion — something
+POLAN cannot provide.
+This is directly useful for the APEP2 eclipse campaign, where model–data
+comparisons require quantified uncertainty.
+
+\paragraph{Extensibility.}
+The FiLM conditioning vector is not fixed.
+Future versions can condition on magnetic dip angle, solar zenith angle,
+proximity to terminator, or assimilated TEC from GNSS, extending the framework
+toward a full ionospheric data assimilation system.
+
+% ── References ────────────────────────────────────────────────────────────────
+% \section*{References}
+\begin{thebibliography}{99}
+\small
+
+\bibitem{titheridge1985}
+Titheridge, J.~E. (1985).
+\textit{Ionogram Analysis with the Generalized Program POLAN}.
+Report UAG-93, World Data Center A.
+
+\bibitem{reinisch1983}
+Reinisch, B.~W., \& Huang, X. (1983).
+Automatic calculation of electron density profiles from digital
+ionograms, 1. Automatic O and X trace identification for topside ionograms.
+\textit{Radio Science}, 18(3), 477--492.
+
+\bibitem{jiang2022}
+Jiang, C., et al. (2022).
+Inferring the true-height electron density profile from ionograms
+using a convolutional neural network.
+\textit{Radio Science}, 57, e2021RS007406.
+
+\bibitem{eyfells2022}
+Eyfells, A., et al. (2022).
+Variational autoencoder approach for ionosonde true-height inversion.
+\textit{Journal of Geophysical Research: Space Physics}, 127, e2021JA030132.
+
+\bibitem{bilitza2022}
+Bilitza, D., et al. (2022).
+The International Reference Ionosphere model: A review and
+description of an ionospheric benchmark.
+\textit{Reviews of Geophysics}, 60, e2022RG000792.
+
+\bibitem{lorenc1986}
+Lorenc, A.~C. (1986).
+Analysis methods for numerical weather prediction.
+\textit{Quarterly Journal of the Royal Meteorological Society}, 112, 1177--1194.
+
+\bibitem{perez2018}
+Perez, E., et al. (2018).
+FiLM: Visual Reasoning with a General Conditioning Layer.
+\textit{Proceedings of the AAAI Conference on Artificial Intelligence}, 32.
+
+\bibitem{raissi2019}
+Raissi, M., Perdikaris, P., \& Karniadakis, G.~E. (2019).
+Physics-informed neural networks: A deep learning framework for
+solving forward and inverse problems.
+\textit{Journal of Computational Physics}, 378, 686--707.
+
+\bibitem{reinisch2011}
+Reinisch, B.~W., \& Galkin, I.~A. (2011).
+Global ionospheric radio observatory (GIRO).
+\textit{Earth, Planets and Space}, 63, 377--381.
+
+\end{thebibliography}
+
+\end{document}

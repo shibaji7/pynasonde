@@ -32,12 +32,12 @@ from pynasonde.vipir.riq.echo import Echo, EchoExtractor
 _N_RX = 4
 _N_GATES = 60
 _N_PULSES = 8
-_SIGNAL_GATE = 25          # range gate where we plant a strong echo
-_FREQ_KHZ = 5_000.0        # 5 MHz
-_GATE_START = 100.0        # µs
-_GATE_END = 1_000.0        # µs
-_GATE_STEP = 15.0          # µs
-_PRI_US = 10_000.0         # µs  →  pri_s = 0.01 s
+_SIGNAL_GATE = 25  # range gate where we plant a strong echo
+_FREQ_KHZ = 5_000.0  # 5 MHz
+_GATE_START = 100.0  # µs
+_GATE_END = 1_000.0  # µs
+_GATE_STEP = 15.0  # µs
+_PRI_US = 10_000.0  # µs  →  pri_s = 0.01 s
 
 
 def _make_sct(
@@ -50,8 +50,8 @@ def _make_sct(
     """Minimal SctType stand-in for EchoExtractor.__init__."""
     # Receiver positions: spread evenly in the East-North plane (m)
     rx_pos = np.zeros((n_rx, 3), dtype=float)
-    rx_pos[:, 0] = np.linspace(-50.0, 50.0, n_rx)   # East
-    rx_pos[:, 1] = np.linspace(-50.0, 50.0, n_rx)   # North
+    rx_pos[:, 0] = np.linspace(-50.0, 50.0, n_rx)  # East
+    rx_pos[:, 1] = np.linspace(-50.0, 50.0, n_rx)  # North
 
     # Direction unit vectors: rotate by π/n_rx to create orthogonal pairs
     rx_dir = np.zeros((n_rx, 3), dtype=float)
@@ -165,10 +165,20 @@ class TestEchoDataclass:
         assert d["height_km"] == pytest.approx(300.0)
         # All 14 fields should be present
         expected_keys = {
-            "frequency_khz", "height_km", "amplitude_db", "gross_phase_deg",
-            "doppler_hz", "velocity_mps", "xl_km", "yl_km",
-            "polarization_deg", "residual_deg", "snr_db",
-            "gate_index", "pulse_ut", "rx_count",
+            "frequency_khz",
+            "height_km",
+            "amplitude_db",
+            "gross_phase_deg",
+            "doppler_hz",
+            "velocity_mps",
+            "xl_km",
+            "yl_km",
+            "polarization_deg",
+            "residual_deg",
+            "snr_db",
+            "gate_index",
+            "pulse_ut",
+            "rx_count",
         }
         assert expected_keys == set(d.keys())
 
@@ -195,7 +205,9 @@ class TestEchoExtractorInit:
     def test_heights_axis(self):
         ext = _make_extractor()
         gate_count = int(round((_GATE_END - _GATE_START) / _GATE_STEP))
-        expected = (_GATE_START + np.arange(gate_count, dtype=np.float64) * _GATE_STEP) * 0.15
+        expected = (
+            _GATE_START + np.arange(gate_count, dtype=np.float64) * _GATE_STEP
+        ) * 0.15
         np.testing.assert_allclose(ext._heights, expected)
 
     def test_pri_conversion(self):
@@ -243,17 +255,13 @@ class TestBuildIqCube:
         ext = _make_extractor()
         pulset = _make_pulset(n_pulses=2)
         C = ext._build_iq_cube(pulset)
-        np.testing.assert_allclose(
-            C[0].real, pulset.pcts[0].pulse_i, rtol=1e-6
-        )
+        np.testing.assert_allclose(C[0].real, pulset.pcts[0].pulse_i, rtol=1e-6)
 
     def test_imag_part_matches_pulse_q(self):
         ext = _make_extractor()
         pulset = _make_pulset(n_pulses=2)
         C = ext._build_iq_cube(pulset)
-        np.testing.assert_allclose(
-            C[1].imag, pulset.pcts[1].pulse_q, rtol=1e-6
-        )
+        np.testing.assert_allclose(C[1].imag, pulset.pcts[1].pulse_q, rtol=1e-6)
 
 
 # ===========================================================================
@@ -272,20 +280,20 @@ class TestComputeDoppler:
         n_pulse, n_rx = 16, _N_RX
         C_gate = np.ones((n_pulse, n_rx), dtype=complex) * 100.0
         f_d, v = ext._compute_doppler(C_gate, freq_hz=5e6)
-        assert abs(f_d) < 0.1   # within 0.1 Hz of zero
-        assert abs(v) < 10.0    # within 10 m/s of zero
+        assert abs(f_d) < 0.1  # within 0.1 Hz of zero
+        assert abs(v) < 10.0  # within 10 m/s of zero
 
     def test_known_doppler_frequency(self):
         """A linear phase ramp of known rate should recover that Doppler."""
         ext = self._ext()
-        pri_s = ext._pri_s          # 0.01 s
-        f_d_true = 2.5              # Hz
+        pri_s = ext._pri_s  # 0.01 s
+        f_d_true = 2.5  # Hz
         n_pulse, n_rx = 32, _N_RX
         t = np.arange(n_pulse) * pri_s
         phase = 2.0 * np.pi * f_d_true * t
         C_gate = np.exp(1j * phase[:, None]) * np.ones((1, n_rx))
         f_d, v = ext._compute_doppler(C_gate, freq_hz=5e6)
-        assert abs(f_d - f_d_true) < 0.05   # within 0.05 Hz
+        assert abs(f_d - f_d_true) < 0.05  # within 0.05 Hz
 
     def test_returns_nan_for_single_pulse(self):
         ext = self._ext()
@@ -324,7 +332,7 @@ class TestComputeDirection:
         # All receivers see the same phase → vertical incidence (l=m=0)
         C_mean = np.ones(_N_RX, dtype=complex) * 50.0
         xl, yl, ep = ext._compute_direction(C_mean, height_km=300.0, wavelength_m=60.0)
-        assert abs(xl) < 5.0   # km — allow small numerical error
+        assert abs(xl) < 5.0  # km — allow small numerical error
         assert abs(yl) < 5.0
 
     def test_returns_nan_for_single_receiver(self):
@@ -545,10 +553,20 @@ class TestToDataframe:
         ext.extract()
         df = ext.to_dataframe()
         required = {
-            "frequency_khz", "height_km", "amplitude_db", "gross_phase_deg",
-            "doppler_hz", "velocity_mps", "xl_km", "yl_km",
-            "polarization_deg", "residual_deg", "snr_db",
-            "gate_index", "pulse_ut", "rx_count",
+            "frequency_khz",
+            "height_km",
+            "amplitude_db",
+            "gross_phase_deg",
+            "doppler_hz",
+            "velocity_mps",
+            "xl_km",
+            "yl_km",
+            "polarization_deg",
+            "residual_deg",
+            "snr_db",
+            "gate_index",
+            "pulse_ut",
+            "rx_count",
         }
         assert required.issubset(set(df.columns))
 
@@ -689,8 +707,8 @@ def _make_extractor_with_planted_velocity(
     rng = np.random.default_rng(0)
 
     # Spread direction cosines uniformly on the unit hemisphere
-    theta = rng.uniform(0.0, np.pi / 4, n_echoes)   # zenith angle 0–45°
-    phi   = rng.uniform(0.0, 2 * np.pi, n_echoes)   # azimuth
+    theta = rng.uniform(0.0, np.pi / 4, n_echoes)  # zenith angle 0–45°
+    phi = rng.uniform(0.0, 2 * np.pi, n_echoes)  # azimuth
 
     l = np.sin(theta) * np.cos(phi)
     m = np.sin(theta) * np.sin(phi)
@@ -724,7 +742,7 @@ def _make_extractor_with_planted_velocity(
 
     sct = _make_sct(n_rx=n_rx)
     ext = EchoExtractor(sct=sct, pulsets=[], snr_threshold_db=3.0)
-    ext._echoes = echoes   # bypass extract()
+    ext._echoes = echoes  # bypass extract()
     return ext
 
 
@@ -758,8 +776,15 @@ class TestFitDriftVelocity:
     def test_whole_sounding_expected_columns(self):
         ext = _make_extractor_with_planted_velocity()
         df = ext.fit_drift_velocity()
-        for col in ("vx_mps", "vy_mps", "vz_mps", "residual_mps",
-                    "condition_number", "n_echoes", "n_rejected"):
+        for col in (
+            "vx_mps",
+            "vy_mps",
+            "vz_mps",
+            "residual_mps",
+            "condition_number",
+            "n_echoes",
+            "n_rejected",
+        ):
             assert col in df.columns, f"missing column: {col}"
 
     def test_whole_sounding_recovers_planted_velocity(self):
@@ -805,7 +830,9 @@ class TestFitDriftVelocity:
         ext = _make_extractor_with_planted_velocity(
             vx=vx, vy=vy, vz=vz, n_echoes=60, noise_mps=0.0
         )
-        df = ext.fit_drift_velocity(height_bin_km=100.0, min_echoes=1, n_sigma=float("inf"))
+        df = ext.fit_drift_velocity(
+            height_bin_km=100.0, min_echoes=1, n_sigma=float("inf")
+        )
         for _, row in df.iterrows():
             assert row["vx_mps"] == pytest.approx(vx, abs=0.5)
             assert row["vy_mps"] == pytest.approx(vy, abs=0.5)
@@ -826,16 +853,22 @@ class TestFitDriftVelocity:
         ext = _make_extractor_with_planted_velocity(n_echoes=20, noise_mps=0.0)
         # Inject one echo with wildly wrong V*
         outlier = Echo(
-            frequency_khz=5000.0, height_km=300.0,
-            xl_km=10.0, yl_km=5.0,
-            velocity_mps=9999.0,   # extreme outlier
-            snr_db=20.0, residual_deg=10.0, amplitude_db=50.0,
-            gate_index=99, pulse_ut=0.0, rx_count=6,
+            frequency_khz=5000.0,
+            height_km=300.0,
+            xl_km=10.0,
+            yl_km=5.0,
+            velocity_mps=9999.0,  # extreme outlier
+            snr_db=20.0,
+            residual_deg=10.0,
+            amplitude_db=50.0,
+            gate_index=99,
+            pulse_ut=0.0,
+            rx_count=6,
         )
         ext._echoes.append(outlier)
 
         df_clip = ext.fit_drift_velocity(n_sigma=2.5)
-        df_raw  = ext.fit_drift_velocity(n_sigma=float("inf"))
+        df_raw = ext.fit_drift_velocity(n_sigma=float("inf"))
         # Clipped residual should be much smaller
         assert df_clip["residual_mps"].iloc[0] < df_raw["residual_mps"].iloc[0]
         assert df_clip["n_rejected"].iloc[0] >= 1
@@ -854,23 +887,29 @@ class TestFitDriftVelocity:
         # Add echoes with very high EP
         for _ in range(5):
             bad = Echo(
-                frequency_khz=5000.0, height_km=300.0,
-                xl_km=0.0, yl_km=0.0,
+                frequency_khz=5000.0,
+                height_km=300.0,
+                xl_km=0.0,
+                yl_km=0.0,
                 velocity_mps=500.0,
-                snr_db=20.0, residual_deg=120.0,
-                amplitude_db=50.0, gate_index=0, pulse_ut=0.0, rx_count=6,
+                snr_db=20.0,
+                residual_deg=120.0,
+                amplitude_db=50.0,
+                gate_index=0,
+                pulse_ut=0.0,
+                rx_count=6,
             )
             ext._echoes.append(bad)
 
-        df_filtered   = ext.fit_drift_velocity(max_ep_deg=30.0,  n_sigma=float("inf"))
-        df_unfiltered = ext.fit_drift_velocity(max_ep_deg=None,  n_sigma=float("inf"))
+        df_filtered = ext.fit_drift_velocity(max_ep_deg=30.0, n_sigma=float("inf"))
+        df_unfiltered = ext.fit_drift_velocity(max_ep_deg=None, n_sigma=float("inf"))
         # Filtered fit uses fewer echoes
         assert df_filtered["n_echoes"].iloc[0] < df_unfiltered["n_echoes"].iloc[0]
 
     # ── snr_weight ───────────────────────────────────────────────────────
     def test_snr_weight_flag_accepted(self):
         ext = _make_extractor_with_planted_velocity()
-        df_w  = ext.fit_drift_velocity(snr_weight=True,  n_sigma=float("inf"))
+        df_w = ext.fit_drift_velocity(snr_weight=True, n_sigma=float("inf"))
         df_nw = ext.fit_drift_velocity(snr_weight=False, n_sigma=float("inf"))
         # Both should return a single row with finite velocities
         assert df_w["vx_mps"].notna().all()
@@ -889,11 +928,17 @@ class TestFitDriftVelocity:
         sct = _make_sct()
         echoes = [
             Echo(
-                frequency_khz=5000.0, height_km=300.0,
-                xl_km=0.1, yl_km=0.1,   # nearly vertical
+                frequency_khz=5000.0,
+                height_km=300.0,
+                xl_km=0.1,
+                yl_km=0.1,  # nearly vertical
                 velocity_mps=10.0,
-                snr_db=20.0, residual_deg=5.0, amplitude_db=50.0,
-                gate_index=i, pulse_ut=0.0, rx_count=4,
+                snr_db=20.0,
+                residual_deg=5.0,
+                amplitude_db=50.0,
+                gate_index=i,
+                pulse_ut=0.0,
+                rx_count=4,
             )
             for i in range(20)
         ]

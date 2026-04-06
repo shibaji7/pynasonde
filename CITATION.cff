@@ -44,12 +44,31 @@ contact:
     affiliation: "Center for Space and Atmospheric Research, Embry-Riddle Aeronautical University"
     orcid: "https://orcid.org/0000-0001-6792-0037"
 preferred-citation:
-  type: software
-  title: "Pynasonde v1.0.0"
+  type: article
+  title: "pynasonde: An open-source Python library for ionosonde data processing"
   authors:
     - family-names: Chakraborty
       given-names: Shibaji
       orcid: "https://orcid.org/0000-0001-6792-0037"
-  version: "1.0.0"
-  doi: "10.5281/zenodo.17476077"
-  url: "https://github.com/shibaji7/pynasonde"
+    - family-names: Bullett
+      given-names: Terry
+    - family-names: Barjatya
+      given-names: Aroh
+    - family-names: Mabie
+      given-names: Justin
+  journal: "SoftwareX"
+  year: 2026
+  volume: 34
+  start: 102617
+  doi: "10.1016/j.softx.2026.102617"
+  url: "https://doi.org/10.1016/j.softx.2026.102617"
+references:
+  - type: software
+    title: "Pynasonde v1.0.0"
+    authors:
+      - family-names: Chakraborty
+        given-names: Shibaji
+        orcid: "https://orcid.org/0000-0001-6792-0037"
+    version: "1.0.0"
+    doi: "10.5281/zenodo.17476077"
+    url: "https://github.com/shibaji7/pynasonde"

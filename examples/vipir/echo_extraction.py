@@ -54,7 +54,7 @@ setsize(font_size)
 riq = RiqDataset.create_from_file(
     fname,
     unicode="latin-1",
-    vipir_config=VIPIR_VERSION_MAP.configs[0],   # version 1 / data_type 2
+    vipir_config=VIPIR_VERSION_MAP.configs[0],  # version 1 / data_type 2
 )
 print(f"Loaded RIQ : {fname}")
 print(f"  Pulsets  : {len(riq.pulsets)}")
@@ -72,11 +72,11 @@ print(f"  Linear step: {riq.sct.frequency.linear_step:.2f} kHz")
 extractor = EchoExtractor(
     sct=riq.sct,
     pulsets=riq.pulsets,
-    snr_threshold_db=3.0,          # minimum coherent SNR to accept an echo
-    min_height_km=60.0,            # exclude direct-wave / near-field clutter
-    max_height_km=1000.0,          # exclude end-of-range aliasing artefacts
-    min_rx_for_direction=3,        # minimum receivers for XL/YL/EP fit
-    max_echoes_per_pulset=5,       # keep the 5 strongest echoes per frequency
+    snr_threshold_db=3.0,  # minimum coherent SNR to accept an echo
+    min_height_km=60.0,  # exclude direct-wave / near-field clutter
+    max_height_km=1000.0,  # exclude end-of-range aliasing artefacts
+    min_rx_for_direction=3,  # minimum receivers for XL/YL/EP fit
+    max_echoes_per_pulset=5,  # keep the 5 strongest echoes per frequency
 )
 extractor.extract()
 
@@ -111,7 +111,8 @@ print(df[["frequency_khz", "height_km", "amplitude_db", "velocity_mps"]].describ
 #
 
 fig, axes = plt.subplots(
-    nrows=2, ncols=3,
+    nrows=2,
+    ncols=3,
     figsize=(15, 9),
     constrained_layout=True,
 )
@@ -128,15 +129,25 @@ amp_vmax = df["amplitude_db"].quantile(0.95) if not df.empty else 1
 ax = axes[0, 0]
 if not df.empty:
     sc = ax.scatter(
-        freq_mhz, df["height_km"],
-        c=df["amplitude_db"], cmap="plasma", s=4,
-        vmin=amp_vmin, vmax=amp_vmax, rasterized=True,
+        freq_mhz,
+        df["height_km"],
+        c=df["amplitude_db"],
+        cmap="plasma",
+        s=4,
+        vmin=amp_vmin,
+        vmax=amp_vmax,
+        rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Amplitude (dB)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "No echoes detected",
-        ha="center", va="center", transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "No echoes detected",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.set_xlabel("Frequency (MHz)", fontsize=font_size)
 ax.set_ylabel("Virtual Height (km)", fontsize=font_size)
@@ -149,15 +160,23 @@ ax = axes[0, 1]
 xl_mask = df["xl_km"].notna() if not df.empty else []
 if not df.empty and xl_mask.any():
     sc = ax.scatter(
-        df.loc[xl_mask, "xl_km"], df.loc[xl_mask, "height_km"],
-        c=freq_mhz[xl_mask], cmap="viridis", s=4,
+        df.loc[xl_mask, "xl_km"],
+        df.loc[xl_mask, "height_km"],
+        c=freq_mhz[xl_mask],
+        cmap="viridis",
+        s=4,
         rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Frequency (MHz)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "XL all NaN\n(insufficient receivers)",
-        ha="center", va="center", transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "XL all NaN\n(insufficient receivers)",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.axvline(0, color="k", lw=0.5, ls="--")
 ax.set_xlabel("XL — Eastward (km)", fontsize=font_size)
@@ -170,15 +189,23 @@ ax = axes[0, 2]
 yl_mask = df["yl_km"].notna() if not df.empty else []
 if not df.empty and yl_mask.any():
     sc = ax.scatter(
-        df.loc[yl_mask, "yl_km"], df.loc[yl_mask, "height_km"],
-        c=freq_mhz[yl_mask], cmap="viridis", s=4,
+        df.loc[yl_mask, "yl_km"],
+        df.loc[yl_mask, "height_km"],
+        c=freq_mhz[yl_mask],
+        cmap="viridis",
+        s=4,
         rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Frequency (MHz)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "YL all NaN\n(insufficient receivers)",
-        ha="center", va="center", transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "YL all NaN\n(insufficient receivers)",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.axvline(0, color="k", lw=0.5, ls="--")
 ax.set_xlabel("YL — Northward (km)", fontsize=font_size)
@@ -191,15 +218,26 @@ ax = axes[1, 0]
 dir_mask = (df["xl_km"].notna() & df["yl_km"].notna()) if not df.empty else []
 if not df.empty and dir_mask.any():
     sc = ax.scatter(
-        df.loc[dir_mask, "xl_km"], df.loc[dir_mask, "yl_km"],
-        c=df.loc[dir_mask, "amplitude_db"], cmap="plasma", s=6, alpha=0.7,
-        vmin=amp_vmin, vmax=amp_vmax, rasterized=True,
+        df.loc[dir_mask, "xl_km"],
+        df.loc[dir_mask, "yl_km"],
+        c=df.loc[dir_mask, "amplitude_db"],
+        cmap="plasma",
+        s=6,
+        alpha=0.7,
+        vmin=amp_vmin,
+        vmax=amp_vmax,
+        rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Amplitude (dB)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "No direction data", ha="center", va="center",
-        transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "No direction data",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.axhline(0, color="k", lw=0.5, ls="--")
 ax.axvline(0, color="k", lw=0.5, ls="--")
@@ -212,15 +250,24 @@ ax = axes[1, 1]
 v_mask = df["velocity_mps"].notna() if not df.empty else []
 if not df.empty and v_mask.any():
     sc = ax.scatter(
-        df.loc[v_mask, "velocity_mps"], df.loc[v_mask, "height_km"],
-        c=freq_mhz[v_mask], cmap="coolwarm", s=4, alpha=0.6,
+        df.loc[v_mask, "velocity_mps"],
+        df.loc[v_mask, "height_km"],
+        c=freq_mhz[v_mask],
+        cmap="coolwarm",
+        s=4,
+        alpha=0.6,
         rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Frequency (MHz)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "No velocity data",
-        ha="center", va="center", transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "No velocity data",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.axvline(0, color="k", lw=0.5, ls="--")
 ax.set_xlabel("V* — Phase-path velocity (m/s)", fontsize=font_size)
@@ -233,15 +280,26 @@ ax = axes[1, 2]
 pp_mask = df["polarization_deg"].notna() if not df.empty else []
 if not df.empty and pp_mask.any():
     sc = ax.scatter(
-        df.loc[pp_mask, "polarization_deg"], df.loc[pp_mask, "height_km"],
-        c=freq_mhz[pp_mask], cmap="RdBu", s=4, alpha=0.7,
-        vmin=-180, vmax=180, rasterized=True,
+        df.loc[pp_mask, "polarization_deg"],
+        df.loc[pp_mask, "height_km"],
+        c=freq_mhz[pp_mask],
+        cmap="RdBu",
+        s=4,
+        alpha=0.7,
+        vmin=-180,
+        vmax=180,
+        rasterized=True,
     )
     fig.colorbar(sc, ax=ax, pad=0.02).set_label("Frequency (MHz)", fontsize=font_size)
 else:
     ax.text(
-        0.5, 0.5, "PP all NaN\n(no orthogonal antenna pairs)",
-        ha="center", va="center", transform=ax.transAxes, fontsize=font_size - 1,
+        0.5,
+        0.5,
+        "PP all NaN\n(no orthogonal antenna pairs)",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        fontsize=font_size - 1,
     )
 ax.axvline(0, color="k", lw=0.5, ls="--")
 ax.set_xlabel("PP — Polarization (°)", fontsize=font_size)

@@ -26,10 +26,10 @@ import pytest
 
 from pynasonde.vipir.riq.parsers.filter import IonogramFilter
 
-
 # ---------------------------------------------------------------------------
 # Synthetic-data helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_df(
     n: int = 20,
@@ -51,9 +51,7 @@ def _make_df(
         "velocity_mps": rng.normal(velocity_mps, 5.0, n),
         "amplitude_db": rng.normal(amplitude_db, 2.0, n),
         "residual_deg": (
-            np.full(n, residual_deg)
-            if residual_deg is not None
-            else np.full(n, np.nan)
+            np.full(n, residual_deg) if residual_deg is not None else np.full(n, np.nan)
         ),
         "sounding_index": np.full(n, sounding_index, dtype=int),
     }
@@ -77,14 +75,16 @@ def _make_clean_trace(
         f = freq_start_khz + i * freq_step_khz
         h = height_base_km + i * height_slope
         for _ in range(echoes_per_freq):
-            rows.append({
-                "frequency_khz": f,
-                "height_km": h + rng.normal(0, noise_km),
-                "velocity_mps": rng.normal(50.0, 5.0),
-                "amplitude_db": rng.normal(30.0, 2.0),
-                "residual_deg": rng.uniform(5.0, 20.0),
-                "sounding_index": sounding_index,
-            })
+            rows.append(
+                {
+                    "frequency_khz": f,
+                    "height_km": h + rng.normal(0, noise_km),
+                    "velocity_mps": rng.normal(50.0, 5.0),
+                    "amplitude_db": rng.normal(30.0, 2.0),
+                    "residual_deg": rng.uniform(5.0, 20.0),
+                    "sounding_index": sounding_index,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -92,8 +92,10 @@ def _make_clean_trace(
 # Helper: minimal EchoExtractor-like stub
 # ---------------------------------------------------------------------------
 
+
 class _FakeExtractor:
     """Stand-in for EchoExtractor that exposes .to_dataframe()."""
+
     def __init__(self, df: pd.DataFrame):
         self._df = df
 
@@ -104,6 +106,7 @@ class _FakeExtractor:
 # ===========================================================================
 # IonogramFilter — __init__
 # ===========================================================================
+
 
 class TestInit:
     def test_defaults(self):
@@ -166,9 +169,11 @@ class TestInit:
 # _to_dataframe helper
 # ===========================================================================
 
+
 class TestToDataframe:
     def test_dataframe_passthrough(self):
         from pynasonde.vipir.riq.parsers.filter import _to_dataframe
+
         df = _make_df()
         result = _to_dataframe(df)
         assert isinstance(result, pd.DataFrame)
@@ -176,6 +181,7 @@ class TestToDataframe:
 
     def test_extractor_stub(self):
         from pynasonde.vipir.riq.parsers.filter import _to_dataframe
+
         df = _make_df()
         stub = _FakeExtractor(df)
         result = _to_dataframe(stub)
@@ -183,6 +189,7 @@ class TestToDataframe:
 
     def test_unknown_type_raises(self):
         from pynasonde.vipir.riq.parsers.filter import _to_dataframe
+
         with pytest.raises(TypeError):
             _to_dataframe(42)
 
@@ -190,6 +197,7 @@ class TestToDataframe:
 # ===========================================================================
 # filter() — basic contract
 # ===========================================================================
+
 
 class TestFilterContract:
     def _all_disabled(self) -> IonogramFilter:
@@ -221,8 +229,9 @@ class TestFilterContract:
 
     def test_empty_input_returns_empty(self):
         filt = self._all_disabled()
-        df = pd.DataFrame(columns=["frequency_khz", "height_km",
-                                    "velocity_mps", "amplitude_db"])
+        df = pd.DataFrame(
+            columns=["frequency_khz", "height_km", "velocity_mps", "amplitude_db"]
+        )
         result = filt.filter(df)
         assert isinstance(result, pd.DataFrame)
         assert result.empty
@@ -253,9 +262,12 @@ class TestFilterContract:
 
     def test_stats_populated_after_filter(self):
         filt = IonogramFilter(
-            rfi_enabled=True, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=True,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
         )
         filt.filter(_make_df(n=20))
         assert "rfi" in filt.stats
@@ -263,9 +275,12 @@ class TestFilterContract:
 
     def test_summary_contains_stage_labels(self):
         filt = IonogramFilter(
-            rfi_enabled=True, ep_filter_enabled=True,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=True,
+            ep_filter_enabled=True,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
         )
         filt.filter(_make_df(n=20))
         s = filt.summary()
@@ -277,12 +292,16 @@ class TestFilterContract:
 # Stage 1 — RFI blanking
 # ===========================================================================
 
+
 class TestStageRFI:
     def _filt(self, **kw) -> IonogramFilter:
         defaults = dict(
-            rfi_enabled=True, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=True,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
         )
         defaults.update(kw)
         return IonogramFilter(**defaults)
@@ -291,23 +310,29 @@ class TestStageRFI:
         """A frequency with echoes spread 0–900 km has IQR >> 300 km → blanked."""
         rng = np.random.default_rng(1)
         # Noisy frequency: heights spread across full range
-        noisy = pd.DataFrame({
-            "frequency_khz": np.full(20, 5_000.0),
-            "height_km": np.linspace(60, 940, 20),  # guaranteed IQR = 440 km > 300 km
-            "velocity_mps": np.zeros(20),
-            "amplitude_db": np.full(20, 30.0),
-            "residual_deg": np.full(20, 10.0),
-            "sounding_index": np.zeros(20, dtype=int),
-        })
+        noisy = pd.DataFrame(
+            {
+                "frequency_khz": np.full(20, 5_000.0),
+                "height_km": np.linspace(
+                    60, 940, 20
+                ),  # guaranteed IQR = 440 km > 300 km
+                "velocity_mps": np.zeros(20),
+                "amplitude_db": np.full(20, 30.0),
+                "residual_deg": np.full(20, 10.0),
+                "sounding_index": np.zeros(20, dtype=int),
+            }
+        )
         # Clean frequency: echoes tightly clustered
-        clean = pd.DataFrame({
-            "frequency_khz": np.full(20, 6_000.0),
-            "height_km": rng.normal(300, 5, 20),
-            "velocity_mps": np.zeros(20),
-            "amplitude_db": np.full(20, 30.0),
-            "residual_deg": np.full(20, 10.0),
-            "sounding_index": np.zeros(20, dtype=int),
-        })
+        clean = pd.DataFrame(
+            {
+                "frequency_khz": np.full(20, 6_000.0),
+                "height_km": rng.normal(300, 5, 20),
+                "velocity_mps": np.zeros(20),
+                "amplitude_db": np.full(20, 30.0),
+                "residual_deg": np.full(20, 10.0),
+                "sounding_index": np.zeros(20, dtype=int),
+            }
+        )
         df = pd.concat([noisy, clean], ignore_index=True)
         result = self._filt(rfi_height_iqr_km=300.0).filter(df)
         # The noisy frequency should be removed
@@ -324,16 +349,18 @@ class TestStageRFI:
     def test_below_min_echoes_not_tested(self):
         """Frequencies with fewer than rfi_min_echoes are never blanked."""
         rng = np.random.default_rng(2)
-        tiny = pd.DataFrame({
-            "frequency_khz": [5_000.0, 5_000.0],   # only 2 echoes < min_echoes=3
-            "height_km": [100.0, 900.0],             # huge spread, but too few
-            "velocity_mps": [0.0, 0.0],
-            "amplitude_db": [30.0, 30.0],
-            "residual_deg": [10.0, 10.0],
-            "sounding_index": [0, 0],
-        })
+        tiny = pd.DataFrame(
+            {
+                "frequency_khz": [5_000.0, 5_000.0],  # only 2 echoes < min_echoes=3
+                "height_km": [100.0, 900.0],  # huge spread, but too few
+                "velocity_mps": [0.0, 0.0],
+                "amplitude_db": [30.0, 30.0],
+                "residual_deg": [10.0, 10.0],
+                "sounding_index": [0, 0],
+            }
+        )
         result = self._filt(rfi_min_echoes=3).filter(tiny)
-        assert len(result) == 2   # nothing blanked
+        assert len(result) == 2  # nothing blanked
 
     def test_stats_rfi_key(self):
         df = _make_df(n=20)
@@ -346,12 +373,16 @@ class TestStageRFI:
 # Stage 2 — EP filter
 # ===========================================================================
 
+
 class TestStageEP:
     def _filt(self, ep_max_deg=90.0) -> IonogramFilter:
         return IonogramFilter(
-            rfi_enabled=False, ep_filter_enabled=True,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=False,
+            ep_filter_enabled=True,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
             ep_max_deg=ep_max_deg,
         )
 
@@ -373,7 +404,7 @@ class TestStageEP:
 
     def test_mixed_ep_partial_rejection(self):
         good = _make_df(n=10, residual_deg=20.0)
-        bad  = _make_df(n=10, residual_deg=100.0)
+        bad = _make_df(n=10, residual_deg=100.0)
         df = pd.concat([good, bad], ignore_index=True)
         result = self._filt(ep_max_deg=90.0).filter(df)
         assert len(result) == 10
@@ -389,39 +420,50 @@ class TestStageEP:
 # Stage 3 — Multi-hop
 # ===========================================================================
 
+
 class TestStageMultihop:
     def _filt(self, **kw) -> IonogramFilter:
         defaults = dict(
-            rfi_enabled=False, ep_filter_enabled=False,
-            multihop_enabled=True, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
-            multihop_orders=(2,), multihop_height_tol_km=30.0,
+            rfi_enabled=False,
+            ep_filter_enabled=False,
+            multihop_enabled=True,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
+            multihop_orders=(2,),
+            multihop_height_tol_km=30.0,
             multihop_snr_margin_db=6.0,
         )
         defaults.update(kw)
         return IonogramFilter(**defaults)
 
-    def _make_with_2f(self, h_1f=200.0, amp_1f=40.0, amp_2f=30.0, n_1f=10) -> pd.DataFrame:
+    def _make_with_2f(
+        self, h_1f=200.0, amp_1f=40.0, amp_2f=30.0, n_1f=10
+    ) -> pd.DataFrame:
         """Build a DataFrame with a clear 1F cluster and one 2F echo."""
         rng = np.random.default_rng(10)
         # 1F echoes clustered near h_1f
-        rows_1f = pd.DataFrame({
-            "frequency_khz": np.full(n_1f, 5_000.0),
-            "height_km": rng.normal(h_1f, 5.0, n_1f),
-            "velocity_mps": np.zeros(n_1f),
-            "amplitude_db": np.full(n_1f, amp_1f),
-            "residual_deg": np.full(n_1f, 10.0),
-            "sounding_index": np.zeros(n_1f, dtype=int),
-        })
+        rows_1f = pd.DataFrame(
+            {
+                "frequency_khz": np.full(n_1f, 5_000.0),
+                "height_km": rng.normal(h_1f, 5.0, n_1f),
+                "velocity_mps": np.zeros(n_1f),
+                "amplitude_db": np.full(n_1f, amp_1f),
+                "residual_deg": np.full(n_1f, 10.0),
+                "sounding_index": np.zeros(n_1f, dtype=int),
+            }
+        )
         # 2F echo at exactly 2×h_1f, weaker
-        rows_2f = pd.DataFrame({
-            "frequency_khz": [5_000.0],
-            "height_km": [2.0 * h_1f],
-            "velocity_mps": [0.0],
-            "amplitude_db": [amp_2f],
-            "residual_deg": [10.0],
-            "sounding_index": [0],
-        })
+        rows_2f = pd.DataFrame(
+            {
+                "frequency_khz": [5_000.0],
+                "height_km": [2.0 * h_1f],
+                "velocity_mps": [0.0],
+                "amplitude_db": [amp_2f],
+                "residual_deg": [10.0],
+                "sounding_index": [0],
+            }
+        )
         return pd.concat([rows_1f, rows_2f], ignore_index=True)
 
     def test_2f_echo_flagged(self):
@@ -433,7 +475,7 @@ class TestStageMultihop:
     def test_1f_echoes_retained(self):
         df = self._make_with_2f(h_1f=200.0, amp_1f=40.0, amp_2f=30.0)
         result = self._filt().filter(df)
-        assert len(result) >= 10   # all 1F echoes survive
+        assert len(result) >= 10  # all 1F echoes survive
 
     def test_strong_2f_not_flagged(self):
         """A 2F echo that is NOT weaker by the margin must be kept."""
@@ -453,15 +495,24 @@ class TestStageMultihop:
 # Stage 4 — DBSCAN
 # ===========================================================================
 
+
 class TestStageDBSCAN:
     def _filt(self, **kw) -> IonogramFilter:
         defaults = dict(
-            rfi_enabled=False, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=True,
-            ransac_enabled=False, temporal_enabled=False,
-            dbscan_eps=1.0, dbscan_min_samples=5,
-            dbscan_features=("frequency_khz", "height_km",
-                             "velocity_mps", "amplitude_db"),
+            rfi_enabled=False,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=True,
+            ransac_enabled=False,
+            temporal_enabled=False,
+            dbscan_eps=1.0,
+            dbscan_min_samples=5,
+            dbscan_features=(
+                "frequency_khz",
+                "height_km",
+                "velocity_mps",
+                "amplitude_db",
+            ),
         )
         defaults.update(kw)
         return IonogramFilter(**defaults)
@@ -477,23 +528,27 @@ class TestStageDBSCAN:
         """Echoes far from any cluster (noise label = -1) should be removed."""
         rng = np.random.default_rng(99)
         # Tight cluster
-        cluster = pd.DataFrame({
-            "frequency_khz": np.full(30, 5_000.0),
-            "height_km": rng.normal(300, 3, 30),
-            "velocity_mps": rng.normal(50, 2, 30),
-            "amplitude_db": rng.normal(30, 1, 30),
-            "residual_deg": np.full(30, 10.0),
-            "sounding_index": np.zeros(30, dtype=int),
-        })
+        cluster = pd.DataFrame(
+            {
+                "frequency_khz": np.full(30, 5_000.0),
+                "height_km": rng.normal(300, 3, 30),
+                "velocity_mps": rng.normal(50, 2, 30),
+                "amplitude_db": rng.normal(30, 1, 30),
+                "residual_deg": np.full(30, 10.0),
+                "sounding_index": np.zeros(30, dtype=int),
+            }
+        )
         # Single isolated noise point far away
-        noise = pd.DataFrame({
-            "frequency_khz": [10_000.0],
-            "height_km": [900.0],
-            "velocity_mps": [999.0],
-            "amplitude_db": [5.0],
-            "residual_deg": [80.0],
-            "sounding_index": [0],
-        })
+        noise = pd.DataFrame(
+            {
+                "frequency_khz": [10_000.0],
+                "height_km": [900.0],
+                "velocity_mps": [999.0],
+                "amplitude_db": [5.0],
+                "residual_deg": [80.0],
+                "sounding_index": [0],
+            }
+        )
         df = pd.concat([cluster, noise], ignore_index=True)
         result = self._filt(dbscan_min_samples=3).filter(df)
         # The isolated noise point should be gone
@@ -502,9 +557,15 @@ class TestStageDBSCAN:
     def test_nan_features_handled(self):
         """NaN features (e.g. residual_deg for PL407) must not crash DBSCAN."""
         df = _make_df(n=20, residual_deg=None)
-        filt = self._filt(dbscan_features=("frequency_khz", "height_km",
-                                            "velocity_mps", "amplitude_db",
-                                            "residual_deg"))
+        filt = self._filt(
+            dbscan_features=(
+                "frequency_khz",
+                "height_km",
+                "velocity_mps",
+                "amplitude_db",
+                "residual_deg",
+            )
+        )
         result = filt.filter(df)
         assert isinstance(result, pd.DataFrame)
 
@@ -512,7 +573,7 @@ class TestStageDBSCAN:
         """If fewer than min_samples echoes survive, DBSCAN is skipped."""
         df = _make_df(n=2)
         result = self._filt(dbscan_min_samples=10).filter(df)
-        assert len(result) == 2   # nothing rejected — stage skipped
+        assert len(result) == 2  # nothing rejected — stage skipped
 
     def test_stats_dbscan_key(self):
         df = _make_clean_trace()
@@ -525,12 +586,16 @@ class TestStageDBSCAN:
 # Stage 5 — RANSAC
 # ===========================================================================
 
+
 class TestStageRANSAC:
     def _filt(self, **kw) -> IonogramFilter:
         defaults = dict(
-            rfi_enabled=False, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=True, temporal_enabled=False,
+            rfi_enabled=False,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=True,
+            temporal_enabled=False,
             ransac_residual_km=30.0,
             ransac_min_samples=5,
             ransac_n_iter=100,
@@ -547,17 +612,22 @@ class TestStageRANSAC:
     ) -> pd.DataFrame:
         """Clean trace + one extreme outlier."""
         trace = _make_clean_trace(
-            n_freqs=n_freqs, echoes_per_freq=5,
-            height_base_km=200.0, height_slope=8.0, noise_km=2.0,
+            n_freqs=n_freqs,
+            echoes_per_freq=5,
+            height_base_km=200.0,
+            height_slope=8.0,
+            noise_km=2.0,
         )
-        outlier = pd.DataFrame({
-            "frequency_khz": [trace["frequency_khz"].mean()],
-            "height_km": [outlier_height],
-            "velocity_mps": [50.0],
-            "amplitude_db": [30.0],
-            "residual_deg": [10.0],
-            "sounding_index": [0],
-        })
+        outlier = pd.DataFrame(
+            {
+                "frequency_khz": [trace["frequency_khz"].mean()],
+                "height_km": [outlier_height],
+                "velocity_mps": [50.0],
+                "amplitude_db": [30.0],
+                "residual_deg": [10.0],
+                "sounding_index": [0],
+            }
+        )
         return pd.concat([trace, outlier], ignore_index=True)
 
     def test_outlier_rejected(self):
@@ -568,9 +638,9 @@ class TestStageRANSAC:
 
     def test_inliers_retained(self):
         df = self._make_trace_with_outlier(outlier_height=900.0)
-        n_before = len(df) - 1   # all but the outlier
+        n_before = len(df) - 1  # all but the outlier
         result = self._filt().filter(df)
-        assert len(result) >= int(n_before * 0.7)   # most inliers kept
+        assert len(result) >= int(n_before * 0.7)  # most inliers kept
 
     def test_skipped_when_too_few_echoes(self):
         """RANSAC is silently skipped when fewer than min_samples echoes remain."""
@@ -580,10 +650,12 @@ class TestStageRANSAC:
 
     def test_per_sounding_independence(self):
         """RANSAC must fit each sounding's trace independently."""
-        df0 = _make_clean_trace(sounding_index=0, n_freqs=10, echoes_per_freq=5,
-                                 height_base_km=200.0)
-        df1 = _make_clean_trace(sounding_index=1, n_freqs=10, echoes_per_freq=5,
-                                 height_base_km=350.0)   # different layer height
+        df0 = _make_clean_trace(
+            sounding_index=0, n_freqs=10, echoes_per_freq=5, height_base_km=200.0
+        )
+        df1 = _make_clean_trace(
+            sounding_index=1, n_freqs=10, echoes_per_freq=5, height_base_km=350.0
+        )  # different layer height
         # Pass as list so filter() assigns sounding_index=0/1 per DataFrame
         result = self._filt(ransac_residual_km=50.0).filter([df0, df1])
         # Both soundings should have survivors
@@ -601,12 +673,16 @@ class TestStageRANSAC:
 # Stage 6 — Temporal coherence
 # ===========================================================================
 
+
 class TestStageTemporal:
     def _filt(self, min_soundings=2, **kw) -> IonogramFilter:
         defaults = dict(
-            rfi_enabled=False, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=True,
+            rfi_enabled=False,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=True,
             temporal_min_soundings=min_soundings,
             temporal_freq_bin_khz=100.0,
             temporal_height_bin_km=50.0,
@@ -619,22 +695,26 @@ class TestStageTemporal:
         rng = np.random.default_rng(5)
         rows = []
         for si in range(3):
-            rows.append(pd.DataFrame({
-                "frequency_khz": np.full(n, freq_khz),
-                "height_km": rng.normal(height_km, 5, n),
-                "velocity_mps": np.zeros(n),
-                "amplitude_db": np.full(n, 30.0),
-                "residual_deg": np.full(n, 10.0),
-                "sounding_index": np.full(n, si, dtype=int),
-            }))
+            rows.append(
+                pd.DataFrame(
+                    {
+                        "frequency_khz": np.full(n, freq_khz),
+                        "height_km": rng.normal(height_km, 5, n),
+                        "velocity_mps": np.zeros(n),
+                        "amplitude_db": np.full(n, 30.0),
+                        "residual_deg": np.full(n, 10.0),
+                        "sounding_index": np.full(n, si, dtype=int),
+                    }
+                )
+            )
         return pd.concat(rows, ignore_index=True)
 
     def test_coherent_echoes_retained(self):
         """Echoes in the same cell across 3 soundings → all kept (min=2)."""
         df = self._same_cell()
-        result = self._filt(min_soundings=2).filter([
-            _FakeExtractor(df[df["sounding_index"] == i]) for i in range(3)
-        ])
+        result = self._filt(min_soundings=2).filter(
+            [_FakeExtractor(df[df["sounding_index"] == i]) for i in range(3)]
+        )
         assert len(result) > 0
 
     def test_unique_cell_removed(self):
@@ -642,22 +722,24 @@ class TestStageTemporal:
         # Three soundings share a cell at 5000 kHz / 300 km
         shared = self._same_cell()
         # Unique echo: only in sounding 0, at a completely different cell
-        unique = pd.DataFrame({
-            "frequency_khz": [15_000.0],   # far from any shared cell
-            "height_km": [850.0],
-            "velocity_mps": [0.0],
-            "amplitude_db": [30.0],
-            "residual_deg": [10.0],
-            "sounding_index": [0],
-        })
+        unique = pd.DataFrame(
+            {
+                "frequency_khz": [15_000.0],  # far from any shared cell
+                "height_km": [850.0],
+                "velocity_mps": [0.0],
+                "amplitude_db": [30.0],
+                "residual_deg": [10.0],
+                "sounding_index": [0],
+            }
+        )
         dfs = [
-            pd.concat([shared[shared["sounding_index"] == 0], unique], ignore_index=True),
+            pd.concat(
+                [shared[shared["sounding_index"] == 0], unique], ignore_index=True
+            ),
             shared[shared["sounding_index"] == 1].copy(),
             shared[shared["sounding_index"] == 2].copy(),
         ]
-        result = self._filt(min_soundings=2).filter(
-            [_FakeExtractor(d) for d in dfs]
-        )
+        result = self._filt(min_soundings=2).filter([_FakeExtractor(d) for d in dfs])
         assert 15_000.0 not in result["frequency_khz"].values
 
     def test_temporal_skipped_single_sounding(self):
@@ -680,12 +762,16 @@ class TestStageTemporal:
 # summary() and stats
 # ===========================================================================
 
+
 class TestSummaryAndStats:
     def test_summary_contains_total_counts(self):
         filt = IonogramFilter(
-            rfi_enabled=True, ep_filter_enabled=True,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=True,
+            ep_filter_enabled=True,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
         )
         df = _make_df(n=20)
         filt.filter(df)
@@ -694,11 +780,18 @@ class TestSummaryAndStats:
 
     def test_summary_shows_each_active_stage(self):
         filt = IonogramFilter(
-            rfi_enabled=True, ep_filter_enabled=True,
-            multihop_enabled=True, dbscan_enabled=True,
-            ransac_enabled=True, temporal_enabled=False,
-            dbscan_features=("frequency_khz", "height_km",
-                             "velocity_mps", "amplitude_db"),
+            rfi_enabled=True,
+            ep_filter_enabled=True,
+            multihop_enabled=True,
+            dbscan_enabled=True,
+            ransac_enabled=True,
+            temporal_enabled=False,
+            dbscan_features=(
+                "frequency_khz",
+                "height_km",
+                "velocity_mps",
+                "amplitude_db",
+            ),
         )
         df = _make_clean_trace(n_freqs=15, echoes_per_freq=6)
         filt.filter(df)
@@ -708,9 +801,12 @@ class TestSummaryAndStats:
 
     def test_stats_summary_fields(self):
         filt = IonogramFilter(
-            rfi_enabled=False, ep_filter_enabled=False,
-            multihop_enabled=False, dbscan_enabled=False,
-            ransac_enabled=False, temporal_enabled=False,
+            rfi_enabled=False,
+            ep_filter_enabled=False,
+            multihop_enabled=False,
+            dbscan_enabled=False,
+            ransac_enabled=False,
+            temporal_enabled=False,
         )
         df = _make_df(n=20)
         filt.filter(df)

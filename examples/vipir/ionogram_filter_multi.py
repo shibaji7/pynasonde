@@ -67,7 +67,7 @@ for fname in fnames:
     riq = RiqDataset.create_from_file(
         fname,
         unicode="latin-1",
-        vipir_config=VIPIR_VERSION_MAP.configs[0],   # PL407: version 1 / data_type 2
+        vipir_config=VIPIR_VERSION_MAP.configs[0],  # PL407: version 1 / data_type 2
     )
     ext = EchoExtractor(
         sct=riq.sct,
@@ -93,7 +93,7 @@ filt = IonogramFilter(
     rfi_min_echoes=3,
     # Stage 2: EP filter
     ep_filter_enabled=True,
-    ep_max_deg=90.0,            # conservative — oblique real echoes reach 50-80°
+    ep_max_deg=90.0,  # conservative — oblique real echoes reach 50-80°
     # Stage 3: Multi-hop
     multihop_enabled=True,
     multihop_orders=(2, 3),
@@ -104,8 +104,10 @@ filt = IonogramFilter(
     dbscan_eps=1.0,
     dbscan_min_samples=5,
     dbscan_features=(
-        "frequency_khz", "height_km",
-        "velocity_mps", "amplitude_db",
+        "frequency_khz",
+        "height_km",
+        "velocity_mps",
+        "amplitude_db",
         # residual_deg omitted: PL407 n_rx=2 → EP all NaN
     ),
     # Stage 5: RANSAC — fit smooth h*(f) trace per sounding, reject outliers
@@ -152,9 +154,13 @@ for idx, ext in enumerate(extractors):
         continue
     total_raw += len(df_s)
     ax.scatter(
-        df_s["frequency_khz"] / 1e3, df_s["height_km"],
-        color=cmap_idx(idx % 10), s=3, alpha=0.5,
-        label=f"S{idx + 1} ({len(df_s)})", rasterized=True,
+        df_s["frequency_khz"] / 1e3,
+        df_s["height_km"],
+        color=cmap_idx(idx % 10),
+        s=3,
+        alpha=0.5,
+        label=f"S{idx + 1} ({len(df_s)})",
+        rasterized=True,
     )
 ax.set_xlabel("Frequency (MHz)", fontsize=font_size)
 ax.set_ylabel("Virtual Height (km)", fontsize=font_size)
@@ -170,9 +176,13 @@ for idx in range(n_soundings):
     if subset.empty:
         continue
     ax.scatter(
-        subset["frequency_khz"] / 1e3, subset["height_km"],
-        color=cmap_idx(idx % 10), s=3, alpha=0.7,
-        label=f"S{idx + 1} ({len(subset)})", rasterized=True,
+        subset["frequency_khz"] / 1e3,
+        subset["height_km"],
+        color=cmap_idx(idx % 10),
+        s=3,
+        alpha=0.7,
+        label=f"S{idx + 1} ({len(subset)})",
+        rasterized=True,
     )
 ax.set_xlabel("Frequency (MHz)", fontsize=font_size)
 ax.set_ylabel("Virtual Height (km)", fontsize=font_size)
@@ -183,14 +193,13 @@ ax.grid(True, alpha=0.3)
 
 # ── (C) Echo counts per sounding: raw vs filtered ────────────────────────────
 ax = axes[2]
-raw_counts  = [len(ext.echoes) for ext in extractors]
-filt_counts = [(df_all["sounding_index"] == idx).sum()
-               for idx in range(n_soundings)]
+raw_counts = [len(ext.echoes) for ext in extractors]
+filt_counts = [(df_all["sounding_index"] == idx).sum() for idx in range(n_soundings)]
 labels = [f"S{i + 1}" for i in range(n_soundings)]
 
 x = np.arange(n_soundings)
 w = 0.35
-ax.bar(x - w / 2, raw_counts,  w, label="Raw",      color="tab:grey",  alpha=0.8)
+ax.bar(x - w / 2, raw_counts, w, label="Raw", color="tab:grey", alpha=0.8)
 ax.bar(x + w / 2, filt_counts, w, label="Filtered", color="tab:green", alpha=0.8)
 ax.set_xticks(x)
 ax.set_xticklabels(labels, fontsize=font_size)
@@ -201,8 +210,14 @@ ax.grid(True, axis="y", alpha=0.3)
 
 for i, (r, f) in enumerate(zip(raw_counts, filt_counts)):
     pct = 100 * f / max(r, 1)
-    ax.text(i, max(r, f) + 5, f"{pct:.0f}%",
-            ha="center", va="bottom", fontsize=font_size - 2)
+    ax.text(
+        i,
+        max(r, f) + 5,
+        f"{pct:.0f}%",
+        ha="center",
+        va="bottom",
+        fontsize=font_size - 2,
+    )
 
 # ---------------------------------------------------------------------------
 # Step 4: Save

@@ -58,16 +58,16 @@ Multiple soundings::
 from __future__ import annotations
 
 import warnings
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
 
 def _to_dataframe(source) -> pd.DataFrame:
     """Convert an EchoExtractor or DataFrame to a DataFrame of echoes."""
@@ -88,6 +88,7 @@ def _to_dataframe(source) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # IonogramFilter
 # ---------------------------------------------------------------------------
+
 
 class IonogramFilter:
     """Multi-stage coherent filter for VIPIR ionospheric echo clouds.
@@ -288,7 +289,9 @@ class IonogramFilter:
         n_total = len(combined)
 
         if n_total == 0:
-            logger.warning("IonogramFilter.filter: no echoes in input — returning empty DataFrame.")
+            logger.warning(
+                "IonogramFilter.filter: no echoes in input — returning empty DataFrame."
+            )
             return combined
 
         self._stats = {}
@@ -300,7 +303,9 @@ class IonogramFilter:
             rfi_mask = self._stage_rfi(combined)
             n_rfi = (~rfi_mask).sum()
             self._stats["rfi"] = {"rejected": int(n_rfi)}
-            logger.info(f"[IonogramFilter] Stage 1 RFI: rejected {n_rfi}/{n_total} echoes")
+            logger.info(
+                f"[IonogramFilter] Stage 1 RFI: rejected {n_rfi}/{n_total} echoes"
+            )
             mask &= rfi_mask
 
         # ── Stage 2: EP / planar-wavefront ───────────────────────────────
@@ -308,7 +313,9 @@ class IonogramFilter:
             ep_mask = self._stage_ep(combined)
             n_ep = (~ep_mask & mask).sum()
             self._stats["ep"] = {"rejected": int(n_ep)}
-            logger.info(f"[IonogramFilter] Stage 2 EP : rejected {n_ep}/{mask.sum()} echoes")
+            logger.info(
+                f"[IonogramFilter] Stage 2 EP : rejected {n_ep}/{mask.sum()} echoes"
+            )
             mask &= ep_mask
 
         # ── Stage 3: Multi-hop removal ───────────────────────────────────
@@ -319,7 +326,9 @@ class IonogramFilter:
             mh_mask = self._stage_multihop(combined, mask)
             n_mh = (~mh_mask & mask).sum()
             self._stats["multihop"] = {"rejected": int(n_mh)}
-            logger.info(f"[IonogramFilter] Stage 3 MH : rejected {n_mh}/{mask.sum()} echoes")
+            logger.info(
+                f"[IonogramFilter] Stage 3 MH : rejected {n_mh}/{mask.sum()} echoes"
+            )
             mask &= mh_mask
 
         # ── Stage 4: DBSCAN clustering ───────────────────────────────────
@@ -329,7 +338,9 @@ class IonogramFilter:
             db_mask = self._stage_dbscan(combined, mask)
             n_db = (~db_mask & mask).sum()
             self._stats["dbscan"] = {"rejected": int(n_db)}
-            logger.info(f"[IonogramFilter] Stage 4 DBSCAN: rejected {n_db}/{mask.sum()} echoes")
+            logger.info(
+                f"[IonogramFilter] Stage 4 DBSCAN: rejected {n_db}/{mask.sum()} echoes"
+            )
             mask &= db_mask
 
         # ── Stage 5: RANSAC trace fitting ────────────────────────────────
@@ -383,18 +394,14 @@ class IonogramFilter:
         if not self._stats:
             return "No filter run yet."
         lines = ["IonogramFilter summary"]
-        lines.append(
-            f"  Soundings   : {self._stats['summary']['n_soundings']}"
-        )
-        lines.append(
-            f"  Input echoes: {self._stats['summary']['total_input']}"
-        )
+        lines.append(f"  Soundings   : {self._stats['summary']['n_soundings']}")
+        lines.append(f"  Input echoes: {self._stats['summary']['total_input']}")
         for stage, label in [
-            ("rfi",      "Stage 1 RFI      "),
-            ("ep",       "Stage 2 EP       "),
+            ("rfi", "Stage 1 RFI      "),
+            ("ep", "Stage 2 EP       "),
             ("multihop", "Stage 3 Multi-hop"),
-            ("dbscan",   "Stage 4 DBSCAN   "),
-            ("ransac",   "Stage 5 RANSAC   "),
+            ("dbscan", "Stage 4 DBSCAN   "),
+            ("ransac", "Stage 5 RANSAC   "),
             ("temporal", "Stage 6 Temporal "),
         ]:
             if stage in self._stats:
@@ -437,10 +444,7 @@ class IonogramFilter:
             reason = ""
 
             # ── Height-spread check ───────────────────────────────────────
-            h_iqr = (
-                grp["height_km"].quantile(0.75)
-                - grp["height_km"].quantile(0.25)
-            )
+            h_iqr = grp["height_km"].quantile(0.75) - grp["height_km"].quantile(0.25)
             if h_iqr > self.rfi_height_iqr_km:
                 flagged = True
                 reason = f"height IQR={h_iqr:.0f} km > {self.rfi_height_iqr_km:.0f}"
@@ -473,9 +477,7 @@ class IonogramFilter:
 
     # ── Stage 3: Multi-hop ───────────────────────────────────────────────
 
-    def _stage_multihop(
-        self, df: pd.DataFrame, prior_mask: pd.Series
-    ) -> pd.Series:
+    def _stage_multihop(self, df: pd.DataFrame, prior_mask: pd.Series) -> pd.Series:
         """Return True for echoes that are NOT identified as multi-hop.
 
         Operates only on echoes that survived prior stages (``prior_mask``).
@@ -511,9 +513,8 @@ class IonogramFilter:
             for order in self.multihop_orders:
                 h_expected = order * h_1f
                 height_match = (
-                    (grp["height_km"] - h_expected).abs()
-                    < self.multihop_height_tol_km
-                )
+                    grp["height_km"] - h_expected
+                ).abs() < self.multihop_height_tol_km
                 # Multi-hop must be weaker than 1F by the configured margin
                 weaker = grp["amplitude_db"] < (amp_1f - self.multihop_snr_margin_db)
                 multihop_idx = grp.index[height_match & weaker]
@@ -529,9 +530,7 @@ class IonogramFilter:
 
     # ── Stage 4: DBSCAN ──────────────────────────────────────────────────
 
-    def _stage_dbscan(
-        self, df: pd.DataFrame, prior_mask: pd.Series
-    ) -> pd.Series:
+    def _stage_dbscan(self, df: pd.DataFrame, prior_mask: pd.Series) -> pd.Series:
         """Return True for echoes belonging to a DBSCAN cluster (label ≥ 0).
 
         Runs DBSCAN only on the surviving subset (``prior_mask``).  Echoes
@@ -567,7 +566,8 @@ class IonogramFilter:
             return keep
 
         available = [
-            c for c in self.dbscan_features
+            c
+            for c in self.dbscan_features
             if c in active.columns and active[c].notna().any()
         ]
         if not available:
@@ -605,9 +605,7 @@ class IonogramFilter:
 
     # ── Stage 5: RANSAC trace fitting ────────────────────────────────────
 
-    def _stage_ransac(
-        self, df: pd.DataFrame, prior_mask: pd.Series
-    ) -> pd.Series:
+    def _stage_ransac(self, df: pd.DataFrame, prior_mask: pd.Series) -> pd.Series:
         """Return True for echoes consistent with a smooth ionospheric trace.
 
         Fits a degree-``ransac_poly_degree`` polynomial h*(f) to the
@@ -635,9 +633,7 @@ class IonogramFilter:
 
         for sounding_idx, s_mask in df.groupby("sounding_index").groups.items():
             # Intersect with echoes surviving previous stages
-            active_idx = df.index[
-                prior_mask & (df["sounding_index"] == sounding_idx)
-            ]
+            active_idx = df.index[prior_mask & (df["sounding_index"] == sounding_idx)]
             n_active = len(active_idx)
 
             min_needed = max(self.ransac_min_samples, self.ransac_poly_degree + 1)
@@ -697,7 +693,9 @@ class IonogramFilter:
                     deg=self.ransac_poly_degree,
                 )
                 h_pred_final = np.polyval(coeffs_final, f_norm)
-                final_inlier_mask = np.abs(heights - h_pred_final) < self.ransac_residual_km
+                final_inlier_mask = (
+                    np.abs(heights - h_pred_final) < self.ransac_residual_km
+                )
             except (np.linalg.LinAlgError, ValueError):
                 final_inlier_mask = best_inlier_mask
 
@@ -714,9 +712,7 @@ class IonogramFilter:
 
     # ── Stage 6: Temporal coherence ──────────────────────────────────────
 
-    def _stage_temporal(
-        self, df: pd.DataFrame, prior_mask: pd.Series
-    ) -> pd.Series:
+    def _stage_temporal(self, df: pd.DataFrame, prior_mask: pd.Series) -> pd.Series:
         """Return True for echoes that appear in ≥ temporal_min_soundings.
 
         The test operates on the (frequency bin, height bin) grid.  Any
@@ -744,10 +740,9 @@ class IonogramFilter:
         active = active.assign(_fb=f_bins, _hb=h_bins)
 
         # Count distinct soundings per (f_bin, h_bin) cell
-        cell_sounding_counts = (
-            active.groupby(["_fb", "_hb"])["sounding_index"]
-            .nunique()
-        )
+        cell_sounding_counts = active.groupby(["_fb", "_hb"])[
+            "sounding_index"
+        ].nunique()
         coherent_cells = cell_sounding_counts[
             cell_sounding_counts >= self.temporal_min_soundings
         ].index  # MultiIndex of (f_bin, h_bin)
@@ -767,10 +762,7 @@ class IonogramFilter:
         all_hb = (df["height_km"] / self.temporal_height_bin_km).astype(int)
 
         coherent_flag = pd.Series(
-            [
-                (int(fb), int(hb)) in coherent_set
-                for fb, hb in zip(all_fb, all_hb)
-            ],
+            [(int(fb), int(hb)) in coherent_set for fb, hb in zip(all_fb, all_hb)],
             index=df.index,
         )
         keep[coherent_flag] = True

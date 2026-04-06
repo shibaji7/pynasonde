@@ -192,7 +192,67 @@ print(f"Pulses read: {len(reader.pcts)}")
 
 ---
 
+## Ionogram Analysis
+
+The `pynasonde.vipir.analysis` sub-package provides physics algorithms that
+operate on filtered echo DataFrames or raw IQ cubes:
+
+| Class | Purpose |
+|-------|---------|
+| `EsCaponImager` | High-resolution Es layer imaging (single RIQ file) |
+| `RiqAggregator` | Multi-file Es imager: per-file RTI or moving-average RTI |
+| `AbsorptionAnalyzer` | LOF index, differential O/X SNR, absorption profile |
+| `TrueHeightInversion` | Virtual height → true height; outputs N(h) |
+| `PolarizationClassifier` | O/X mode separation via PP chirality |
+| `SpreadFAnalyzer` | Spread-F detection (range/frequency/mixed) |
+| `IonogramScaler` | Automatic foF2, foE, h′F, MUF scaling |
+
+### High-resolution Es layer imaging
+
+```python
+from pynasonde.vipir.analysis import EsCaponImager
+
+imager = EsCaponImager(
+    n_subbands=100,         # Z — Capon subbands
+    resolution_factor=10,   # K — 10× finer range grid
+    gate_spacing_km=1.499,  # VIPIR native gate width r₀
+    gate_start_km=90.0,
+)
+result = imager.fit(iq_cube)   # iq_cube: (pulses, gates[, rx])
+print(result.summary())
+# EsImagingResult: Z=100  K=10  r₀=1.499 km → Δr=0.150 km
+result.plot()
+```
+
+Use `RiqAggregator` to combine multiple files into a high-SNR RTI.  Every
+**(pulse, Rx) pair** is stacked as an independent snapshot, so the Capon
+covariance is averaged over L profiles before a single matrix inversion —
+dramatically improving sensitivity to weak Es echoes.
+
+```python
+from pynasonde.vipir.analysis import RiqAggregator
+
+# Per-file RTI — L = n_pulse × n_rx = 32 snapshots per column
+agg = RiqAggregator(n_subbands=100, resolution_factor=10,
+                    output_mode="per_file")
+result = agg.fit(file_list, freq_target_khz=3500.0, vipir_version_idx=1)
+result.plot()
+
+# Moving-average RTI — L = window × n_pulse × n_rx = 256 snapshots per column
+agg = RiqAggregator(n_subbands=100, resolution_factor=10,
+                    output_mode="moving_avg", window=8, step=1)
+result = agg.fit(file_list, freq_target_khz=3500.0, vipir_version_idx=1)
+result.plot()
+```
+
+See the [Es Imaging Example](../examples/vipir/es_imaging.md) and
+[Analysis API](../dev/vipir/analysis/index.md) for full details.
+
+---
+
 ## See Also
 
 - [Read / Plot RIQ Example](../examples/vipir/proc_riq.md)
-- [VIPIR API Reference](../dev/vipir/riq/parsers/read_riq.md)
+- [Es Imaging Example](../examples/vipir/es_imaging.md)
+- [Analysis API Reference](../dev/vipir/analysis/index.md)
+- [VIPIR RIQ API Reference](../dev/vipir/riq/parsers/read_riq.md)

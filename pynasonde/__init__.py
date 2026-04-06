@@ -24,7 +24,7 @@ Convenience re-exports
 >>> from pynasonde import DataSource, Trace, Webhook
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # Digisonde parsers and plotting
 from pynasonde.digisonde import (

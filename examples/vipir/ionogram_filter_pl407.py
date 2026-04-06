@@ -55,7 +55,7 @@ setsize(font_size)
 riq = RiqDataset.create_from_file(
     fname,
     unicode="latin-1",
-    vipir_config=VIPIR_VERSION_MAP.configs[0],   # version 1 / data_type 2
+    vipir_config=VIPIR_VERSION_MAP.configs[0],  # version 1 / data_type 2
 )
 
 extractor = EchoExtractor(
@@ -64,15 +64,17 @@ extractor = EchoExtractor(
     snr_threshold_db=3.0,
     min_height_km=60.0,
     max_height_km=1000.0,
-    min_rx_for_direction=3,   # PL407 has n_rx=2 → XL/YL/EP will be NaN
+    min_rx_for_direction=3,  # PL407 has n_rx=2 → XL/YL/EP will be NaN
     max_echoes_per_pulset=5,
 )
 extractor.extract()
 
 df_raw = extractor.to_dataframe()
 print(f"Raw echoes : {len(df_raw)}")
-print(f"  XL valid : {df_raw['xl_km'].notna().sum()} "
-      f"(n_rx=2 < min_rx_for_direction=3 → expected 0)")
+print(
+    f"  XL valid : {df_raw['xl_km'].notna().sum()} "
+    f"(n_rx=2 < min_rx_for_direction=3 → expected 0)"
+)
 print(f"  EP valid : {df_raw['residual_deg'].notna().sum()}")
 
 # ---------------------------------------------------------------------------
@@ -98,8 +100,10 @@ filt = IonogramFilter(
     dbscan_eps=1.0,
     dbscan_min_samples=5,
     dbscan_features=(
-        "frequency_khz", "height_km",
-        "velocity_mps", "amplitude_db",
+        "frequency_khz",
+        "height_km",
+        "velocity_mps",
+        "amplitude_db",
     ),
     # Stage 5: RANSAC
     ransac_enabled=True,
@@ -125,25 +129,25 @@ df_raw_si = df_raw.copy()
 df_raw_si["sounding_index"] = 0
 
 rfi_mask = filt._stage_rfi(df_raw_si)
-ep_mask  = filt._stage_ep(df_raw_si)
-mh_mask  = filt._stage_multihop(df_raw_si, rfi_mask & ep_mask)
-db_mask  = filt._stage_dbscan(df_raw_si, rfi_mask & ep_mask & mh_mask)
-rs_mask  = filt._stage_ransac(df_raw_si, rfi_mask & ep_mask & mh_mask & db_mask)
+ep_mask = filt._stage_ep(df_raw_si)
+mh_mask = filt._stage_multihop(df_raw_si, rfi_mask & ep_mask)
+db_mask = filt._stage_dbscan(df_raw_si, rfi_mask & ep_mask & mh_mask)
+rs_mask = filt._stage_ransac(df_raw_si, rfi_mask & ep_mask & mh_mask & db_mask)
 
 stage_labels = np.full(len(df_raw_si), "kept", dtype=object)
 stage_labels[~rs_mask] = "RANSAC"
 stage_labels[~db_mask] = "DBSCAN"
 stage_labels[~mh_mask] = "Multi-hop"
-stage_labels[~ep_mask]  = "EP"
+stage_labels[~ep_mask] = "EP"
 stage_labels[~rfi_mask] = "RFI"
 
 stage_colors = {
-    "kept":      "tab:blue",
-    "RFI":       "tab:red",
-    "EP":        "tab:orange",
+    "kept": "tab:blue",
+    "RFI": "tab:red",
+    "EP": "tab:orange",
     "Multi-hop": "tab:purple",
-    "DBSCAN":    "tab:brown",
-    "RANSAC":    "tab:cyan",
+    "DBSCAN": "tab:brown",
+    "RANSAC": "tab:cyan",
 }
 
 # ---------------------------------------------------------------------------
@@ -156,7 +160,7 @@ fig.suptitle(
     fontsize=font_size + 1,
 )
 
-freq_mhz_raw   = df_raw["frequency_khz"] / 1e3
+freq_mhz_raw = df_raw["frequency_khz"] / 1e3
 freq_mhz_clean = df_clean["frequency_khz"] / 1e3
 
 amp_vmin = df_raw["amplitude_db"].quantile(0.05)
@@ -165,9 +169,14 @@ amp_vmax = df_raw["amplitude_db"].quantile(0.95)
 # ── (A) Raw ionogram ─────────────────────────────────────────────────────────
 ax = axes[0, 0]
 sc = ax.scatter(
-    freq_mhz_raw, df_raw["height_km"],
-    c=df_raw["amplitude_db"], cmap="plasma", s=3,
-    vmin=amp_vmin, vmax=amp_vmax, rasterized=True,
+    freq_mhz_raw,
+    df_raw["height_km"],
+    c=df_raw["amplitude_db"],
+    cmap="plasma",
+    s=3,
+    vmin=amp_vmin,
+    vmax=amp_vmax,
+    rasterized=True,
 )
 fig.colorbar(sc, ax=ax, pad=0.02).set_label("Amplitude (dB)", fontsize=font_size)
 ax.set_xlabel("Frequency (MHz)", fontsize=font_size)
@@ -180,14 +189,20 @@ ax.grid(True, alpha=0.3)
 ax = axes[0, 1]
 if len(df_clean):
     sc2 = ax.scatter(
-        freq_mhz_clean, df_clean["height_km"],
-        c=df_clean["amplitude_db"], cmap="plasma", s=3,
-        vmin=amp_vmin, vmax=amp_vmax, rasterized=True,
+        freq_mhz_clean,
+        df_clean["height_km"],
+        c=df_clean["amplitude_db"],
+        cmap="plasma",
+        s=3,
+        vmin=amp_vmin,
+        vmax=amp_vmax,
+        rasterized=True,
     )
     fig.colorbar(sc2, ax=ax, pad=0.02).set_label("Amplitude (dB)", fontsize=font_size)
 else:
-    ax.text(0.5, 0.5, "No echoes survived", ha="center",
-            va="center", transform=ax.transAxes)
+    ax.text(
+        0.5, 0.5, "No echoes survived", ha="center", va="center", transform=ax.transAxes
+    )
 ax.set_xlabel("Frequency (MHz)", fontsize=font_size)
 ax.set_ylabel("Virtual Height (km)", fontsize=font_size)
 ax.set_title(f"(B) Filtered echo cloud  [{len(df_clean)} echoes]", fontsize=font_size)
@@ -204,8 +219,11 @@ for label, color in stage_colors.items():
     ax.scatter(
         df_raw_si.loc[mask, "velocity_mps"],
         df_raw_si.loc[mask, "height_km"],
-        color=color, s=3, alpha=0.6,
-        label=f"{label} ({mask.sum()})", rasterized=True,
+        color=color,
+        s=3,
+        alpha=0.6,
+        label=f"{label} ({mask.sum()})",
+        rasterized=True,
     )
 ax.axvline(0, color="k", lw=0.8, ls="--")
 ax.set_xlabel("V* — phase-path velocity (m/s)", fontsize=font_size)
@@ -218,8 +236,10 @@ ax.grid(True, alpha=0.3)
 # ── (D) Per-stage rejection bar chart ────────────────────────────────────────
 ax = axes[1, 1]
 stage_order = ["RFI", "EP", "Multi-hop", "DBSCAN", "RANSAC"]
-counts = [int(filt.stats.get(k, {}).get("rejected", 0))
-          for k in ["rfi", "ep", "multihop", "dbscan", "ransac"]]
+counts = [
+    int(filt.stats.get(k, {}).get("rejected", 0))
+    for k in ["rfi", "ep", "multihop", "dbscan", "ransac"]
+]
 colors = [stage_colors[s] for s in stage_order]
 bars = ax.barh(stage_order, counts, color=colors, edgecolor="k", lw=0.5)
 ax.bar_label(bars, padding=3, fontsize=font_size - 1)
