@@ -573,14 +573,18 @@ release:
 	  echo "  ⚠  gh CLI not found — skipping GitHub release creation."
 	  echo "     Install from https://cli.github.com/ and re-run."
 	else
-	  RELEASE_NOTES="## pynasonde $(FULL_VER)"$$'\n\n'"Precision ionospheric radio sounding tools."$$'\n\n'"### Installation"$$'\n\n'"```bash"$$'\n'"pip install pynasonde==$(FULL_VER)"$$'\n'"```"$$'\n\n'"### Changelog"$$'\n\n'"- Version bump to $(FULL_VER)"
+	  RELEASE_NOTES_FILE="issue/3/release_notes_v$(FULL_VER).md"
 	  echo "  Will run:"
-	  echo "    gh release create $(TAG) --title \"pynasonde $(FULL_VER)\" --notes \"...\""
+	  echo "    gh release create $(TAG) --title \"pynasonde $(FULL_VER)\" --notes-file $$RELEASE_NOTES_FILE"
 	  echo ""
-	  if confirm "Create GitHub release $(TAG)?"; then
+	  if [[ ! -f "$$RELEASE_NOTES_FILE" ]]; then
+	    echo "  ⚠  Release notes file not found: $$RELEASE_NOTES_FILE"
+	    echo "     Create this file and re-run release."
+	    skip_step
+	  elif confirm "Create GitHub release $(TAG)?"; then
 	    gh release create $(TAG) \
 	        --title "pynasonde $(FULL_VER)" \
-	        --notes "$$RELEASE_NOTES"
+	        --notes-file "$$RELEASE_NOTES_FILE"
 	    echo "  ✔  GitHub release created."
 	    echo "     $$(gh release view $(TAG) --json url -q .url 2>/dev/null || true)"
 	  else
