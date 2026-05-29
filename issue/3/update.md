@@ -1,36 +1,35 @@
-# Issue #3 Update: Prob in Reading/Accessing .SAO files
+Update for issue #3 (`Prob in Reading/Accessing .SAO files`)
 
-## Motivation
-- Previously, SAO parsing effectively handled one record per `.SAO` file (single-scan workflow).
-- In practice, many stations provide day-style `.SAO` files that contain multiple scan entries.
-- As a result, only part of a day file could be parsed in earlier behavior.
-
-## What Changed
-- Added multi-entry/day-file `.SAO` support with record-by-record parsing.
-- Added per-record UTC datetime parsing from each `FF...` line.
-- Added parsing modes for text SAO:
-  - `mode="auto"`: detect single vs multi and parse accordingly.
-  - `mode="single"`: parse one selected record (supports `record_index`).
-  - `mode="multi"`: parse all detected records.
-- Propagated these options through wrappers:
+Implemented and pushed in `v1.2.2`:
+- SAO parser now supports both single-record and multi-entry/day-file `.SAO`.
+- Added per-record UTC datetime parsing from `FF...` lines.
+- Added SAO parse modes:
+  - `mode="auto"` (detect single vs multi)
+  - `mode="single"` (supports `record_index`)
+  - `mode="multi"` (parse all records)
+- Propagated mode/index handling through:
   - `extract_SAO(...)`
   - `load_SAO_files(...)`
-- Updated outputs for both extractor views:
-  - `func_name="height_profile"`
-  - `func_name="scaled"`
-- Added advanced multi-record example:
+- Added/updated tests for these paths.
+
+Suggested usage:
+- Use the new advanced example:
   - `examples/digisonde/sao_multi.py`
+- Before running, update:
+  - `folders = [...]` to your local SAO/day-file directory
+  - `date = ...` to your target day
+  - optional: `selected_record_index = ...` for single-scan extraction from a day file
 
-## Test Coverage Updates
-Updated tests:
-- `tests/test_sao_parser.py`
-- `tests/test_sao_parser_extended.py`
-- `tests/test_sao_extra.py`
-- `tests/test_sao_multirecord_regression.py` (new)
-- `tests/test_digisonde_examples.py`
+Patch/reference artifacts:
+- SAO-only patch: `issue/3/sao_issue.patch`
+- Issue update notes: `issue/3/update.md`
 
-SAO-focused test subset result:
-- `71 passed, 2 skipped`
+Figures (repo links):
+- [PynasondeV1-SAO-Multi-01.png](https://raw.githubusercontent.com/shibaji7/pynasonde/main/docs/examples/figures/PynasondeV1-SAO-Multi-01.png)
+- [PynasondeV1-SAO-Multi-02.png](https://raw.githubusercontent.com/shibaji7/pynasonde/main/docs/examples/figures/PynasondeV1-SAO-Multi-02.png)
 
-## Artifacts
-- SAO-only patch file: `issue/3/sao_issue.patch`
+Preview:
+
+![PynasondeV1-SAO-Multi-01](https://raw.githubusercontent.com/shibaji7/pynasonde/main/docs/examples/figures/PynasondeV1-SAO-Multi-01.png)
+
+![PynasondeV1-SAO-Multi-02](https://raw.githubusercontent.com/shibaji7/pynasonde/main/docs/examples/figures/PynasondeV1-SAO-Multi-02.png)
