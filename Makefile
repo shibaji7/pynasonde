@@ -12,7 +12,8 @@
 #    make tutorials                Build both tutorial PDFs (keeps .tex + .pdf only)
 #    make tutorials-grad           Build only the graduate student tutorial
 #    make tutorials-researcher     Build only the researcher reference
-#	 make tutorials-nn        	   Build only the NN Invrsion tutorial / Paper
+#    make tutorials-nn              Build only the NN Inversion whitepaper
+#    make tutorials-nn-ppt          Build only the NN Inversion show-and-tell PPT
 #    make tutorials-clean          Remove all LaTeX auxiliary files from tutorials/
 #
 #  Release targets:
@@ -50,7 +51,7 @@ vega-sync:
 	ssh $(VEGA_USER)@$(VEGA_HOST) "mkdir -p $(VEGA_ROOT)/pynasonde/vipir/analysis"
 	scp -r pynasonde/vipir/analysis/nn_inversion \
 	    $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)/pynasonde/vipir/analysis/
-	scp -r /home/chakras4/OMNI/ $(VEGA_USER)@$(VEGA_HOST):~/
+	scp -r /home/chakras4/OMNI/ $(VEGA_USER)@$(VEGA_HOST):~/scratch/
 	echo ""
 	echo "  ✔  Sync complete."
 	echo "     Remote: $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)"
@@ -69,7 +70,7 @@ TAG       := v$(FULL_VER)
 MSG       ?=
 
 # Convenience phony aliases — only these are phony; the PDF targets are real files
-.PHONY: tutorials tutorials-grad tutorials-researcher tutorials-methods tutorials-nn tutorials-clean
+.PHONY: tutorials tutorials-grad tutorials-researcher tutorials-methods tutorials-nn tutorials-nn-ppt tutorials-clean
 
 # --------------------------------------------------------------------------- #
 #  tutorials — build PDFs only when the .tex source is newer than the PDF
@@ -77,7 +78,8 @@ MSG       ?=
 #  make tutorials            → rebuild whichever PDF is out of date
 #  make tutorials-grad       → alias for the grad PDF file target
 #  make tutorials-researcher → alias for the researcher PDF file target
-#  make tutorials-nn		 → alias for the NN PDF file target
+#  make tutorials-nn          → alias for the NN whitepaper PDF target
+#  make tutorials-nn-ppt      → alias for the NN show-and-tell PPT PDF target
 #  make tutorials-clean      → remove LaTeX aux files (keep .tex + .pdf)
 # --------------------------------------------------------------------------- #
 
@@ -90,6 +92,8 @@ METHODS_TEX    := $(TUTORIAL_RES)/pynasonde_methods.tex
 METHODS_PPT_TEX := $(TUTORIAL_METHODS)/pynasonde_methods_ppt.tex
 METHODS_NN_PDF := $(TUTORIAL_NN)/whitepaper_nn_inversion.pdf
 METHODS_NN_TEX := $(TUTORIAL_NN)/whitepaper_nn_inversion.tex
+NN_PPT_PDF     := $(TUTORIAL_NN)/nn_inversion_ppt.pdf
+NN_PPT_TEX     := $(TUTORIAL_NN)/nn_inversion_ppt.tex
 
 tutorials: $(WORKSHOP_PDF) $(METHODS_PDF) $(METHODS_PPT_PDF)
 	@echo "  Tutorials up to date: $(WORKSHOP_PDF)  $(METHODS_PDF)  $(METHODS_PPT_PDF)"
@@ -105,6 +109,9 @@ tutorials-methods: $(METHODS_PPT_PDF)
 
 tutorials-nn: $(METHODS_NN_PDF)
 	@echo "  Tutorial up to date: $(METHODS_NN_PDF)"
+
+tutorials-nn-ppt: $(NN_PPT_PDF)
+	@echo "  Tutorial up to date: $(NN_PPT_PDF)"
 
 $(WORKSHOP_PDF): $(WORKSHOP_TEX)
 	@echo ""
@@ -138,6 +145,14 @@ $(METHODS_NN_PDF): $(METHODS_NN_TEX)
 	@echo "  Output : $@"
 	@echo ""
 
+$(NN_PPT_PDF): $(NN_PPT_TEX)
+	@echo ""
+	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	cd $(TUTORIAL_NN) && $(LATEX) nn_inversion_ppt.tex && $(LATEX) nn_inversion_ppt.tex
+	cd $(CURDIR)/$(TUTORIAL_NN) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
+	@echo "  Output : $@"
+	@echo ""
+
 tutorials-clean:
 	@cd $(CURDIR)/$(TUTORIAL_GRAD)    && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@cd $(CURDIR)/$(TUTORIAL_RES)     && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
@@ -164,6 +179,8 @@ help:
 	@echo "  make tutorials-grad         Build only the graduate student workshop"
 	@echo "  make tutorials-researcher   Build only the researcher reference"
 	@echo "  make tutorials-methods      Build only the methods overview PPT"
+	@echo "  make tutorials-nn           Build only the NN Inversion whitepaper"
+	@echo "  make tutorials-nn-ppt       Build only the NN Inversion show-and-tell PPT"
 	@echo "  make tutorials-clean        Remove LaTeX aux files (keep .tex + .pdf)"
 	@echo ""
 	@echo "  Release"

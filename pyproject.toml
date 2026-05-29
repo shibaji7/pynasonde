@@ -59,8 +59,8 @@ dev = [
 ]
 training = [
   "torch>=2.0",
-  "iricore>=1.0",
+  "PyIRI",
+  "pyomnidata",
   "tqdm",
   "tensorboard",
-  "h5py",
 ]
