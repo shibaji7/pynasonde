@@ -14,7 +14,7 @@ import os
 import re
 from functools import partial
 from multiprocessing import Pool
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -67,30 +67,69 @@ class SaoExtractor(object):
         self.xml_file = True if filename.split(".")[-1].lower() == "xml" else False
         self.dtd_file = dtd_file
         self.sao_struct = {}
-        if self.xml_file:
-            date = self.filename.split("_")[-2]
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
-        else:
-            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
+        self.stn_code = os.path.basename(self.filename).split("_")[0]
         if extract_time_from_name:
-            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
-                int(date[4:7]) - 1
-            )
-            self.date = self.date.replace(
-                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
-            )
-            logger.info(f"Date: {self.date}")
+            token = self._extract_datetime_token()
+            self.date = self._parse_datetime_token(token)
+            if self.date is not None:
+                logger.info(f"Date: {self.date}")
+            else:
+                logger.warning(
+                    f"Could not parse datetime from filename token '{token}' in '{self.filename}'"
+                )
         if extract_stn_from_name:
             self.stn_info = get_digisonde_info(self.stn_code)
-            self.local_timezone_converter = TimeZoneConversion(
-                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
-            )
-            self.local_time = self.local_timezone_converter.utc_to_local_time(
-                [self.date]
-            )[0]
+            if hasattr(self, "date") and self.date is not None:
+                self.local_timezone_converter = TimeZoneConversion(
+                    lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
+                )
+                self.local_time = self.local_timezone_converter.utc_to_local_time(
+                    [self.date]
+                )[0]
             logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
         return
+
+    def _extract_datetime_token(self) -> str:
+        """Return the trailing filename token likely containing date/time."""
+        stem = os.path.splitext(os.path.basename(self.filename))[0]
+        parts = stem.split("_")
+        return parts[-1] if parts else stem
+
+    @staticmethod
+    def _parse_datetime_token(token: str):
+        """Parse known SAO datetime token formats.
+
+        Supported:
+        - YYYYmmddHHMMSS
+        - YYYYDDDHHMMSS
+        - YYYYmmdd(DDD)    -> day file, defaults to 00:00:00 UTC
+        - YYYYmmdd         -> day file, defaults to 00:00:00 UTC
+        - YYYYDDD          -> day file, defaults to 00:00:00 UTC
+        """
+        token = token.strip()
+
+        # 1) YYYYmmddHHMMSS
+        if re.fullmatch(r"\d{14}", token):
+            return dt.datetime.strptime(token, "%Y%m%d%H%M%S")
+
+        # 2) YYYYDDDHHMMSS
+        if re.fullmatch(r"\d{13}", token):
+            return dt.datetime.strptime(token, "%Y%j%H%M%S")
+
+        # 3) YYYYmmdd(DDD)
+        m = re.fullmatch(r"(?P<ymd>\d{8})\((?P<doy>\d{3})\)", token)
+        if m:
+            return dt.datetime.strptime(m.group("ymd"), "%Y%m%d")
+
+        # 4) YYYYmmdd
+        if re.fullmatch(r"\d{8}", token):
+            return dt.datetime.strptime(token, "%Y%m%d")
+
+        # 5) YYYYDDD
+        if re.fullmatch(r"\d{7}", token):
+            return dt.datetime.strptime(token, "%Y%j")
+
+        return None
 
     def read_file(self) -> List[str]:
         """Read the file and return a list of lines without trailing newline.
@@ -134,6 +173,96 @@ class SaoExtractor(object):
             else:
                 results.append(chunk)
         return results
+
+    @staticmethod
+    def _is_index_line(line: str) -> bool:
+        """Return True when line resembles a 120-char SAO index header line."""
+        try:
+            chunks = re.findall(r".{3}", line.ljust(120)[:120])
+            if len(chunks) != 40:
+                return False
+            for chunk in chunks:
+                token = chunk.strip()
+                if token == "":
+                    token = "0"
+                int(token)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _parse_index_line(line: str) -> List[int]:
+        """Parse a SAO index header line into its 40 integer slots."""
+        out = []
+        for chunk in re.findall(r".{3}", line.ljust(120)[:120]):
+            token = chunk.strip()
+            out.append(int(token) if token else 0)
+        return out
+
+    @staticmethod
+    def _parse_ff_datetime(ff_line: str) -> Optional[dt.datetime]:
+        """Parse UTC timestamp from a SAO FF line.
+
+        Expected prefix layout:
+        ``FFYYYYDDDMMDDHHMM...``
+        """
+        m = re.match(
+            r"^FF(?P<year>\d{4})(?P<doy>\d{3})(?P<mmdd>\d{4})(?P<hhmm>\d{4}).*$",
+            ff_line.strip(),
+        )
+        if not m:
+            return None
+        year = int(m.group("year"))
+        doy = int(m.group("doy"))
+        hhmm = m.group("hhmm")
+        date = dt.datetime(year, 1, 1) + dt.timedelta(doy - 1)
+        date = date.replace(hour=int(hhmm[:2]), minute=int(hhmm[2:4]), second=0)
+        if date.strftime("%m%d") != m.group("mmdd"):
+            logger.warning(
+                f"FF line month/day mismatch: parsed {date.strftime('%m%d')} != token {m.group('mmdd')}"
+            )
+        return date
+
+    @classmethod
+    def _find_record_starts(cls, lines: List[str]) -> List[int]:
+        """Find start line indices of SAO records in a text file."""
+        starts = []
+        for i in range(max(0, len(lines) - 1)):
+            if not (cls._is_index_line(lines[i]) and cls._is_index_line(lines[i + 1])):
+                continue
+            d1 = cls._parse_index_line(lines[i])
+            d2 = cls._parse_index_line(lines[i + 1])
+            if not (len(d1) > 0 and len(d2) > 0 and d1[0] == 5 and d2[0] == 49):
+                continue
+            lookahead = lines[i + 2 : i + 8]
+            if any(re.match(r"^FF\d+", ln) for ln in lookahead):
+                starts.append(i)
+        if (
+            not starts
+            and len(lines) >= 2
+            and cls._is_index_line(lines[0])
+            and cls._is_index_line(lines[1])
+        ):
+            starts = [0]
+        return starts
+
+    @classmethod
+    def _detect_sao_layout(cls, lines: List[str]) -> str:
+        """Classify the SAO text layout as single or multi record."""
+        starts = cls._find_record_starts(lines)
+        return "multi" if len(starts) > 1 else "single"
+
+    @staticmethod
+    def _resolve_record_index(record_index: int, n_records: int) -> int:
+        """Resolve positive/negative record index and validate bounds."""
+        if n_records <= 0:
+            raise ValueError("No SAO records detected in file.")
+        idx = record_index if record_index >= 0 else n_records + record_index
+        if idx < 0 or idx >= n_records:
+            raise IndexError(
+                f"record_index {record_index} out of bounds for {n_records} records."
+            )
+        return idx
 
     def extract_xml(self) -> None:
         """Load XML SAO data into: attr:`sao` using: class:`SAORecordList`.
@@ -253,27 +382,14 @@ class SaoExtractor(object):
         df = pd.DataFrame.from_records(df)
         return df
 
-    def extract(self) -> dict:
-        """Parse a legacy fixed-width SAO text file into a structured dict.
-
-        Behavior
-        --------
-        The routine inspects the first two header lines to determine the
-        number and sizes of subsequent arrays, then walks the remainder
-        of the file concatenating fixed-width lines into fields. The
-        output is stored in: attr:`SAOstruct` and: attr:`sao`.
-
-        Returns:
-            The raw dictionary of parsed SAO fields (same as
-                : attr:`SAOstruct`).
-        """
-        # Read file lines
-        SAOarch, self.SAOstruct = self.read_file(), dict()
-
-        Dindex1 = [int(x) for x in re.findall(r".{3}", self.pad(SAOarch[0], 120))]
-        Dindex2 = [int(x) for x in re.findall(r".{3}", self.pad(SAOarch[1], 120))]
+    def _extract_record_struct(self, lines: List[str]) -> dict:
+        """Parse one SAO record chunk into a structured dictionary."""
+        if len(lines) < 2:
+            return {}
+        Dindex1 = self._parse_index_line(lines[0])
+        Dindex2 = self._parse_index_line(lines[1])
         noe = Dindex1 + Dindex2
-
+        sao_struct = dict()
         fmt_cell = [
             "%7.3f",
             "%120c",
@@ -453,7 +569,6 @@ class SaoExtractor(object):
         for i0, fmt in enumerate(fmt_cell):
             if noe[i0] == 0:
                 continue
-            # Determine num_ch from fmt
             if fmt == "%7.3f":
                 num_ch = 7
             elif fmt == "%8.3f":
@@ -464,9 +579,7 @@ class SaoExtractor(object):
                 num_ch = 20
             elif fmt == "%120c":
                 num_ch = 120
-            elif fmt == "%1c":
-                num_ch = 1
-            elif fmt == "%1d":
+            elif fmt in ["%1c", "%1d"]:
                 num_ch = 1
             elif fmt == "%2d":
                 num_ch = 2
@@ -475,54 +588,115 @@ class SaoExtractor(object):
             else:
                 num_ch = 1
 
-            # Concatenate lines until enough data
-            expected_items = noe[i0]
+            expected_items = int(noe[i0])
             total_chars_needed = num_ch * expected_items
             line_in = ""
-            while len(line_in) < total_chars_needed and count < len(SAOarch):
+            while len(line_in) < total_chars_needed and count < len(lines):
                 line_in += self.pad(
-                    SAOarch[count],
-                    num_ch * ((len(SAOarch[count]) + num_ch - 1) // num_ch),
+                    lines[count], num_ch * ((len(lines[count]) + num_ch - 1) // num_ch)
                 )
                 count += 1
-
-            # Special case for Qletter/Dletter
             if var_cell[i0] in ["Qletter", "Dletter"]:
                 line_in = self.pad(line_in, expected_items)
-
-            # Parse data
             if var_cell[i0] != "Scaled":
-                self.SAOstruct[var_cell[i0]] = []
+                sao_struct[var_cell[i0]] = []
                 for i1 in range(expected_items):
                     chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
                     aux_out = self.parse_line(chunk, fmt, num_ch)
-                    self.SAOstruct[var_cell[i0]].append(aux_out[0] if aux_out else None)
+                    sao_struct[var_cell[i0]].append(aux_out[0] if aux_out else None)
             else:
-                self.SAOstruct[var_cell[i0]] = {}
+                sao_struct[var_cell[i0]] = {}
                 for i1 in range(expected_items):
                     chunk = line_in[num_ch * i1 : num_ch * (i1 + 1)]
                     aux_out = self.parse_line(chunk, fmt, num_ch)
-                    self.SAOstruct[var_cell[i0]][scal_cell[i1]] = (
+                    sao_struct[var_cell[i0]][scal_cell[i1]] = (
                         aux_out[0] if aux_out else None
                     )
 
-        if "sysdes" in self.SAOstruct:
-            self.SAOstruct["sysdes"] = np.array(self.SAOstruct["sysdes"])
-
+        if "sysdes" in sao_struct:
+            sao_struct["sysdes"] = np.array(sao_struct["sysdes"])
         for key in ["ED", "TH", "PF"]:
-            if key in self.SAOstruct:
-                self.SAOstruct[key] = list(
-                    filter(
-                        None,
-                        [
-                            x.strip() if type(x) is str else x
-                            for x in self.SAOstruct[key]
-                        ],
-                    )
+            if key not in sao_struct:
+                continue
+            cleaned = list(
+                filter(
+                    None,
+                    [x.strip() if isinstance(x, str) else x for x in sao_struct[key]],
                 )
-                if type(self.SAOstruct[key][0]) is str:
-                    self.SAOstruct[key] = [float(x) for x in self.SAOstruct[key]]
-        self.sao = to_namespace(self.SAOstruct)
+            )
+            if len(cleaned) > 0 and isinstance(cleaned[0], str):
+                cleaned = [float(x) for x in cleaned]
+            sao_struct[key] = cleaned
+        return sao_struct
+
+    def _to_local_datetime(
+        self, utc_time: Optional[dt.datetime]
+    ) -> Optional[dt.datetime]:
+        """Convert one UTC datetime to local station time when possible."""
+        if utc_time is None or not hasattr(self, "stn_info"):
+            return None
+        if not hasattr(self, "local_timezone_converter"):
+            self.local_timezone_converter = TimeZoneConversion(
+                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
+            )
+        return self.local_timezone_converter.utc_to_local_time([utc_time])[0]
+
+    def extract(self, mode: str = "auto", record_index: int = 0):
+        """Parse legacy SAO text with single/multi record support.
+
+        Parameters:
+            mode: ``'auto'`` | ``'single'`` | ``'multi'``.
+            record_index: Record index used when ``mode='single'`` and file is multi.
+        """
+        lines = self.read_file()
+        starts = self._find_record_starts(lines)
+        if len(starts) == 0:
+            starts = [0]
+        detected_mode = "multi" if len(starts) > 1 else "single"
+        if mode == "auto":
+            mode = detected_mode
+        if mode not in ["single", "multi"]:
+            raise ValueError("mode must be one of: auto, single, multi")
+
+        records = []
+        if mode == "single":
+            idx = self._resolve_record_index(record_index, len(starts))
+            selected = [idx]
+        else:
+            selected = list(range(len(starts)))
+
+        for idx in selected:
+            start = starts[idx]
+            end = starts[idx + 1] if idx + 1 < len(starts) else len(lines)
+            section = lines[start:end]
+            record = self._extract_record_struct(section)
+            ff_line = next((ln for ln in section if re.match(r"^FF\d+", ln)), None)
+            record_dt = (
+                self._parse_ff_datetime(ff_line)
+                if ff_line
+                else getattr(self, "date", None)
+            )
+            records.append(
+                dict(
+                    struct=record,
+                    record_datetime=record_dt,
+                    record_index=idx,
+                )
+            )
+
+        self.sao_records = records
+        if len(records) == 1:
+            self.SAOstruct = records[0]["struct"]
+            self.sao = to_namespace(self.SAOstruct)
+            if records[0]["record_datetime"] is not None:
+                self.date = records[0]["record_datetime"]
+                local_dt = self._to_local_datetime(self.date)
+                if local_dt is not None:
+                    self.local_time = local_dt
+            return self.SAOstruct
+
+        self.SAOstruct = [rec["struct"] for rec in records]
+        self.sao = [to_namespace(rec["struct"]) for rec in records]
         return self.SAOstruct
 
     def get_scaled_datasets(self, asdf: bool = True) -> pd.DataFrame:
@@ -535,16 +709,53 @@ class SaoExtractor(object):
             Single-row DataFrame containing scaled parameters with
                 datetime/local_datetime columns when available.
         """
-        for key in vars(self.sao.Scaled).keys():
-            if type(vars(self.sao.Scaled)[key]) == str:
-                setattr(self.sao.Scaled, key, [np.nan])
+        if hasattr(self, "sao_records") and len(self.sao_records) > 1:
+            rows = []
+            for rec in self.sao_records:
+                scaled = dict(rec["struct"].get("Scaled", {}))
+                for key, value in scaled.items():
+                    if isinstance(value, str):
+                        scaled[key] = np.nan
+                o = pd.DataFrame.from_records([scaled])
+                o.replace(9999.0, np.nan, inplace=True)
+                rec_dt = rec.get("record_datetime")
+                if rec_dt is not None:
+                    o["datetime"] = rec_dt
+                    local_dt = self._to_local_datetime(rec_dt)
+                    if local_dt is not None:
+                        o["local_datetime"] = local_dt
+                elif hasattr(self, "date"):
+                    o["datetime"] = self.date
+                    if hasattr(self, "local_time"):
+                        o["local_datetime"] = self.local_time
+                if hasattr(self, "stn_info"):
+                    o["lat"], o["lon"] = self.stn_info["LAT"], self.stn_info["LONG"]
+                o["record_index"] = rec.get("record_index")
+                o["source_file"] = self.filename
+                if rec.get("ff_line"):
+                    o["ff_line"] = rec["ff_line"]
+                rows.append(o)
+            return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
 
+        for key in vars(self.sao.Scaled).keys():
+            if isinstance(vars(self.sao.Scaled)[key], str):
+                setattr(self.sao.Scaled, key, [np.nan])
         o = pd.DataFrame.from_records(vars(self.sao.Scaled), index=[0])
         o.replace(9999.0, np.nan, inplace=True)
         if hasattr(self, "date"):
             o["datetime"] = self.date
         if hasattr(self, "local_time"):
             o["local_datetime"] = self.local_time
+        if hasattr(self, "stn_info"):
+            o["lat"], o["lon"] = self.stn_info["LAT"], self.stn_info["LONG"]
+        o["record_index"] = 0
+        o["source_file"] = self.filename
+        if (
+            hasattr(self, "sao_records")
+            and len(self.sao_records) > 0
+            and self.sao_records[0].get("ff_line")
+        ):
+            o["ff_line"] = self.sao_records[0]["ff_line"]
         return o
 
     def get_height_profile(
@@ -562,6 +773,41 @@ class SaoExtractor(object):
                 (`pf`), electron density (`ed`) and timestamps when
                 available.
         """
+        if hasattr(self, "sao_records") and len(self.sao_records) > 1:
+            profiles = []
+            for rec in self.sao_records:
+                struct = rec["struct"]
+                if not all(k in struct for k in ["TH", "PF", "ED"]):
+                    continue
+                o = pd.DataFrame()
+                hlen, o["th"] = len(struct["TH"]), struct["TH"]
+                if len(struct["PF"]) == hlen:
+                    o["pf"] = pd.Series(struct["PF"]).astype(float)
+                if len(struct["ED"]) == hlen:
+                    o["ed"] = pd.Series(struct["ED"]).astype(float)
+                o.th = o.th.astype(float)
+                rec_dt = rec.get("record_datetime")
+                if rec_dt is not None:
+                    o["datetime"] = rec_dt
+                    local_dt = self._to_local_datetime(rec_dt)
+                    if local_dt is not None:
+                        o["local_datetime"] = local_dt
+                elif hasattr(self, "date"):
+                    o["datetime"] = self.date
+                    if hasattr(self, "local_time"):
+                        o["local_datetime"] = self.local_time
+                if hasattr(self, "stn_info"):
+                    o["lat"], o["lon"] = self.stn_info["LAT"], self.stn_info["LONG"]
+                o["record_index"] = rec.get("record_index")
+                o["source_file"] = self.filename
+                if rec.get("ff_line"):
+                    o["ff_line"] = rec["ff_line"]
+                profiles.append(o)
+            out = pd.concat(profiles, ignore_index=True) if profiles else pd.DataFrame()
+            if plot_ionogram and len(out) > 0:
+                logger.warning("plot_ionogram is ignored for multi-record SAO files.")
+            return out
+
         o = pd.DataFrame()
         if (
             hasattr(self.sao, "PF")
@@ -580,7 +826,16 @@ class SaoExtractor(object):
                 o["datetime"] = self.date
             if hasattr(self, "local_time"):
                 o["local_datetime"] = self.local_time
-            o["lat"], o["lon"] = (self.stn_info["LAT"], self.stn_info["LONG"])
+            if hasattr(self, "stn_info"):
+                o["lat"], o["lon"] = self.stn_info["LAT"], self.stn_info["LONG"]
+            o["record_index"] = 0
+            o["source_file"] = self.filename
+            if (
+                hasattr(self, "sao_records")
+                and len(self.sao_records) > 0
+                and self.sao_records[0].get("ff_line")
+            ):
+                o["ff_line"] = self.sao_records[0]["ff_line"]
             if plot_ionogram:
                 logger.info("Save figures...")
                 sao_plot = SaoSummaryPlots()
@@ -606,6 +861,8 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
+        mode: str = "auto",
+        record_index: int = 0,
     ) -> pd.DataFrame:
         """Convenience function to extract a single SAO/XML file into a DataFrame.
 
@@ -618,6 +875,10 @@ class SaoExtractor(object):
                 If True, infer station and compute local time.
             func_name:  str, optional
                 Which view to return: ``'height_profile'`` or ``'scaled'``.
+            mode:  str, optional
+                SAO parsing mode for text files: ``'auto'``, ``'single'``, ``'multi'``.
+            record_index:  int, optional
+                Record index when ``mode='single'`` on multi-record SAO files.
 
         Returns:
             DataFrame corresponding to the requested view. For XML inputs
@@ -627,7 +888,7 @@ class SaoExtractor(object):
         if extractor.xml_file:
             extractor.extract_xml()
         else:
-            extractor.extract()
+            extractor.extract(mode=mode, record_index=record_index)
         if func_name == "height_profile":
             if extractor.xml_file:
                 df, _ = extractor.get_height_profile_xml()
@@ -650,6 +911,8 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
+        mode: str = "auto",
+        record_index: int = 0,
     ) -> pd.DataFrame:
         """Load fixed-width SAO files from folders into a single DataFrame.
 
@@ -666,6 +929,10 @@ class SaoExtractor(object):
                 See: meth:`extract_SAO`.
             func_name:  str, optional
                 View to extract (``'height_profile'`` or ``'scaled'``).
+            mode:  str, optional
+                SAO parsing mode for text files.
+            record_index:  int, optional
+                Record index used when forcing ``mode='single'``.
 
         Returns:
             Concatenated DataFrame of all extracted rows.
@@ -685,6 +952,8 @@ class SaoExtractor(object):
                                 extract_time_from_name=extract_time_from_name,
                                 extract_stn_from_name=extract_stn_from_name,
                                 func_name=func_name,
+                                mode=mode,
+                                record_index=record_index,
                             ),
                             files,
                         ),
@@ -703,6 +972,8 @@ class SaoExtractor(object):
         extract_time_from_name: bool = True,
         extract_stn_from_name: bool = True,
         func_name: str = "height_profile",
+        mode: str = "auto",
+        record_index: int = 0,
     ) -> pd.DataFrame:
         """Load XML SAO files from folders into a single DataFrame.
 
@@ -724,6 +995,8 @@ class SaoExtractor(object):
                                 extract_time_from_name=extract_time_from_name,
                                 extract_stn_from_name=extract_stn_from_name,
                                 func_name=func_name,
+                                mode=mode,
+                                record_index=record_index,
                             ),
                             files,
                         ),

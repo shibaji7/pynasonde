@@ -57,6 +57,16 @@ class TestDisplayStruct:
         extractor.display_struct()  # just logs, should not raise
 
 
+class TestExtractModeBranches:
+    def test_invalid_mode_raises(self, extractor):
+        with pytest.raises(ValueError):
+            extractor.extract(mode="bad-mode")
+
+    def test_single_record_index_oob_raises(self, extractor):
+        with pytest.raises(IndexError):
+            extractor.extract(mode="single", record_index=3)
+
+
 # ---------------------------------------------------------------------------
 # get_scaled_datasets with local_time present (line 547)
 # ---------------------------------------------------------------------------
@@ -161,5 +171,20 @@ class TestExtractSaoStatic:
             extract_time_from_name=False,
             extract_stn_from_name=False,
             func_name="height_profile",
+        )
+        assert isinstance(df, pd.DataFrame)
+
+    def test_accepts_mode_and_record_index_args(self, tmp_path):
+        hdr = "  0  0  0  1" + "  0" * 36 + "\n" + "  0" * 40 + "\n"
+        data = "   5.500\n"
+        sao_path = tmp_path / "KR835_2024099160913.SAO"
+        sao_path.write_text(hdr + data)
+        df = SaoExtractor.extract_SAO(
+            str(sao_path),
+            extract_time_from_name=False,
+            extract_stn_from_name=False,
+            func_name="scaled",
+            mode="single",
+            record_index=0,
         )
         assert isinstance(df, pd.DataFrame)

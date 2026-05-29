@@ -72,6 +72,8 @@ def test_run_sao_example(monkeypatch, tmp_path):
         extract_time_from_name=True,
         extract_stn_from_name=True,
         func_name="height_profile",
+        mode="auto",
+        record_index=0,
     ):
         return hp_df if func_name == "height_profile" else scaled_df
 

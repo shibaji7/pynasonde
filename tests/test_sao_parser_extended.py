@@ -266,6 +266,13 @@ class TestGetScaledDatasets:
         df = extractor.get_scaled_datasets()
         assert np.isnan(df["foF2"].iloc[0])
 
+    def test_single_record_metadata_columns(self, extractor):
+        extractor.extract()
+        extractor.sao = to_namespace({"Scaled": {"foF2": 5.5}})
+        df = extractor.get_scaled_datasets()
+        assert "record_index" in df.columns
+        assert "source_file" in df.columns
+
 
 # ---------------------------------------------------------------------------
 # SaoExtractor.get_height_profile() — manual sao injection
@@ -341,3 +348,9 @@ class TestGetHeightProfile:
         ex.stn_info = {"LAT": 55.8, "LONG": 48.8}
         df = ex.get_height_profile()
         assert "datetime" in df.columns
+
+    def test_single_record_height_profile_metadata_columns(self, extractor):
+        self._set_sao_data(extractor)
+        df = extractor.get_height_profile()
+        assert "record_index" in df.columns
+        assert "source_file" in df.columns
