@@ -1,0 +1,182 @@
+# NN-POLAN Stage-1 Training & Diagnostics
+# Generated: 2026-04-15
+# Codebase : /home/chakras4/Research/CodeBase/pynasonde
+# Data     : /home/chakras4/nn_polan
+# Cluster  : Local (chakras4)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# 0. SETUP — run from repo root
+# ---------------------------------------------------------------------------
+cd /home/chakras4/Research/CodeBase/pynasonde
+conda activate pynasonde
+
+# ---------------------------------------------------------------------------
+# 0.1 SETUP — run from repo root
+# ---------------------------------------------------------------------------
+seq 0 269 | xargs -P 8 -I{} \
+    python pynasonde/nn_inversion/training/synthetic_data.py \
+        --shard {} \
+        --n_shards 270 \
+        --out_dir /home/chakras4/nn_polan/data
+
+
+
+# ---------------------------------------------------------------------------
+# 1. STAGE-1 TRAINING — fresh run (60 epochs, 20 shards)
+#    Epochs  0–9  : warmup (BG loss only)
+#    Epochs 10–24 : Abel loss ramping 0 → lambda_phy (1e-4) over 15 epochs
+#    Epochs 25–59 : full physics at lambda_phy = 1e-4
+# ---------------------------------------------------------------------------
+python pynasonde/nn_inversion/training/trainer_stage1.py \
+    --data_dir /home/chakras4/nn_polan/data \
+    --out_dir  /home/chakras4/nn_polan/checkpoint \
+    --max_shards 20 \
+    --epochs 60 \
+    --warmup_epochs 10 \
+    --lambda_phy_ramp_epochs 15 \
+    --device cuda \
+    --verbose
+
+
+# ---------------------------------------------------------------------------
+# 1b. STAGE-1 TRAINING — resume from last checkpoint
+# ---------------------------------------------------------------------------
+python pynasonde/nn_inversion/training/trainer_stage1.py \
+    --data_dir /home/chakras4/nn_polan/data \
+    --out_dir  /home/chakras4/nn_polan/checkpoint \
+    --resume   /home/chakras4/nn_polan/checkpoint/last.pt \
+    --max_shards 20 \
+    --epochs 90 \
+    --warmup_epochs 10 \
+    --lambda_phy_ramp_epochs 15 \
+    --device cuda \
+    --verbose
+
+
+# ---------------------------------------------------------------------------
+# 2. CONVERGENCE DIAGNOSTIC — verify each loss decreases independently
+#    Run after warmup (best.pt) to confirm architecture is healthy.
+#    Expected: A, B, C, D all DECREASING ✓
+# ---------------------------------------------------------------------------
+python pynasonde/nn_inversion/training/diagnose_convergence.py \
+    --checkpoint /home/chakras4/nn_polan/checkpoint/best.pt \
+    --data_dir   /home/chakras4/nn_polan/data \
+    --n_shards   3 \
+    --n_steps    200 \
+    --log_every  20 \
+    --lr         3e-5 \
+    --device     cuda
+
+
+# ---------------------------------------------------------------------------
+# 3. PHYSICS DIAGNOSTIC — check forward model self-consistency & Ne quality
+#    Run on a warmup checkpoint (end of warmup epochs).
+#    Check 1: monotone_loss(ne_raw)         → expect ≈ 0
+#    Check 2: abel_loss(ne_raw, fwd(ne_raw))→ expect exactly 0 (self-consistency)
+#    Check 3: abel_loss(ne_pred, fwd(ne_raw))→ informational (Abel gap at physics start)
+#    Check 4: monotone_loss(ne_pred)        → expect ≈ 0
+#    Check 5: no-reflection fraction        → expect < 2%
+# ---------------------------------------------------------------------------
+python pynasonde/nn_inversion/training/diagnose_physics.py \
+    --checkpoint /home/chakras4/nn_polan/checkpoint/best.pt \
+    --data_dir   /home/chakras4/nn_polan/data \
+    --n_shards   3 \
+    --batch_size 256 \
+    --device     cuda
+
+
+# ---------------------------------------------------------------------------
+# 4. INFERENCE TEST — visual check on held-out test samples
+#    Produces a 3-panel PNG per sample:
+#      Left  : input h'(f) trace
+#      Middle: predicted Ne(h) vs IRI Ne(h)
+#      Right : Abel consistency — Abel(Ne_pred) vs h'_obs
+# ---------------------------------------------------------------------------
+
+# Single sample
+python pynasonde/nn_inversion/training/test_inference.py \
+    --ckpt     /home/chakras4/nn_polan/checkpoint/best.pt \
+    --data_dir /home/chakras4/nn_polan/data \
+    --split    test \
+    --sample   0 \
+    --device   cuda
+
+# Multiple samples
+python pynasonde/nn_inversion/training/test_inference.py \
+    --ckpt     /home/chakras4/nn_polan/checkpoint/best.pt \
+    --data_dir /home/chakras4/nn_polan/data \
+    --split    test \
+    --sample   $(seq -s " " 0 10000 1000000) \
+    --device   cuda
+
+# From training split
+python pynasonde/nn_inversion/training/test_inference.py \
+    --ckpt     /home/chakras4/nn_polan/checkpoint/best.pt \
+    --data_dir /home/chakras4/nn_polan/data \
+    --split    train \
+    --sample   0 500 1000 \
+    --device   cuda
+
+
+# ---------------------------------------------------------------------------
+# 5. STAGE-2 FINE-TUNING — real ionosonde data assimilation (no IRI ground truth)
+#    Requires a pre-processed echo Parquet file from EchoExtractor + IonogramFilter.
+# ---------------------------------------------------------------------------
+python pynasonde/nn_inversion/training/trainer_stage2.py \
+    --stage1_ckpt /home/chakras4/nn_polan/checkpoint/best.pt \
+    --echo_file   /path/to/echoes.parquet \
+    --out_dir     /home/chakras4/nn_polan/checkpoint/stage2 \
+    --station_lat 37.9 \
+    --station_lon -75.5 \
+    --epochs      20 \
+    --device      cuda \
+    --verbose
+
+
+# ---------------------------------------------------------------------------
+# KEY FILES
+# ---------------------------------------------------------------------------
+# Architecture    : pynasonde/nn_inversion/training/architecture.py
+# Physics loss    : pynasonde/nn_inversion/training/physics_loss.py
+# Stage-1 trainer : pynasonde/nn_inversion/training/trainer_stage1.py
+# Stage-2 trainer : pynasonde/nn_inversion/training/trainer_stage2.py
+# Config          : pynasonde/config.toml  [nn_inversion.*]
+# Checkpoints     : /home/chakras4/nn_polan/checkpoint/
+#   best.pt       — lowest val_total so far
+#   last.pt       — end of most recent epoch
+#   training_log.csv — per-epoch loss history
+
+# ---------------------------------------------------------------------------
+# ARCHITECTURE NOTES (2026-04-15)
+# ---------------------------------------------------------------------------
+# Encoder bottleneck: AdaptiveAvgPool1d(1) REMOVED → flatten (B, feat_dim, 9)
+#   → (B, feat_dim*9) preserves spatial frequency ordering in latent.
+#   fc_out: Linear(1152, 256)  [was Linear(128, 256)]
+#   Old checkpoints (before this change) are INCOMPATIBLE — retrain from scratch.
+#
+# Abel loss: forward Abel model REMOVED from training graph.
+#   Now uses Abel inversion:  h'_obs(f) → Ne_abel(h)  via singularity-free
+#   quadrature, then log10-MSE(Ne_pred, Ne_abel) on the bottomside only.
+#   torch_forward_batch / abel_loss kept in physics_loss.py for diagnostics only.
+
+
+# ---------------------------------------------------------------------------
+# Curate days to run step 2
+# ---------------------------------------------------------------------------
+# Create output directory
+mkdir -p ~/nn_polan/curated
+
+# Table 1 & 2: baseline windows + handcrafted event dates
+python pynasonde/nn_inversion/data_curation/compile_training_dates.py \
+    --out_dir ~/nn_polan/curated \
+    --baseline_start 2013-01-01 \
+    --baseline_end   2024-12-31 \
+    --step_days 45
+
+# Mined events: storms (OMNI), X-flares (SWPC), SEP/GLE, eclipses, Es, spread-F, volcanic
+python pynasonde/nn_inversion/data_curation/mine_event_dates.py \
+    --out_dir ~/nn_polan/curated \
+    --start 2003-01-01 \
+    --end   2025-12-31 \
+    --verbose
