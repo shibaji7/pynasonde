@@ -28,6 +28,9 @@ plugins:
               members_order: source
               show_symbol_type_heading: true
               show_symbol_type_toc: true
+              docstring_style: google
+              docstring_options:
+                warnings: false
      
 markdown_extensions:
     - extra
@@ -52,7 +55,6 @@ markdown_extensions:
     - pymdownx.inlinehilite
     - pymdownx.snippets
     - pymdownx.superfences
-    - pymdownx.highlight
     - pymdownx.details
     - footnotes
         
@@ -91,22 +93,29 @@ nav:
                     - Read/Plot DVL: examples/digisonde/dvl.md
                     - RSF Parse and Inspect: examples/digisonde/rsf.md
                     - RSF Direction Ionogram + Directogram: examples/digisonde/rsf_direction_ionogram.md
+                    - MMM ModMax Ionogram: examples/digisonde/mmm.md
+                    - SAO Multi-Record Day-Files: examples/digisonde/sao_multi.md
     - API Documentation:
                 - Overview: dev/api_index.md
                 - Digisonde:
                         - Utils: dev/digisonde/digi_utils.md
                         - Plot Utils: dev/digisonde/digi_plots.md
+                        - DIDBase Connector: dev/digisonde/didbase.md
                         - Digisonde Parsers:
                                 - SAO: dev/digisonde/parsers/sao.md
                                 - SKY: dev/digisonde/parsers/sky.md
                                 - Image: dev/digisonde/parsers/image.md
                                 - DFT: dev/digisonde/parsers/dft.md
                                 - RSF: dev/digisonde/parsers/rsf.md
+                                - SBF: dev/digisonde/parsers/sbf.md
+                                - MMM: dev/digisonde/parsers/mmm.md
+                                - GRM: dev/digisonde/parsers/grm.md
                                 - EDP: dev/digisonde/parsers/edp.md
                                 - DVL: dev/digisonde/parsers/dvl.md
                         - Digisonde Datatypes:
                                 - SAO XML: dev/digisonde/datatypes/saoxmldatatypes.md
                                 - SBF:  dev/digisonde/datatypes/sbfdatatypes.md
+                                - MMM: dev/digisonde/datatypes/mmmdatatypes.md
                                 - DFT: dev/digisonde/datatypes/dftdatatypes.md
                                 - RSF: dev/digisonde/datatypes/rsfdatatypes.md
                         - Raw IQ Processing:
@@ -126,7 +135,7 @@ nav:
                         - Echo Extractor: dev/vipir/riq/echo.md
                         - VIPIR RIQ Parsers:
                                 - Overview: dev/vipir/riq/parsers/index.md
-                                - Trace: dev/vipir/riq/parsers/trace.md
+                                - Filter: dev/vipir/riq/parsers/filter.md
                                 - Read RIQ: dev/vipir/riq/parsers/read_riq.md
                                 - Utils: dev/vipir/riq/utils.md
                         - VIPIR RIQ Datatypes:

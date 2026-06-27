@@ -1,0 +1,219 @@
+/**
+ * pynasonde_architecture.dot  —  publication-quality overview figure
+ *
+ * Render:
+ *   dot -Tpdf pynasonde_architecture.dot -o pynasonde_architecture.pdf
+ *   dot -Tsvg pynasonde_architecture.dot -o pynasonde_architecture.svg
+ */
+
+digraph pynasonde {
+
+    graph [
+        rankdir   = TB
+        fontname  = "Helvetica"
+        fontsize  = 12
+        splines   = spline
+        nodesep   = 0.55
+        ranksep   = 0.65
+        compound  = true
+        bgcolor   = white
+    ]
+
+    node [
+        fontname  = "Helvetica"
+        fontsize  = 11
+        shape     = box
+        style     = "filled,rounded"
+        fillcolor = white
+        color     = "#444444"
+        margin    = "0.20,0.12"
+    ]
+
+    edge [
+        fontname  = "Helvetica"
+        fontsize  = 9
+        color     = "#444444"
+        arrowsize = 0.75
+    ]
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ROW 1  Raw data inputs  (two instrument families)
+    // ─────────────────────────────────────────────────────────────────────
+
+    subgraph cluster_dps4d_in {
+        label     = "Digisonde  (DPS4D)"
+        style     = filled
+        fillcolor = "#F0F4FF"
+        color     = "#6070B0"
+        fontsize  = 11
+
+        dps_files [
+            label     = "SAO · RSF · DFT\nSKY · DVL · EDP · MMM\nRaw IQ  (.iq)"
+            fillcolor = "#DDEEFF"
+            color     = "#4060A0"
+        ]
+    }
+
+    subgraph cluster_vipir_in {
+        label     = "VIPIR"
+        style     = filled
+        fillcolor = "#F0F4FF"
+        color     = "#6070B0"
+        fontsize  = 11
+
+        vip_files [
+            label     = "Scaled Ionogram  (.NGI)\nRaw IQ  (.RIQ)"
+            fillcolor = "#DDEEFF"
+            color     = "#4060A0"
+        ]
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ROW 2  Instrument-specific ingestion
+    // ─────────────────────────────────────────────────────────────────────
+
+    subgraph cluster_dps4d_parse {
+        label     = "Format Parsers"
+        style     = filled
+        fillcolor = "#E8EDF8"
+        color     = "#6070B0"
+        fontsize  = 11
+
+        dps_parse [
+            label     = "Multi-format binary / XML decoders\nTyped ionospheric records"
+            fillcolor = "#D8E4F4"
+            color     = "#4060A0"
+        ]
+        dps_plot [
+            label     = "Ionogram Visualization\nAdded: RSF · Directogram · DFT · Waterfall Plots"
+            fillcolor = "#FFF9C4"
+            color     = "#F9A825"
+        ]
+    }
+
+    subgraph cluster_vipir_pipe {
+        label     = "VIPIR Raw-IQ Pipeline"
+        style     = filled
+        fillcolor = "#CFFFCE"
+        color     = "#2E7D32"
+        penwidth  = 2
+        fontsize  = 11
+
+        ngi_pipe [
+            label     = "Scaled Ionogram Loader\nAuto-Scaler  ·  Renderer"
+            fillcolor = "#E8F5E9"
+            color     = "#388E3C"
+        ]
+        riq_echo [
+            label     = "Echo Extractor\n7-parameter Dynasonde method\n(phase · height · velocity · location · polarization)"
+            fillcolor = "#CFFFCE"
+            color     = "#2E7D32"
+            penwidth  = 2
+        ]
+        riq_filt [
+            label     = "Multi-Stage Ionogram Filter\nRFI blanking  ·  EP  ·  Multi-hop\nDBSCAN  ·  RANSAC  ·  Temporal"
+            fillcolor = "#CFFFCE"
+            color     = "#2E7D32"
+            penwidth  = 2
+        ]
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ROW 3  Physics analysis  (shared)
+    // ─────────────────────────────────────────────────────────────────────
+
+    subgraph cluster_analysis {
+        label     = "Physics Analysis"
+        style     = filled
+        fillcolor = "#E3F2FD"
+        color     = "#1565C0"
+        penwidth  = 2
+        fontsize  = 11
+
+        an_classical [
+            label     = "Classical Inversion\nAbel · Lamination → Ne(h)"
+            fillcolor = "#FFF9C4"
+            color     = "#F9A825"
+        ]
+        // an_nextyz [
+        //     label     = "NeXtYZ  3-D Reconstruction\nRay-tracing · wedge model"
+        //     fillcolor = "#CFFFCE"
+        //     color     = "#2E7D32"
+        // ]
+        an_es [
+            label     = "Es-Layer Imaging\nCapon cross-spectrum\nMulti-file beamforming"
+            fillcolor = "#CFFFCE"
+            color     = "#2E7D32"
+        ]
+        an_phys [
+            label     = "Ionospheric Physics Suite\nIrregularities  ·  Polarization  ·  Scaling"
+            fillcolor = "#CFFFCE"
+            color     = "#2E7D32"
+        ]
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ROW 4  Scientific outputs
+    // ─────────────────────────────────────────────────────────────────────
+
+    subgraph cluster_out {
+        label     = "Scientific Products"
+        style     = filled
+        fillcolor = "#F3E5F5"
+        color     = "#7B1FA2"
+        fontsize  = 11
+
+        out_ne  [label="Electron Density\nProfiles  Ne(h)"                     fillcolor=white  color="#7B1FA2"]
+        out_par [label="Ionospheric Parameters\nfoF2  ·  h'F  ·  MUF  ·  V*"  fillcolor=white  color="#7B1FA2"]
+        out_fig [label="Publication Figures\n& Datasets"                       fillcolor=white  color="#7B1FA2"]
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LEGEND
+    // ─────────────────────────────────────────────────────────────────────
+
+    subgraph cluster_legend {
+        label     = "Legend"
+        style     = filled
+        fillcolor = white
+        color     = "#AAAAAA"
+        fontsize  = 10
+        rank      = sink
+
+        lg1 [label="New in v2"            fillcolor="#CFFFCE"  style="filled,rounded"  color="#2E7D32"]
+        lg2 [label="Refactored from v1"   fillcolor="#FFF9C4"  style="filled,rounded"  color="#F9A825"]
+        lg3 [label="Carried from v1"      fillcolor="#D8E4F4"  style="filled,rounded"  color="#4060A0"]
+
+        lg1 -> lg2 -> lg3 [style=invis]
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // EDGES
+    // ─────────────────────────────────────────────────────────────────────
+
+    dps_files -> dps_parse
+    dps_files -> dps_plot   [style=dashed  label="raw IQ"]
+    vip_files -> ngi_pipe   [label=".NGI"]
+    vip_files -> riq_echo   [label=".RIQ"  color="#2E7D32"  penwidth=2]
+
+    dps_parse -> dps_plot
+
+    riq_echo  -> riq_filt   [color="#2E7D32"  penwidth=2  label="echo cloud"]
+
+    riq_filt  -> an_classical  [color="#2E7D32"]
+    // riq_filt  -> an_nextyz     [color="#2E7D32"]
+    riq_filt  -> an_es         [color="#2E7D32"]
+    riq_filt  -> an_phys       [color="#2E7D32"]
+
+    ngi_pipe  -> an_classical  [style=dashed  label="scaled h'(f)"]
+
+    an_classical -> out_ne
+    // an_nextyz    -> out_ne
+    an_phys      -> out_par
+    an_es        -> out_fig
+    dps_plot     -> out_fig
+    ngi_pipe     -> out_fig  [style=dashed]
+    out_ne       -> out_fig  [style=dashed]
+    out_par      -> out_fig  [style=dashed]
+
+}

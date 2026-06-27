@@ -42,7 +42,8 @@ from pynasonde.vipir.riq.parsers.read_riq import VIPIR_VERSION_MAP, RiqDataset
 # Configuration
 # ---------------------------------------------------------------------------
 
-fname = "examples/data/WI937_2022233235902.RIQ"
+# fname = "examples/data/WI937_2022233235902.RIQ"
+fname = "tmp/WI937_2026019000004.RIQ"
 font_size = 12
 setsize(font_size)
 
@@ -190,16 +191,16 @@ print(f"Raw echoes      : {len(df_raw)}")
 filt = IonogramFilter(
     rfi_enabled=True,
     rfi_height_iqr_km=300.0,
-    rfi_min_echoes=3,
+    rfi_min_echoes=20,
     ep_filter_enabled=True,
     ep_max_deg=90.0,
     multihop_enabled=True,
     multihop_orders=(2, 3),
     multihop_height_tol_km=50.0,
-    multihop_snr_margin_db=6.0,
+    multihop_snr_margin_db=20.0,
     dbscan_enabled=True,
-    dbscan_eps=1.0,
-    dbscan_min_samples=5,
+    dbscan_eps=1.5,
+    dbscan_min_samples=10,
     dbscan_features=(
         "frequency_khz",
         "height_km",
@@ -211,8 +212,8 @@ filt = IonogramFilter(
     ransac_residual_km=100.0,
     ransac_min_samples=10,
     ransac_n_iter=200,
-    ransac_poly_degree=3,
-    ransac_min_inlier_fraction=0.3,
+    ransac_poly_degree=5,
+    ransac_min_inlier_fraction=0.5,
     temporal_enabled=False,
 )
 
@@ -250,7 +251,7 @@ print(
 
 fig, axes = plt.subplots(3, 3, figsize=(17, 14), constrained_layout=True)
 fig.suptitle(
-    "WI937  2022-233  23:59 UT — Filter → Full Parameter Analysis",
+    f"WI937 {extractor.time_start.strftime('%Y-%j %H:%M UT')} — Filter → Full Parameter Analysis",
     fontsize=font_size + 1,
 )
 

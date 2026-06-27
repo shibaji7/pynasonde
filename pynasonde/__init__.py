@@ -5,9 +5,10 @@ utilities for two families of ionosonde instruments:
 
 :mod:`pynasonde.digisonde`
     Parsers for Digisonde DPS4D file formats (SAO, RSF, DFT, SBF, DVL,
-    MMM, SKY, EDP) and the raw IQ pipeline for ``.bin`` recordings.
+    MMM, SKY, EDP), CADI MD2/MD4 support, and the raw IQ pipeline for
+    ``.bin`` recordings.
     Includes high-level plotting classes (:class:`SaoSummaryPlots`,
-    :class:`SkySummaryPlots`, :class:`RsfIonogram`).
+    :class:`SkySummaryPlots`, :class:`RsfIonogram`, :class:`CadiIonogram`).
 
 :mod:`pynasonde.vipir`
     VIPIR ionosonde data tools.  Covers scaled NGI ionograms
@@ -24,10 +25,13 @@ Convenience re-exports
 >>> from pynasonde import DataSource, Trace, Webhook
 """
 
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 # Digisonde parsers and plotting
 from pynasonde.digisonde import (
+    CadiIonogram,
+    CadiExtractor,
+    CadiReader,
     DftExtractor,
     DigiPlots,
     DvlExtractor,
@@ -73,11 +77,14 @@ __all__ = [
     "SkyExtractor",
     "EdpExtractor",
     "IonogramImageExtractor",
+    "CadiExtractor",
+    "CadiReader",
     # Digisonde plotting
     "DigiPlots",
     "SaoSummaryPlots",
     "SkySummaryPlots",
     "RsfIonogram",
+    "CadiIonogram",
     # VIPIR NGI
     "Trace",
     "Dataset",

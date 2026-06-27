@@ -4,9 +4,9 @@ This tutorial walks through producing sky map visualizations from DIGISONDE
 `.SKY` files with `pynasonde`. The example leverages observations from the
 08 April 2024 Great American Eclipse and saves figures that can be referenced
 directly in the MkDocs documentation. The runnable script lives at
-[`examples/digisonde/sky.py`](../../../examples/digisonde/sky.py), and the
+[`examples/digisonde/sky.py`](https://github.com/shibaji7/pynasonde/blob/main/examples/digisonde/sky.py), and the
 parsing utilities it relies on reside in
-[`pynasonde/digisonde/parsers/sky.py`](../../../pynasonde/digisonde/parsers/sky.py).
+[`pynasonde/digisonde/parsers/sky.py`](https://github.com/shibaji7/pynasonde/blob/main/pynasonde/digisonde/parsers/sky.py).
 
 ## Why generate sky maps?
 
@@ -85,11 +85,6 @@ skyplot.close()
 your investigation. Providing multiple files in the `files` list enables rapid
 comparison across time or stations.
 
-<figure markdown>
-![Single Sky Map](../figures/single_skymap.png)
-<figcaption>Figure 01: Single-map output highlighting Doppler frequency shifts observed at Kirtland during the 08 April 2024 Great American Eclipse (16:09 UT).</figcaption>
-</figure>
-
 ## Example script - for multiple files
 > Ideal for contrasting multiple time intervals or stations in a single figure.
 ```python
@@ -142,8 +137,3 @@ ax.text(
 skyplot.save("docs/examples/figures/panel_skymaps.png")
 skyplot.close()
 ```
-
-<figure markdown>
-![Sky Map Panels](../figures/panel_skymaps.png)
-<figcaption>Figure 02: Multi-panel layout from following script, ideal for contrasting multiple time intervals or stations in a single figure.</figcaption>
-</figure>

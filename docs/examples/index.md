@@ -103,8 +103,6 @@
 ## Figure Gallery
 
 ![DVL Stack Plot](figures/stackplots_dvl.png)
-![Single Sky Map](figures/single_skymap.png)
-![Sky Map Panels](figures/panel_skymaps.png)
 ![SAO Height Profile](figures/stack_sao_ne.png)
 ![SAO F2 Diagnostics](figures/stack_sao_F2.png)
 ![RSF Direction Ionogram](figures/rsf_direction_ionogram_KR835.png)
@@ -112,7 +110,6 @@
 ![SAO Isodensity Contours](figures/sao_isodensity_KR835.png)
 ![DFT Doppler Waterfall](figures/dft_doppler_waterfall_KR835.png)
 ![DFT Doppler Spectra](figures/dft_doppler_spectra_KR835.png)
-![VIPIR Ionogram from RIQ](figures/ionogram_from_riq.png)
 ![VIPIR FTI Interval Plot](figures/fti.WI937.2022j.png)
 ![NGI AutoScaler QA](figures/ngi.scaler.png)
 ![Ionogram Filter WI937](figures/ionogram_filter_wi937.png)

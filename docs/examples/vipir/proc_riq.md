@@ -100,8 +100,3 @@ p.close()
 > Adjust thresholding, median filter settings, or plotting limits to highlight the
 > features most relevant to your campaign. For batch processing, wrap the workflow in a
 > loop over multiple RIQ files and assign unique output filenames.
-
-<figure markdown>
-![VIPIR Ionogram](../figures/ionogram_from_riq.png)
-<figcaption>Figure: Power-scaled ionogram derived from `PL407_2024058061501.RIQ`, filtered with the adaptive gain procedure to suppress baseline noise.</figcaption>
-</figure>

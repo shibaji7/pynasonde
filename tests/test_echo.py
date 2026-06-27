@@ -163,7 +163,6 @@ class TestEchoDataclass:
         assert isinstance(d, dict)
         assert d["frequency_khz"] == pytest.approx(5000.0)
         assert d["height_km"] == pytest.approx(300.0)
-        # All 14 fields should be present
         expected_keys = {
             "frequency_khz",
             "height_km",
@@ -179,6 +178,13 @@ class TestEchoDataclass:
             "gate_index",
             "pulse_ut",
             "rx_count",
+            "time",
+            # interferometric extensions
+            "elevation_deg",
+            "xl_km_mvdr",
+            "yl_km_mvdr",
+            "residual_deg_mvdr",
+            "doppler_spectrum",
         }
         assert expected_keys == set(d.keys())
 

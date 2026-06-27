@@ -283,7 +283,7 @@ based on ionosonde using a cross-spectrum analysis imaging technique. *Space Wea
 
 ## See Also
 
-- [Es Imaging API Reference](../../dev/vipir/analysis/es_imaging.md)
+- [Es Imaging API Reference](../../dev/vipir/analysis/es_imaging/index.md)
 - [Analysis Sub-package Overview](../../dev/vipir/analysis/index.md)
 - [Echo Extraction](echo_extraction.md)
 - [RIQ Overview](../../dev/vipir/riq/index.md)

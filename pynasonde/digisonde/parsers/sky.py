@@ -7,22 +7,19 @@ blocks and exposes helpers to convert parsed content into pandas
 DataFrames suitable for plotting with :class:`SkySummaryPlots`.
 """
 
-import datetime as dt
 from types import SimpleNamespace
 from typing import List
 
 import pandas as pd
-from loguru import logger
 
 from pynasonde.digisonde.digi_plots import SkySummaryPlots
-from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
-from pynasonde.vipir.ngi.utils import TimeZoneConversion
+from pynasonde.digisonde.digi_utils import apply_filename_metadata, to_namespace
 
 
 def get_indent(line: str) -> int:
     """Return the number of leading spaces in a line.
 
-    Parameters:
+    Args:
         line: Input text line.
 
     Returns:
@@ -52,44 +49,26 @@ class SkyExtractor(object):
     ) -> None:
         """Create a SkyExtractor.
 
-        Parameters:
-            filename: str
-                Path to the SKY-format file to parse.
-            extract_time_from_name: bool, optional
-                If True, attempt to parse a timestamp token from the
+        Args:
+            filename (str): Path to the SKY-format file to parse.
+            extract_time_from_name (bool, optional): If True, attempt to parse a timestamp token from the
                 filename (default False).
-            extract_stn_from_name: bool, optional
-                If True, attempt to determine station code and local
+            extract_stn_from_name (bool, optional): If True, attempt to determine station code and local
                 timezone information (default False).
-            n_fft: int, optional
-                FFT length used to compute Doppler frequency scaling.
-            delta_freq: float, optional
-                Frequency step in Hz used by :meth:`get_doppler_freq`.
+            n_fft (int, optional): FFT length used to compute Doppler frequency scaling.
+            delta_freq (float, optional): Frequency step in Hz used by :meth:`get_doppler_freq`.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
         self.n_fft = n_fft
         self.delta_freq = delta_freq
         self.l0 = n_fft // 2
-        if extract_time_from_name:
-            date = self.filename.split("_")[-1].replace(".SKY", "").replace(".sky", "")
-            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
-                int(date[4:7]) - 1
-            )
-            self.date = self.date.replace(
-                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
-            )
-            logger.info(f"Date: {self.date}")
-        if extract_stn_from_name:
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
-            self.stn_info = get_digisonde_info(self.stn_code)
-            self.local_timezone_converter = TimeZoneConversion(
-                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
-            )
-            self.local_time = self.local_timezone_converter.utc_to_local_time(
-                [self.date]
-            )[0]
-            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
+        apply_filename_metadata(
+            self,
+            self.filename,
+            extract_time_from_name=extract_time_from_name,
+            extract_stn_from_name=extract_stn_from_name,
+        )
         return
 
     def read_file(self) -> List[str]:
@@ -104,7 +83,7 @@ class SkyExtractor(object):
     def parse_line(self, sky_arch_list: List[str], _i: int):
         """Parse a single line from the raw lines list.
 
-        Parameters:
+        Args:
             sky_arch_list:  List of file lines as returned by :meth:`read_file`.
             _i: Index of the line to parse.
 
@@ -125,7 +104,7 @@ class SkyExtractor(object):
     def parse_data_header(self, sky_arch):
         """Parse a data-header line into a dictionary of fields.
 
-        Parameters:
+        Args:
             sky_arch: Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
@@ -151,7 +130,7 @@ class SkyExtractor(object):
     def parse_freq_header(self, sky_arch: List[str]):
         """Parse a frequency/height header line into a dict of fields.
 
-        Parameters:
+        Args:
             sky_arch: Tokenized line (as returned by :meth:`parse_line`).
 
         Returns:
@@ -242,13 +221,10 @@ class SkyExtractor(object):
         multiple following lines. Depending on ``n_sources`` the block may
         wrap to multiple groups of five lines.
 
-        Parameters:
-            sky_arch_list: list[str]
-                Full list of file lines.
-            _i: int
-                Current index in the file (frequency header line index).
-            n_sources: int
-                Number of sky sources to extract; determines how many lines
+        Args:
+            sky_arch_list (list[str]): Full list of file lines.
+            _i (int): Current index in the file (frequency header line index).
+            n_sources (int): Number of sky sources to extract; determines how many lines
                 to consume.
 
         Returns:
@@ -283,9 +259,8 @@ class SkyExtractor(object):
     def get_doppler_freq(self, L: float) -> float:
         """Convert a Doppler bin index to Doppler frequency in MHz.
 
-        Parameters:
-            L: float
-                Doppler bin index (integer or float) returned by the skymap
+        Args:
+            L (float): Doppler bin index (integer or float) returned by the skymap
                 processing.
 
         Returns:
@@ -340,25 +315,3 @@ class SkyExtractor(object):
                 d = pd.DataFrame.from_records(d)
                 df = pd.concat([df, d])
         return df
-
-
-if __name__ == "__main__":
-    extractor = SkyExtractor(
-        # "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286000915.SKY",
-        "tmp/20250527/KW009_2025147000426.SKY",
-        True,
-        True,
-    )
-    extractor.extract().dataset[-1].freq_headers
-    df = extractor.to_pandas()
-    skyplot = SkySummaryPlots()
-    skyplot.plot_skymap(
-        df,
-        zparam="spect_dop_freq",
-        text=f"Skymap:\n {extractor.stn_code} / {extractor.date.strftime('%H:%M:%S UT, %d %b %Y')}",
-        # cmap="jet",
-        clim=[-1, 1],
-        rlim=6,
-    )
-    skyplot.save("tmp/extract_sky.png")
-    skyplot.close()

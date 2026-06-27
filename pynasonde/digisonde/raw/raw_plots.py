@@ -27,6 +27,7 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
+from loguru import logger
 
 DATE_FORMAT: str = r"$%H^{%M}$"
 
@@ -50,6 +51,19 @@ class RawPlots(object):
         subplot_kw: dict = None,
         draw_local_time: bool = False,
     ):
+        """Create a raw-IQ plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Optional subplot keyword arguments.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
         self.fig_title = fig_title
         self.nrows = nrows
         self.ncols = ncols
@@ -72,6 +86,7 @@ class RawPlots(object):
         return
 
     def get_axes(self, del_ticks=True):
+        """Return the next plotting axes and optionally remove ticks."""
         utils.setsize(self.font_size)
         ax = (
             self.axes[self.n_sub_plots]
@@ -95,10 +110,12 @@ class RawPlots(object):
         return ax
 
     def save(self, filepath):
+        """Save the current figure to ``filepath``."""
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
     def close(self):
+        """Close the Matplotlib figure."""
         self.fig.clf()
         plt.close()
         return
@@ -142,6 +159,23 @@ class RawPlots(object):
         xlim: List = [],
         cbar_label: str = "",
     ):
+        """Add a pseudocolor mesh to an axes.
+
+        Args:
+            ax: Target Matplotlib axes.
+            X: X-coordinate grid.
+            Y: Y-coordinate grid.
+            zz: Z values to plot.
+            add_cbar: If True, add a colorbar.
+            label: Reserved label parameter.
+            cmap: Matplotlib colormap name.
+            prange: Reserved plotting range.
+            ylabel: Reserved y-axis label.
+            xlabel: Reserved x-axis label.
+            ylim: Reserved y-axis limits.
+            xlim: Reserved x-axis limits.
+            cbar_label: Colorbar label.
+        """
         im = ax.pcolormesh(
             X,
             Y,
@@ -159,6 +193,7 @@ class RawPlots(object):
 
 
 class AFRLPlots(RawPlots):
+    """Raw IQ plotting helpers for AFRL/VIPIR-style displays."""
 
     def __init__(
         self,
@@ -172,6 +207,7 @@ class AFRLPlots(RawPlots):
         subplot_kw: dict = None,
         draw_local_time: bool = False,
     ):
+        """Create an AFRL raw-IQ plotting canvas."""
         super().__init__(
             fig_title,
             nrows,
@@ -200,6 +236,7 @@ class AFRLPlots(RawPlots):
         title: str = None,
         ax=None,
     ):
+        """Draw a power spectral density line plot."""
         utils.setsize(self.font_size)
         ax = ax if ax else self.get_axes(del_ticks=False)
         xlim = xlim if len(xlim) == 2 else [f.min(), f.max()]
@@ -235,6 +272,7 @@ class AFRLPlots(RawPlots):
         title: str = None,
         ax=None,
     ):
+        """Draw a PSD time-frequency scan as a pseudocolor mesh."""
         utils.setsize(self.font_size)
         ax = ax if ax else self.get_axes(del_ticks=False)
         xlim = xlim if len(xlim) == 2 else [f.min(), f.max()]
@@ -264,5 +302,5 @@ class AFRLPlots(RawPlots):
         )
         # if add_cbar:
         self.add_colorbar(im, self.fig, ax, label="")
-        print(t_spec.min(), t_spec.max())
+        logger.debug(f"t_spec range: {t_spec.min()} – {t_spec.max()}")
         return

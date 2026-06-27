@@ -1,6 +1,7 @@
 """Regression tests for multi-record SAO parsing modes."""
 
 import datetime as dt
+from pathlib import Path
 
 import pandas as pd
 
@@ -113,26 +114,10 @@ def test_extract_single_negative_index_on_multi(monkeypatch):
     assert ex.sao_records[0]["record_datetime"] == dt.datetime(2024, 10, 25, 0, 13, 0)
 
 
-class _DummyPool:
-    def __init__(self, n_procs):
-        self.n_procs = n_procs
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def imap(self, fn, items):
-        for item in items:
-            yield fn(item)
-
-
-def test_load_sao_files_propagates_mode_and_record_index(monkeypatch):
-    import pynasonde.digisonde.parsers.sao as sao_module
-
+def test_load_sao_files_propagates_mode_and_record_index(tmp_path, monkeypatch):
     calls = []
-    fake_files = ["a.SAO", "b.SAO"]
+    for name in ["a.SAO", "b.SAO"]:
+        (tmp_path / name).write_text("")
 
     def fake_extract(file, **kwargs):
         calls.append((file, kwargs))
@@ -144,17 +129,12 @@ def test_load_sao_files_propagates_mode_and_record_index(monkeypatch):
             }
         )
 
-    monkeypatch.setattr(sao_module, "Pool", _DummyPool)
-    monkeypatch.setattr(
-        sao_module.glob, "glob", lambda *_args, **_kwargs: list(fake_files)
-    )
-    monkeypatch.setattr(sao_module, "tqdm", lambda x, total=None: x)
     monkeypatch.setattr(SaoExtractor, "extract_SAO", staticmethod(fake_extract))
 
     out = SaoExtractor.load_SAO_files(
-        folders=["/tmp/demo"],
+        folders=[str(tmp_path)],
         ext="*.SAO",
-        n_procs=2,
+        n_procs=1,
         extract_time_from_name=False,
         extract_stn_from_name=False,
         func_name="scaled",
@@ -166,4 +146,4 @@ def test_load_sao_files_propagates_mode_and_record_index(monkeypatch):
     assert len(out) == 2
     assert out["record_index"].tolist() == [5, 5]
     assert out["mode"].tolist() == ["single", "single"]
-    assert [c[0] for c in calls] == fake_files
+    assert [Path(c[0]).name for c in calls] == ["a.SAO", "b.SAO"]

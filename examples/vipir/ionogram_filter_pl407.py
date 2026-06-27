@@ -64,8 +64,8 @@ extractor = EchoExtractor(
     snr_threshold_db=3.0,
     min_height_km=60.0,
     max_height_km=1000.0,
-    min_rx_for_direction=3,  # PL407 has n_rx=2 → XL/YL/EP will be NaN
-    max_echoes_per_pulset=5,
+    min_rx_for_direction=2,  # PL407 has n_rx=2 → XL/YL/EP will be NaN
+    max_echoes_per_pulset=10,
 )
 extractor.extract()
 

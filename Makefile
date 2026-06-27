@@ -240,9 +240,10 @@ install-dev:
 test:
 	@set -euo pipefail
 	echo ""
-	echo "  Running pytest..."
+	echo "  Running pytest in conda env: pynasonde"
 	echo ""
-	python -m pytest
+	mkdir -p /tmp/mplconfig
+	NUMBA_DISABLE_JIT=1 MPLCONFIGDIR=/tmp/mplconfig conda run -n pynasonde python -m pytest
 	echo ""
 
 # --------------------------------------------------------------------------- #

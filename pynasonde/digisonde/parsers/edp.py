@@ -1,17 +1,37 @@
-import datetime as dt
+"""Parser for Digisonde EDP electron-density profile text outputs."""
+
 from types import SimpleNamespace
 from typing import List
 
 import numpy as np
 import pandas as pd
 from loguru import logger
-from tqdm import tqdm
 
-from pynasonde.digisonde.digi_utils import to_namespace
+from pynasonde.digisonde.digi_utils import (
+    apply_filename_metadata,
+    load_files_to_dataframe,
+    to_namespace,
+)
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
 
 
+def set_timestamp(df: pd.DataFrame, extractor: "EdpExtractor") -> pd.DataFrame:
+    """Attach UTC/local timestamp and station metadata when available."""
+    if hasattr(extractor, "date"):
+        df["datetime"] = extractor.date
+    if hasattr(extractor, "local_time"):
+        df["local_datetime"] = extractor.local_time
+    if hasattr(extractor, "stn_info"):
+        df["lat"] = extractor.stn_info["LAT"]
+        df["lon"] = extractor.stn_info["LONG"]
+    if hasattr(extractor, "stn_code"):
+        df["station"] = extractor.stn_code
+    df["source_file"] = extractor.filename
+    return df
+
+
 class EdpExtractor(object):
+    """Extract F2 metadata and height profiles from one EDP file."""
 
     def __init__(
         self,
@@ -19,35 +39,24 @@ class EdpExtractor(object):
         extract_time_from_name: bool = False,
         extract_stn_from_name: bool = False,
     ) -> None:
-        """EDP (electron density profile) text-file parser for Digisonde outputs.
+        """Create an EDP extractor.
 
-        This module provides :class:`EdpExtractor`, a lightweight parser for
-        EDP files that contain F2-layer and profile information exported by
-        Digisonde software. It focuses on parsing small text files into plain
-        Python structures and pandas DataFrames suitable for documentation
-        examples and downstream analysis.
-
-        Parameters:
-            filename: str
-                Path to the EDP-format file to parse.
-            extract_time_from_name: bool, optional
-                If True, attempt to parse a timestamp from the filename (default False). The extractor expects a trailing YYYYDDDHHMMSS-like token in the filename when this is used.
-            extract_stn_from_name: bool, optional
-                If True, attempt to extract a station code from the filename (default False).
+        Args:
+            filename: Path to the EDP-format file to parse.
+            extract_time_from_name: If True, parse a timestamp from the
+                filename.
+            extract_stn_from_name: If True, parse a station code from the
+                filename.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
-        if extract_time_from_name:
-            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
-            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
-                int(date[4:7]) - 1
-            )
-            self.date = self.date.replace(
-                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
-            )
-            logger.info(f"Date: {self.date}")
-        if extract_stn_from_name:
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
+        apply_filename_metadata(
+            self,
+            self.filename,
+            extract_time_from_name=extract_time_from_name,
+            extract_stn_from_name=extract_stn_from_name,
+            load_station_info=False,
+        )
         return
 
     def __update_tz__(self) -> None:
@@ -65,11 +74,7 @@ class EdpExtractor(object):
         return
 
     def read_file(self) -> List[str]:
-        """Update station timezone information from parsed F2 metadata.
-
-        This helper extracts latitude/longitude from the parsed F2
-        header (``edp_struct['f2']``), constructs a
-        :class:`TimeZoneConversion` and computes :attr:`local_time`.
+        """Read the EDP text file.
 
         Returns:
             Lines from the file including newline characters.
@@ -80,11 +85,9 @@ class EdpExtractor(object):
     def __check_issues__(self, line1: str, n: int) -> bool:
         """Inspect header lines for problem flags or truncated files.
 
-        Parameters:
-            line1: str
-                The second header line from the file (used to detect flags).
-            n: int
-                Number of lines in the file (used to detect truncated output).
+        Args:
+            line1 (str): The second header line from the file (used to detect flags).
+            n (int): Number of lines in the file (used to detect truncated output).
 
         Returns:
             True if the file appears to have an issue (bad flags or too few lines), False otherwise.
@@ -99,9 +102,8 @@ class EdpExtractor(object):
     def __parse_F2_datasets__(self, lines: List[str]) -> None:
         """Parse the F2 header and value lines into ``edp_struct['f2']``.
 
-        Parameters:
-            lines: list[str]
-                Two-line sequence where the first is a whitespace-separated header and the second contains numeric values.
+        Args:
+            lines (list[str]): Two-line sequence where the first is a whitespace-separated header and the second contains numeric values.
         """
         header, values = (
             list(filter(None, lines[0].replace("\n", "").split(" "))),
@@ -165,15 +167,11 @@ class EdpExtractor(object):
     ) -> pd.DataFrame:
         """Convenience function to extract a single EDP file into a DataFrame.
 
-        Parameters:
-            file: str
-                Path to the EDP file.
-            extract_time_from_name: bool, optional
-                See :meth:`__init__`.
-            extract_stn_from_name: bool, optional
-                See :meth:`__init__`.
-            func_name: str, optional
-                Which view to return. ``'height_profile'`` returns the profile
+        Args:
+            file (str): Path to the EDP file.
+            extract_time_from_name (bool, optional): See :meth:`__init__`.
+            extract_stn_from_name (bool, optional): See :meth:`__init__`.
+            func_name (str, optional): Which view to return. ``'height_profile'`` returns the profile
                 rows as a DataFrame (default). ``'scaled'`` returns the F2
                 header as a single-row DataFrame.
 
@@ -204,30 +202,26 @@ class EdpExtractor(object):
     ) -> pd.DataFrame:
         """Load EDP files from one or more folders into a single DataFrame.
 
-        Parameters:
-            folders: list[str], optional
-                Folders to search for files (can be empty). Each folder will be
+        Args:
+            folders (list[str], optional): Folders to search for files (can be empty). Each folder will be
                 globbed using ``ext``.
-            ext: str, optional
-                File glob pattern to match (default ``'*.EDP'``).
-            n_procs: int, optional
-                Number of worker processes to use for parallel extraction.
-            extract_time_from_name: bool, optional
-                See :meth:`__init__`.
-            extract_stn_from_name: bool, optional
-                See :meth:`__init__`.
-            func_name: str, optional
-                Passed to :meth:`extract_EDP` to select the returned view.
+            ext (str, optional): File glob pattern to match (default ``'*.EDP'``).
+            n_procs (int, optional): Number of worker processes to use for parallel extraction.
+            extract_time_from_name (bool, optional): See :meth:`__init__`.
+            extract_stn_from_name (bool, optional): See :meth:`__init__`.
+            func_name (str, optional): Passed to :meth:`extract_EDP` to select the returned view.
 
         Returns:
             Concatenated DataFrame containing extracted rows from all discovered files.
         """
-
-
-if __name__ == "__main__":
-    coll = EdpExtractor.load_EDP_files(
-        [
-            "/media/chakras4/Crucial X9/NOAA_Archives/profilers-sounders/ionosonde/mids09/BC840/2017/233/scaled/"
-        ],  # func_name="scaled"
-    )
-    print(coll.columns)
+        return load_files_to_dataframe(
+            folders=folders,
+            exts=ext,
+            extractor=EdpExtractor.extract_EDP,
+            n_procs=n_procs,
+            extractor_kwargs=dict(
+                extract_time_from_name=extract_time_from_name,
+                extract_stn_from_name=extract_stn_from_name,
+                func_name=func_name,
+            ),
+        )

@@ -32,18 +32,15 @@ class IonogramImageExtractor(object):
     ):
         """Create an IonogramImageExtractor.
 
-        Parameters:
-            filepath: str
-                Path to the ionogram image file.
-            extract_time_from_name: bool, optional
-                If True (default), attempt to parse the timestamp from the
+        Args:
+            filepath (str): Path to the ionogram image file.
+            extract_time_from_name (bool, optional): If True (default), attempt to parse the timestamp from the
                 filename using ``filestr_date_format``.
             date: datetime.datetime, optional
                 Manually provided date; if None and
                 ``extract_time_from_name`` is True the date will be parsed
                 from the filename.
-            filestr_date_format: str, optional
-                Format string used when parsing the filename timestamp.
+            filestr_date_format (str, optional): Format string used when parsing the filename timestamp.
         """
         self.filepath = filepath
         self.extract_time_from_name = extract_time_from_name
@@ -67,13 +64,11 @@ class IonogramImageExtractor(object):
     ) -> str:
         """Extract text from a cropped region of the image using Tesseract OCR.
 
-        Parameters:
+        Args:
             crop_axis: numpy.ndarray, optional
                 2x2 array specifying the crop region as [[y1, y2], [x1, x2]].
-            cv_props: dict, optional
-                OpenCV thresholding parameters (keys: 'thresh', 'maxval', 'type').
-            OCR_custom_config: str, optional
-                Tesseract configuration string (e.g. '--oem 3 --psm 6').
+            cv_props (dict, optional): OpenCV thresholding parameters (keys: 'thresh', 'maxval', 'type').
+            OCR_custom_config (str, optional): Tesseract configuration string (e.g. '--oem 3 --psm 6').
 
         Returns:
             Text extracted from the cropped region.
@@ -112,18 +107,14 @@ class IonogramImageExtractor(object):
         values to float where possible. The result is returned as a
         single-row:class:`pandas.DataFrame`.
 
-        Parameters:
+        Args:
             crop_axis: numpy.ndarray, optional
                 Crop region as [[y1, y2], [x1, x2]].
-            cv_props: dict, optional
-                OpenCV thresholding parameters.
-            OCR_custom_config: str, optional
-                Tesseract config string.
-            lines_to_extracted: int, optional
-                Number of lines to keep from OCR output (negative values
+            cv_props (dict, optional): OpenCV thresholding parameters.
+            OCR_custom_config (str, optional): Tesseract config string.
+            lines_to_extracted (int, optional): Number of lines to keep from OCR output (negative values
                 trim from the end).
-            word_filtes_for_table_values: dict, optional
-                Mapping of substrings to replace in extracted values before
+            word_filtes_for_table_values (dict, optional): Mapping of substrings to replace in extracted values before
                 conversion.
 
         Returns:
@@ -159,15 +150,12 @@ class IonogramImageExtractor(object):
     ) -> pd.DataFrame:
         """Extract and parse header fields from an ionogram image.
 
-        Parameters:
+        Args:
             crop_axis: numpy.ndarray, optional
                 Crop region for the header area.
-            cv_props: dict, optional
-                OpenCV thresholding parameters.
-            OCR_custom_config: str, optional
-                Tesseract config string.
-            word_filtes_for_table_values: dict, optional
-                Mapping of substrings to replace in both header keys and
+            cv_props (dict, optional): OpenCV thresholding parameters.
+            OCR_custom_config (str, optional): Tesseract config string.
+            word_filtes_for_table_values (dict, optional): Mapping of substrings to replace in both header keys and
                 values.
 
         Returns:
@@ -202,9 +190,3 @@ class IonogramImageExtractor(object):
         record = pd.DataFrame.from_dict([record])
         logger.info(f"Parsed records: \n {record}")
         return record
-
-
-if __name__ == "__main__":
-    iie = IonogramImageExtractor("tmp/ion250610_210301.png")
-    iie.parse_artist_params_table()
-    iie.extract_header()

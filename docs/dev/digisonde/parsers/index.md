@@ -5,27 +5,16 @@
 
 This page links individual parser modules and provides brief usage examples.
 
-::: pynasonde.digisonde.parsers.sky.SkyExtractor
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: false
-        members:
-            - __init__
-            - extract
-            - to_pandas
-
-::: pynasonde.digisonde.parsers.sao
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: false
-
-::: pynasonde.digisonde.parsers.sbf
-    handler: python
-    options:
-        show_root_heading: true
-        show_source: false
+- [SAO parser](sao.md)
+- [SKY parser](sky.md)
+- [Image parser](image.md)
+- [DFT parser](dft.md)
+- [RSF parser](rsf.md)
+- [SBF parser](sbf.md)
+- [MMM parser](mmm.md)
+- [GRM splitter](grm.md)
+- [EDP parser](edp.md)
+- [DVL parser](dvl.md)
 
 
 ## Examples

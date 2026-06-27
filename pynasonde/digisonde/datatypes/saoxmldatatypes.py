@@ -60,6 +60,7 @@ class URSI:
     Flag: Optional[str] = None
 
     def __post_init__(self):
+        """Coerce the XML value field to ``float``."""
         # Ensure numeric value is a float for downstream consumers
         self.Val = float(self.Val)
         return
@@ -410,7 +411,7 @@ class SAORecordList:
         ``dtd_path`` or the packaged resource), then recursively maps XML
         elements to the dataclass hierarchy defined in this module.
 
-        Parameters:
+        Args:
             xml_path: Path to the SAO XML file to parse.
             dtd_path: Optional path to a DTD file for validation.
 
@@ -428,21 +429,26 @@ class SAORecordList:
 
         # --- Recursive mapping ---
         def get_text_list(element):
+            """Return whitespace-separated text values as floats."""
             # Helper to split whitespace-separated floats/strings
             if element is None or element.text is None:
                 return []
             return [float(x) for x in element.text.strip().split() if x]
 
         def parse_ursi(elem):
+            """Parse one ``URSI`` element."""
             return URSI(**elem.attrib)
 
         def parse_modeled(elem):
+            """Parse one ``Modeled`` element."""
             return Modeled(**elem.attrib)
 
         def parse_custom(elem):
+            """Parse one ``Custom`` element."""
             return Custom(**elem.attrib)
 
         def parse_characteristic_list(elem):
+            """Parse a ``CharacteristicList`` element."""
             return CharacteristicList(
                 URSI=[parse_ursi(e) for e in elem.findall("URSI")],
                 Modeled=[parse_modeled(e) for e in elem.findall("Modeled")],
@@ -451,6 +457,7 @@ class SAORecordList:
             )
 
         def parse_trace_value_list(elem):
+            """Parse one ``TraceValueList`` element."""
             return TraceValueList(
                 Name=elem.attrib["Name"],
                 Type=elem.attrib.get("Type"),
@@ -464,6 +471,7 @@ class SAORecordList:
             )
 
         def parse_trace(elem):
+            """Parse one ``Trace`` element."""
             freq_list_elem = elem.find("FrequencyList")
             range_list_elem = elem.find("RangeList")
             return Trace(
@@ -480,12 +488,14 @@ class SAORecordList:
             )
 
         def parse_trace_list(elem):
+            """Parse a ``TraceList`` element."""
             return TraceList(
                 Trace=[parse_trace(e) for e in elem.findall("Trace")],
                 Num=elem.attrib.get("Num"),
             )
 
         def parse_profile_value_list(elem):
+            """Parse one ``ProfileValueList`` element."""
             return ProfileValueList(
                 Name=elem.attrib["Name"],
                 Type=elem.attrib.get("Type"),
@@ -499,6 +509,7 @@ class SAORecordList:
             )
 
         def parse_tabulated(elem):
+            """Parse a ``Tabulated`` profile element."""
             alt_elem = elem.find("AltitudeList")
             return Tabulated(
                 Num=elem.attrib.get("Num"),
@@ -510,6 +521,7 @@ class SAORecordList:
             )
 
         def parse_profile(elem):
+            """Parse one ``Profile`` element."""
             tab_elem = elem.find("Tabulated")
             return Profile(
                 Algorithm=elem.attrib["Algorithm"],
@@ -520,12 +532,14 @@ class SAORecordList:
             )
 
         def parse_profile_list(elem):
+            """Parse a ``ProfileList`` element."""
             return ProfileList(
                 Profile=[parse_profile(e) for e in elem.findall("Profile")],
                 Num=elem.attrib.get("Num"),
             )
 
         def parse_system_info(elem):
+            """Parse the subset of ``SystemInfo`` attributes currently modeled."""
             # Only a partial mapping; expand as needed
             return SystemInfo(
                 UMLStationID=elem.attrib.get("UMLStationID"),
@@ -533,6 +547,7 @@ class SAORecordList:
             )
 
         def parse_saorecord(elem):
+            """Parse one top-level ``SAORecord`` element."""
             return SAORecord(
                 SystemInfo=(
                     parse_system_info(elem.find("SystemInfo"))

@@ -21,6 +21,83 @@ scaler.apply_filter=true
 h_max_simulation=500
 h_step=1e-3
 
+# ---------------------------------------------------------------------------
+# NN-POLAN inversion pipeline
+# ---------------------------------------------------------------------------
+[nn_inversion]
+
+[nn_inversion.forward_model]
+# Height grid: np.arange(h_start_km, h_stop_km, h_step_km)
+h_start_km     = 60.0    # bottom of ionospheric grid (km)
+h_stop_km      = 512.0   # top  of ionospheric grid (km, exclusive) → 904 pts at 0.5 step
+h_step_km      = 0.5     # grid spacing (km)
+# Frequency grid: np.arange(f_start_mhz, f_stop_mhz, f_step_mhz)
+f_start_mhz    = 1.0     # lowest sounding frequency (MHz)
+f_stop_mhz     = 20.05   # upper bound (MHz, exclusive) → 381 pts at 0.05 step
+f_step_mhz     = 0.05    # frequency step (MHz)
+# Physical constants
+fp2_const      = 12441.0   # Ne[cm⁻³] / fp2_const = fp²[MHz²]  (= 80.616×10⁶ / (10⁶)²)
+reflect_guard  = 0.99999   # fp/f threshold treated as reflection (avoids 1/√0)
+mu_max         = 50.0      # cap on μ' in torch_forward_batch (used by diagnose_physics.py; not in training path)
+
+[nn_inversion.data]
+# Synthetic data generation (synthetic_data.py)
+lat_step_deg   = 5.0        # latitude grid step  → 37 values  (-90..+90)
+lon_step_deg   = 5.0        # longitude grid step → 72 values  (-180..+175)
+year_start     = 1995
+year_end       = 2024       # inclusive → 30 years
+doy_step       = 45         # every 45 days → 9 DOY values per year
+doy_n          = 9          # keep only first 9 DOY values
+ut_step_h      = 6          # UT grid step → [0, 6, 12, 18]
+omni_data_path = "~/OMNI"  # pyomnidata local data directory
+geo_chunk      = 4096       # max (lat,lon) pairs per PyIRI call  (~230 MB EDP)
+abel_chunk     = 96         # max profiles per forward_batch call  (~260 MB)
+
+[nn_inversion.quality]
+# Profile quality filter thresholds (synthetic_data.py)
+min_fof2_mhz  = 1.5   # reject profiles with foF2 below this
+max_fof2_mhz  = 20.0  # reject profiles with foF2 above this
+min_obs_freqs = 5      # minimum number of finite h'(f) cells required
+
+[nn_inversion.model]
+# NNPolan architecture defaults (architecture.py)
+latent_dim  = 256   # bottleneck latent-vector size
+feat_dim    = 128   # base conv channel width
+film_hidden = 128   # FiLM generator MLP hidden width
+c_dim       = 6     # conditioning-vector dimension [lat,lon,doy,ut,Kp,F10.7]
+
+[nn_inversion.normalisation]
+# Conditioning-vector normalisation  (trainer_stage1.py)
+# Order: [lat, lon, doy, ut_h, kp, f107]
+cond_mean = [0.0,  0.0,  183.0, 9.0, 3.5, 135.0]
+cond_std  = [52.0, 104.0, 105.0, 6.3, 2.1,  47.0]
+# Virtual-height normalisation
+hv_mean_km = 300.0
+hv_std_km  = 150.0
+# Log-Ne normalisation
+log_ne_min = -2.0   # log10(cm⁻³)
+log_ne_max =  6.5   # log10(cm⁻³)
+# Abel forward-loss normalisation — used only in diagnose_physics.py (not in training path)
+hv_norm_km = 150.0
+
+[nn_inversion.training]
+# Stage-1 training defaults (trainer_stage1.py)
+epochs        = 20
+batch_size    = 256
+lr            = 3e-4
+weight_decay  = 1e-4
+workers       = 4
+warmup_epochs = 10     # bg-only epochs before enabling Abel loss
+save_every    = 5      # extra checkpoint interval (epochs)
+lambda_phy    = 1e-4   # Abel inversion loss weight (log10-Ne MSE on bottomside vs abel_invert_batch target)
+lambda_phy_ramp_epochs = 10  # linearly ramp lambda_phy from 0 → lambda_phy over this many epochs after warmup
+lambda_mono   = 0.1    # topside-only monotonicity regulariser weight (re-enabled: now topside-only, no collapse risk)
+lambda_bg     = 1.0    # background (IRI) MSE loss weight
+train_end_year = 2016   # last year (inclusive) in the training split
+val_end_year   = 2020   # last year (inclusive) in the validation split (>val_end → test)
+# Stage-2 specific
+min_echoes_per_cell = 3   # minimum real echoes per frequency bin to mark as valid
+
 [vipir_data_format_maps]
 version=1.0
 [[vipir_data_format_maps.configs]]

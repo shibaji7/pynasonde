@@ -55,23 +55,23 @@ A Foundation-Model Approach with Station-Specific Data Assimilation}
 We propose a physics-informed neural network (PINN) framework for true-height
 inversion of ionosonde traces that replaces the classical POLAN algorithm with a
 two-stage learning strategy.
-A \emph{global foundation model} is pre-trained on $\sim$5~million synthetic
-profiles drawn from the International Reference Ionosphere (IRI-2020) spanning
-30~years of solar and geomagnetic variability, conditioned on geophysical
-parameters (latitude, longitude, day-of-year, $K_p$, $F_{10.7}$) via
-Feature-wise Linear Modulation (FiLM).
+A \emph{global foundation model} (NN-POLAN) is pre-trained on $\sim$5~million
+synthetic electron density profiles drawn from the International Reference
+Ionosphere (IRI-2020) spanning 30~years of solar and geomagnetic variability,
+conditioned on geophysical parameters (latitude, longitude, day-of-year,
+universal time, $K_p$, $F_{10.7}$) via Feature-wise Linear Modulation (FiLM).
 A \emph{station-specific fine-tuning} stage adapts the foundation model to a
 particular ionosonde using a \emph{physics-only} loss — no labeled true-height
-profiles are required.
+profiles are required at any real station.
+The physics loss is formulated via \emph{Abel inversion} of the observed
+virtual-height trace, which is both singularity-free and gradient-stable,
+resolving a fundamental training instability inherent in forward-Abel-based loss
+functions.
 The fine-tuning objective is formally equivalent to variational data
-assimilation (4D-Var), with the Abel-integral group-height operator as the
-observation operator and the IRI-trained prior as the background state.
-The trained model is exported as plain NumPy weight arrays and integrated into
-the open-source \texttt{pynasonde} framework as a drop-in replacement for
-\texttt{TrueHeightInversion}, requiring no additional dependencies for inference.
-We argue this approach represents a genuinely novel contribution at the
-intersection of space physics, data assimilation, and scientific machine
-learning.
+assimilation (4D-Var), with the IRI-trained prior as the background state.
+The trained model is integrated into the open-source \texttt{pynasonde}
+framework as a drop-in replacement for \texttt{TrueHeightInversion},
+requiring no additional dependencies for inference.
 \end{mdframed}
 
 \vspace{4pt}
@@ -80,37 +80,41 @@ learning.
 \section{Introduction}
 
 Ionosondes have continuously monitored the Earth's ionosphere since the 1920s,
-producing hundreds of millions of ionogram records across a global network of
-stations.
+producing hundreds of millions of ionogram records across the global GIRO network
+\citep{reinisch2011}.
 The fundamental scientific product derived from an ionogram is the
 \emph{true-height electron density profile} $N(h)$, obtained by inverting the
-virtual-height trace $h'(f)$ — a measurement of the apparent round-trip travel
-time of radio pulses at each sounding frequency $f$.
-This inversion is an Abel-type integral equation:
+virtual-height trace $h'(f)$ — the apparent round-trip travel time of radio pulses
+at each sounding frequency $f$.
+This inversion is governed by the Abel integral equation:
 \begin{equation}
-  h'(f) = \int_0^{h(f)} \mu'\!\left(f,\,N(h)\right)\,dh,
+  h'(f) = h_\text{base} + \int_{h_\text{base}}^{h_r(f)}
+  \mu'\!\left(f,\,N(h)\right)\,dh,
   \label{eq:abel}
 \end{equation}
-where $\mu'$ is the group refractive index.
+where $\mu' = [1 - f_p^2(h)/f^2]^{-1/2}$ is the O-mode group refractive index,
+$f_p(h) = \sqrt{N(h)/1.2441\times10^4}$~MHz is the plasma frequency, and
+$h_r(f)$ is the reflection height where $f_p = f$.
 Solving Eq.~\eqref{eq:abel} for $N(h)$ given noisy, sparse observations of
 $h'(f)$ is an ill-posed inverse problem that has been the subject of research
-for more than 60~years.
+for over 60~years.
 
-Classical algorithms — POLAN \citep{titheridge1985}, NHPC, and the
-quasi-parabolic segment approach \citep{reinisch1983} used in ARTIST/SAO
-systems — rely on lamination or segment fitting.
+Classical algorithms --- POLAN~\citep{titheridge1985}, NHPC, and the
+quasi-parabolic approach~\citep{reinisch1983} used in ARTIST/SAO systems ---
+rely on analytical profile families (Chapman, parabolic) or lamination.
 They are robust on clean traces but struggle with valley regions, oblique
 propagation, and automated processing of large archives without manual
 quality control.
 
-Neural-network-based inversions have recently appeared
-\citep{jiang2022, eyfells2022}, but they share a common limitation: they are
-\emph{trained on POLAN (orther algorithm or hand-scaled) output as ground truth}, 
-inheriting POLAN's systematic errors, and they do not generalize across stations 
-or geophysical conditions without retraining on labeled data.
+Neural-network-based inversions have recently appeared~\citep{jiang2022,
+eyfells2022}, but they share a common limitation: they are trained on POLAN or
+other algorithm output as ground truth, inheriting systematic errors, and they
+do not generalize across stations or geophysical conditions without retraining on
+labeled data.
 
 This work describes a fundamentally different architecture that avoids
-these limitations.
+these limitations, with explicit documentation of the non-trivial training
+engineering challenges encountered and how they were resolved.
 
 % ── 2. What Has Not Been Done ─────────────────────────────────────────────────
 \section{What Has Not Been Done Before}
@@ -123,19 +127,22 @@ the ionospheric inversion literature:
 \begin{enumerate}[leftmargin=1.2em, itemsep=2pt, topsep=2pt]
   \item A \textbf{global foundation model} for ionogram inversion conditioned on
         continuous geophysical state, trained on IRI across 30~years of
-        variability — not on a single station or season.
+        variability --- not a single station or season.
+  \item \textbf{Singularity-free Abel inversion loss}: a physics supervision
+        signal derived by analytically inverting the observed $h'(f)$ trace,
+        bypassing the 1/$\sqrt{f^2-f_p^2}$ singularity that makes forward Abel
+        losses untrainable.
   \item \textbf{Physics-only fine-tuning} on real data: the network adapts to a
-        specific ionosonde using \emph{only the Abel integral as supervision},
-        requiring zero labeled true-height profiles from the target station.
+        specific ionosonde using only the Abel inversion as supervision,
+        requiring zero labeled true-height profiles.
   \item A rigorous \textbf{data assimilation framing} of the fine-tuning step,
-        with the IRI prior playing the role of the background state in 4D-Var
-        and a KL divergence term acting as the background cost function.
-  \item \textbf{Geophysical conditioning via FiLM} \citep{perez2018} so that a
+        with the IRI prior as the background state in 4D-Var.
+  \item \textbf{Geophysical conditioning via FiLM}~\citep{perez2018} so that a
         single network parameterizes the full range of ionospheric states from
         solar minimum quiet to solar maximum storm.
-  \item Complete \textbf{open-source integration} with zero inference-time
-        dependencies beyond NumPy, enabling deployment on any ionosonde
-        processing system without GPU or deep-learning framework.
+  \item \textbf{Spatial-latent encoder} that preserves frequency-position
+        information through the bottleneck via flatten rather than global
+        pooling, enabling well-conditioned Abel gradients throughout the network.
 \end{enumerate}
 \end{mdframed}
 
@@ -145,53 +152,120 @@ the ionospheric inversion literature:
 \subsection{Network design}
 
 The network $\mathcal{F}_\theta$ maps an observed virtual-height trace
-$\mathbf{h}' \in \mathbb{R}^{N_f}$ (sampled at $N_f \approx 140$ frequencies)
-and a geophysical conditioning vector
-$\mathbf{c} = [\phi,\,\lambda,\,\mathrm{doy},\,\mathrm{UT},\,K_p,\,F_{10.7}]$
+$\mathbf{h}' \in \mathbb{R}^{N_f}$ (sampled at $N_f = 141$ frequencies,
+1.0--15.0~MHz at 0.1~MHz step) and a geophysical conditioning vector
+$\mathbf{c} = [\phi,\,\lambda,\,\text{DOY},\,\text{UT},\,K_p,\,F_{10.7}]$
 to an electron density profile $\hat{N}(h) \in \mathbb{R}^{N_h}_{>0}$:
-
 \begin{equation}
   \hat{N}(h) = \mathcal{F}_\theta\!\left(\mathbf{h}',\,\mathbf{c}\right).
 \end{equation}
 
-The architecture consists of three blocks:
+The architecture consists of four components.
 
-\textbf{(i) Conditioning MLP.}
-$\mathbf{c} \to$ two-layer MLP $\to (\boldsymbol{\gamma},\,\boldsymbol{\beta})$
-per encoder layer (FiLM scale and shift parameters).
+\textbf{(i) Conditioning MLP (FiLM generator).}
+$\mathbf{c} \to$ shared two-layer MLP ($6 \to 128 \to 128$, SiLU) $\to$
+per-layer projection heads, each outputting $(\boldsymbol{\gamma}_\ell,
+\boldsymbol{\beta}_\ell)$ for the corresponding encoder or decoder block.
+Two separate FiLM generators are instantiated: one for the encoder and one for
+the decoder.
 
 \textbf{(ii) 1-D CNN encoder.}
-Three convolutional layers with ReLU activations applied to $\mathbf{h}'$,
-with FiLM modulation after each layer:
+Eight convolutional blocks applied to $\mathbf{h}'$, with FiLM modulation
+(multiplicative residual form) after each BatchNorm:
 \begin{equation}
-  \mathbf{z}_{\ell+1} = \text{ReLU}\!\left(\boldsymbol{\gamma}_\ell \odot
-  \text{Conv}_\ell(\mathbf{z}_\ell) + \boldsymbol{\beta}_\ell\right).
+  \mathbf{z}_{\ell+1} = \text{SiLU}\!\left((1 + \boldsymbol{\gamma}_\ell) \odot
+  \text{BN}(\text{Conv}_\ell(\mathbf{z}_\ell)) + \boldsymbol{\beta}_\ell\right).
 \end{equation}
-FiLM allows the same convolutional weights to produce geophysically
-appropriate responses at high and low latitudes, storm and quiet conditions,
-without separate network instances.
+Four of the eight blocks use stride-2 convolutions, progressively halving the
+sequence length: $N_f = 141 \to 71 \to 36 \to 18 \to 9$.
+Channel progression: $1 \to 32 \to 64 \to 128$ (held at 128 for the last four
+blocks).
+The final feature map $(B, 128, 9)$ is \emph{flattened} to $(B, 1152)$ and
+projected through a linear layer to the latent vector $\mathbf{z} \in
+\mathbb{R}^{256}$.
 
 \textbf{(iii) MLP decoder.}
-Flattened latent representation $\to$ three fully-connected layers $\to$
-Softplus activation $\to \hat{N}(h) \geq 0$.
-A height grid of $N_h = 225$ points from 60 to 510~km in 2~km steps is used.
+A symmetric transposed-convolution stack expanding $\mathbf{z}$ to a spatial
+sequence of length 144, followed by a 1$\times$1 projection layer and linear
+interpolation to $N_h = 904$ output points.
+The height grid spans 60--511.5~km at 0.5~km step ($N_h = 904$).
+Softplus activation enforces $\hat{N}(h) \geq 0$.
+FiLM modulation is applied after each BatchNorm in the decoder as well.
+
+The total model has $\sim$1.43~million trainable parameters.
+
+\subsection{Why flatten, not pool?}
+
+\textbf{A critical design decision} — and one that was not obvious \emph{a
+priori} — is replacing global-average-pooling with spatial flattening at the
+encoder bottleneck.
+
+The Abel integral has a fundamentally frequency-dependent gradient structure:
+near foF2 the integrand diverges and gradients are large; at low frequencies
+they are small and smooth.
+After 4 stride-2 layers the encoder retains a 9-point spatial feature map
+where each spatial position corresponds to a different frequency band.
+A global-average-pool collapses this to a single vector, uniformly mixing
+information from all frequency bands.
+As a result, the gradient from the Abel physics loss --- which originates at
+specific frequency cells --- is averaged away before it can reach the weights
+responsible for those frequency bands.
+We observed this as complete failure of the Abel loss to decrease during training
+(convergence diagnostic: Config~B flat/increasing, confirmed across MSE, log, and
+cumulative Abel loss formulations).
+
+Replacing the pool with $\mathbf{x}.\text{flatten}(1)$ preserves the
+frequency-position ordering in the latent vector, enabling Abel-loss gradients
+to flow directly back to the specific encoder weights that processed the
+corresponding frequency bands.
 
 \subsection{Differentiable forward model}
 
-The Abel integral operator $\mathcal{H}$ in Eq.~\eqref{eq:abel} is implemented
-as a differentiable NumPy (inference) and PyTorch (training) function:
-
+For validation and self-consistency diagnostics, the Abel integral operator
+$\mathcal{H}$ in Eq.~\eqref{eq:abel} is implemented as a differentiable
+PyTorch function (\texttt{torch\_forward\_batch} in \texttt{physics\_loss.py}):
 \begin{equation}
-  \hat{h}'(f) = \mathcal{H}[\hat{N}] =
-  \int_0^{h_r(f)}
+  \hat{h}'(f) = \mathcal{H}[\hat{N}] = h_\text{base} +
+  \int_{h_\text{base}}^{h_r(f)}
   \frac{dh}{\sqrt{1 - f_p^2(h)/f^2}},
   \label{eq:forward}
 \end{equation}
+computed by trapezoidal quadrature on the fixed height grid.
 
-where $f_p(h) = \sqrt{\hat{N}(h)/1.24\times10^{10}}$~MHz is the local plasma
-frequency and $h_r(f)$ is the reflection height where $f_p = f$.
-The integral is computed by trapezoidal quadrature on the fixed height grid,
-which is trivially differentiable via automatic differentiation in PyTorch.
+This operator is retained in the codebase for use in convergence diagnostics
+(\texttt{diagnose\_physics.py}) and inference visualization
+(\texttt{test\_inference.py}).
+It is \emph{not} used in the training gradient path — see Section~\ref{sec:inversion_loss}
+for why, and how this was resolved.
+
+\subsection{Abel inversion operator}
+\label{sec:inversion_loss}
+
+The substitution $f = f_p \sin\theta$ in the Abel integral identity yields a
+singularity-free expression for the reflection height:
+\begin{equation}
+  h_r(f_p) = \frac{2}{\pi}\int_0^{\pi/2} h'(f_p\sin\theta)\,d\theta
+  \;\approx\; \frac{1}{N_q}\sum_{k=1}^{N_q} h'\!\left(f_p\sin\theta_k\right),
+  \label{eq:inversion}
+\end{equation}
+where $\theta_k = (k-\tfrac12)\pi/(2N_q)$ are midpoint-rule quadrature nodes
+($N_q = 64$ in practice).
+At the reflection height $h_r(f_p)$, the plasma frequency equals $f_p$ by
+definition, so:
+\begin{equation}
+  \hat{N}_\text{abel}(h_r(f_p)) = f_p^2 \times 12441\;\text{cm}^{-3},
+  \label{eq:ne_abel}
+\end{equation}
+where the constant $12441\;\text{cm}^{-3}\,\text{MHz}^{-2}$ converts MHz$^2$ to
+electron density.
+Interpolating the set of $\{(h_r(f_p),\,\hat{N}_\text{abel}(h_r))\}$ pairs
+onto $H_\text{GRID\_KM}$ gives the \emph{Abel-inverted Ne target} for the
+observed bottomside.
+
+Crucially, the integrand in Eq.~\eqref{eq:inversion} is $h'(f_p\sin\theta)$, which
+samples the observed virtual-height trace at sub-critical frequencies where
+$f_p\sin\theta \leq f_p < f$ everywhere --- the 1/$\sqrt{f^2-\xi^2}$
+singularity of the classical kernel is entirely absent.
 
 % ── 4. Two-Stage Training ─────────────────────────────────────────────────────
 \section{Two-Stage Training Strategy}
@@ -201,69 +275,167 @@ which is trivially differentiable via automatic differentiation in PyTorch.
 The foundation model is trained on synthetic profiles generated by IRI-2020
 \citep{bilitza2022} across a parameter grid:
 \begin{itemize}[leftmargin=1.2em, itemsep=1pt, topsep=2pt]
-  \item Latitude/longitude: global 5°~$\times$~5° grid ($\sim$2,500 locations)
-  \item Day-of-year: 12 representative days per year (seasonal coverage)
-  \item Solar flux: $F_{10.7} \in \{70,\,100,\,130,\,160,\,200\}$~SFU
-  \item Geomagnetic activity: $K_p \in \{0,\,1,\,2,\,3,\,4,\,5,\,6,\,7\}$
+  \item Latitude / longitude: global 5$^\circ\times$5$^\circ$ grid
+        ($\sim$2,500 locations)
+  \item Years: 1995--2024 (30 years, temporal split below)
+  \item Day-of-year: 9 representative days per year (45-day step)
   \item Universal time: 0, 6, 12, 18~UT
+  \item Solar flux and $K_p$: real OMNI values from \texttt{pyomnidata}
 \end{itemize}
 Totalling $\sim$5~million unique ionospheric states.
-For each state, $N(h)$ is drawn from IRI-2020 and the corresponding ionogram
-trace $h'(f)$ is computed via Eq.~\eqref{eq:forward}.
+For each state, IRI-2020 provides $N(h)$; the corresponding virtual-height trace
+$h'(f)$ is computed by the NumPy forward batch model (\texttt{forward\_batch} in
+\texttt{forward\_model.py}).
+Profiles failing quality filters ($\text{foF2} \notin [1.5,\,15.0]$~MHz or fewer
+than 5 valid frequency cells) are discarded.
 
-The Stage~1 loss combines supervised regression on the IRI profile with the
-physics consistency term:
+Data are partitioned temporally to avoid leakage: training $\leq$2016,
+validation 2017--2020, test $>$2020.
+
+The Stage~1 loss combines supervised regression on the IRI profile with an
+Abel inversion consistency term and a topside monotonicity regulariser:
 \begin{align}
-  \mathcal{L}_1 &= \underbrace{\|\hat{N} - N_\text{IRI}\|^2}_{\text{supervised}}
-  + \lambda_1\underbrace{\|\mathcal{H}[\hat{N}] - \mathbf{h}'\|^2}_{\text{physics}} \nonumber\\
-  &\quad + \lambda_2\underbrace{\textstyle\sum_h\text{ReLU}(-\Delta\hat{N})}_{\text{monotone}},
+  \mathcal{L}_1 &=
+  \lambda_\text{bg}\underbrace{\|\hat{N}_n - N_n^\text{IRI}\|^2}_{\text{background (IRI prior)}}
+  \nonumber\\
+  &\quad+ \lambda_\phi\underbrace{
+      \frac{1}{|\mathcal{B}|}\sum_{h\in\mathcal{B}}
+      \!\left(\log_{10}\hat{N}(h) - \log_{10}\hat{N}_\text{abel}(h)\right)^2
+    }_{\text{Abel inversion physics}} \nonumber\\
+  &\quad+ \lambda_m\underbrace{
+      \frac{1}{N_h}\sum_h \text{ReLU}\!\left(\Delta f_p(h) + \epsilon\right)
+      \cdot \mathbf{1}[h > h_\text{peak}]
+    }_{\text{topside monotone regulariser}},
   \label{eq:loss1}
 \end{align}
-where the monotone penalty discourages non-physical decreases in $N(h)$ above
-the F2 peak.
+where $\hat{N}_n$ is the network output in normalised log-space,
+$\mathcal{B}$ is the set of height grid points within the observed bottomside
+(determined by the Abel inversion, Eq.~\ref{eq:inversion}),
+and the monotone term penalises upward plasma-frequency excursions only above the
+F2 peak height.
+Default weights: $\lambda_\text{bg}=1.0$,
+$\lambda_\phi=10^{-4}$ (ramped linearly from 0 over 10 post-warmup epochs),
+$\lambda_m=0.1$.
+
+A \emph{warmup curriculum} runs the background-only loss ($\lambda_\phi =
+\lambda_m = 0$) for 10 epochs to establish a non-degenerate Ne prior before
+enabling the Abel and monotone terms.
+Without warmup, a near-zero initial Ne pushes the forward integral to the top of
+the grid, and the background term is needed to rescue the profile into a
+physically plausible range first.
+
+\subsection{Training challenges and their resolution}
+
+Getting each loss term to decrease simultaneously was non-trivial and required
+two distinct architectural and algorithmic interventions.
+We document them explicitly because they are relevant to any physics-informed
+inversion network operating near integral singularities.
+
+\paragraph{Challenge 1: Global-average-pooling destroys Abel gradients.}
+
+In the initial architecture, the encoder bottleneck used
+\texttt{AdaptiveAvgPool1d(1)}, reducing the spatial feature map $(B, 128, 9)$
+to a single vector $(B, 128)$ before projection.
+The Abel loss gradient with respect to a given frequency band is localised in
+spatial position after stride-2 downsampling.
+Global average pooling uniformly mixes gradients from all nine spatial positions,
+attenuating the frequency-specific Abel gradient by approximately $1/9$ while
+mixing it with gradients from unrelated frequency bands.
+The net effect was that Config~B (Abel-only training, convergence diagnostic)
+showed the loss as flat or increasing across all three Abel loss formulations
+tested (MSE, log-ratio, and cumulative frequency integral).
+
+\textit{Resolution}: replace \texttt{AdaptiveAvgPool1d(1)} with
+\texttt{flatten(1)}, concatenating the full $(B, 128, 9)$ map to $(B, 1152)$
+and projecting via a $1152 \to 256$ linear layer.
+This preserves the spatial ordering of frequency-band information in the latent
+vector, allowing Abel gradients to propagate directly back to the encoder weights
+that processed each frequency band.
+
+\paragraph{Challenge 2: Forward Abel loss has a gradient singularity near foF2.}
+
+Even with the spatial latent fix, training with the forward Abel loss
+$\|\mathcal{H}[\hat{N}] - \mathbf{h}'\|^2$ was partially unstable.
+The integrand $\mu' = [1 - f_p^2(h)/f^2]^{-1/2}$ diverges as $f_p \to f$
+(i.e., near foF2), producing group refractive index values up to $\mu'_\text{max}
+= 50$ on a discrete grid.
+The gradient $\partial \mathcal{H}/\partial N \propto \mu'^2$ is therefore up to
+$2500\times$ larger at near-foF2 heights than at low-frequency heights.
+In mixed training, this dominates the background-loss gradient and drives the
+Ne profile toward collapse in the early physics epochs.
+Clamping $\mu'$ at 50 reduced but did not eliminate the instability.
+
+\textit{Resolution}: replace the forward Abel loss entirely with the Abel
+inversion loss (Eq.~\ref{eq:inversion}--\ref{eq:ne_abel}).
+The observed $h'(f)$ is analytically inverted to a Ne target
+$\hat{N}_\text{abel}$ with no forward model in the computational graph.
+The training loss is then a log$_{10}$-space MSE between the network prediction
+and this fixed target on the observed bottomside:
+\begin{equation}
+  \mathcal{L}_\text{abel} =
+  \frac{1}{|\mathcal{B}|}\sum_{h\in\mathcal{B}}
+  \!\left(\log_{10}\hat{N}(h) - \log_{10}\hat{N}_\text{abel}(h)\right)^2.
+  \label{eq:loss_abel}
+\end{equation}
+Because $\hat{N}_\text{abel}$ is pre-computed with \texttt{torch.no\_grad()},
+the Abel singularity is entirely absent from the gradient graph.
+The log$_{10}$ metric is scale-invariant across 4+ orders of magnitude of Ne
+and yields gradients of $\mathcal{O}(1)$ at convergence.
+
+A convergence diagnostic tool (\texttt{diagnose\_convergence.py}) runs four
+independent gradient-step experiments from the same checkpoint: background-only
+(Config~A), Abel-only (Config~B), monotone-only (Config~C), and Abel$+$BG
+(Config~D).
+A healthy Config~B shows a \textbf{DECREASING} Abel loss; a pool-based encoder
+or forward Abel loss produces \textbf{FLAT/INCREASING}.
 
 \subsection{Stage 2: Station-specific fine-tuning (data assimilation)}
 
 The foundation model is adapted to a specific ionosonde by fine-tuning on real
-(unannotated) soundings using \emph{no labeled true-height profiles}.
-The Stage~2 loss retains only the physics and prior terms:
+(unannotated) soundings using no labeled true-height profiles.
+Real virtual-height observations $\mathbf{h}'_\text{obs}$ from filtered echo
+DataFrames (RIQ files via \texttt{EchoExtractor} + \texttt{IonogramFilter}) are
+binned into the same $N_f = 141$ frequency grid and Abel-inverted using
+Eq.~\eqref{eq:inversion} to produce the observation-based Ne target.
 
+The Stage~2 loss retains only the physics and monotone terms:
 \begin{align}
-  \mathcal{L}_2 &= \underbrace{\|\mathcal{H}[\hat{N}] - \mathbf{h}'_\text{obs}\|^2}_{\text{obs.\ cost}}
-  + \mu\underbrace{D_\text{KL}(q_\phi \| p_\theta)}_{\text{background cost}} \nonumber\\
-  &\quad + \lambda_2\underbrace{\textstyle\sum_h\text{ReLU}(-\Delta\hat{N})}_{\text{monotone}},
+  \mathcal{L}_2 &=
+  \lambda_\phi\underbrace{
+      \frac{1}{|\mathcal{B}|}\sum_{h\in\mathcal{B}}
+      \!\left(\log_{10}\hat{N}(h) - \log_{10}\hat{N}_\text{abel}(h)\right)^2
+    }_{\text{Abel inversion obs.\ cost}} \nonumber\\
+  &\quad+ \lambda_m\underbrace{
+      \frac{1}{N_h}\sum_h \text{ReLU}\!\left(\Delta f_p + \epsilon\right)
+      \cdot \mathbf{1}[h > h_\text{peak}]
+    }_{\text{topside monotone}},
   \label{eq:loss2}
 \end{align}
-
-where $p_\theta$ is the distribution over $N(h)$ implied by the Stage~1
-foundation model and $q_\phi$ is the distribution induced by the fine-tuned
-network.
-The KL term penalizes departure from the IRI-learned prior — formally
-equivalent to the \emph{background cost} $J_b = (x-x_b)^T B^{-1}(x-x_b)$ in
-variational data assimilation \citep{lorenc1986}.
+with no background term ($\lambda_\text{bg}=0$) — the Stage~1 prior is
+implicitly encoded in the initial weights and preserved by the low fine-tuning
+learning rate.
 
 The mapping to 4D-Var is exact:
-
 \begin{center}
 \scriptsize
 \begin{tabular}{p{2.2cm}p{3.0cm}}
   \toprule
   4D-Var concept & This framework \\
   \midrule
-  Background $x_b$ & Stage~1 prior $p_\theta$ \\
+  Background $x_b$ & Stage~1 prior (IRI-trained weights) \\
   Observation $y$ & Real ionogram $\mathbf{h}'_\text{obs}$ \\
-  Obs.\ operator $\mathcal{H}$ & Abel integral (Eq.~\ref{eq:forward}) \\
-  Bg.\ covariance $B$ & FiLM prior variance \\
+  Obs.\ operator & Abel inversion (Eq.~\ref{eq:inversion}) \\
+  Bg.\ covariance $B$ & FiLM prior, fine-tuning LR \\
   Analysis $x_a$ & Fine-tuned $\hat{N}(h)$ \\
   \bottomrule
 \end{tabular}
 \end{center}
 
-Only the decoder and the last encoder block are updated in Stage~2;
-the early convolutional layers and conditioning MLP are frozen to preserve
-physical priors learned from IRI.
+During Stage~2, the FiLM generator parameters can optionally be frozen
+(\texttt{--freeze\_film}) to preserve the global geophysical conditioning
+learned from IRI; only the encoder/decoder weights are updated.
 Convergence for a single station archive ($\sim$1,000 soundings) is reached
-in under 30 minutes on a single GPU.
+in under 30~minutes on a single GPU.
 
 % ── 5. Integration ────────────────────────────────────────────────────────────
 \section{Integration in \texttt{pynasonde}}
@@ -274,11 +446,11 @@ After training, all weights are exported as a single \texttt{.npz} file
 containing plain NumPy arrays.
 Inference requires only NumPy — no PyTorch, no ONNX Runtime, no GPU.
 Station-specific weight files (e.g., \texttt{wi937\_v1.npz},
-\texttt{pl407\_v1.npz}) ship with the package.
+\texttt{pl407\_v1.npz}) will ship with the package.
 
 \subsection{Drop-in API replacement}
 
-\texttt{NNTrueHeightInversion} exposes an identical interface to the existing
+\texttt{NNTrueHeightInversion} will expose an identical interface to the existing
 \texttt{TrueHeightInversion} (POLAN) class:
 
 \begin{lstlisting}[language=Python]
@@ -287,7 +459,7 @@ edp = TrueHeightInversion(
     monotone_enforce=True
 ).fit_from_df(o_df)
 
-# NN - same call, same output
+# NN-POLAN — same call, same output
 edp = NNTrueHeightInversion(
     weights="wi937_v1",
     conditioning={"Kp": 2.3,
@@ -307,20 +479,25 @@ ensuring backward compatibility with all downstream analysis modules
 
 \begin{lstlisting}
 nn_inversion/
-  inversion_nn.py   # NNTrueHeightInversion
-  forward_model.py  # numpy Abel integral
-  network.py        # numpy inference
-  weights/
+  config.py         # typed NNCfg dataclass
+  forward_model.py  # F_GRID_MHZ, H_GRID_KM,
+                    #   forward_scalar/batch
+  inversion_nn.py   # NNTrueHeightInversion [planned]
+  network.py        # NumPy-only inference   [planned]
+  training/
+    architecture.py         # NNPolan (1.43 M params)
+    physics_loss.py         # PhysicsLoss,
+                            #   abel_invert_batch,
+                            #   torch_forward_batch
+    synthetic_data.py       # IRI shard generation
+    trainer_stage1.py       # Stage-1 training loop
+    trainer_stage2.py       # Stage-2 real-echo fine-tuning
+    diagnose_convergence.py # per-loss gradient health check
+    diagnose_physics.py     # forward-Abel self-consistency
+    test_inference.py       # 3-panel visual validation
+  weights/                  # [planned, post-training]
     global_v1.npz
     wi937_v1.npz
-    pl407_v1.npz
-  training/         # torch-only
-    architecture.py
-    film_conditioning.py
-    physics_loss.py
-    synthetic_data.py
-    trainer_stage1.py
-    trainer_stage2.py
 \end{lstlisting}
 
 % ── 6. Comparison with Prior Work ─────────────────────────────────────────────
@@ -343,61 +520,81 @@ nn_inversion/
 \end{center}
 
 The key differentiators are: (1)~no labeled true-height profiles are needed
-at any real station; (2)~a single model serves the global ionosphere via
-geophysical conditioning; (3)~physics constrains \emph{every} gradient step,
-not just post-hoc validation; (4)~full open-source deployment.
+at any real station; (2)~a single model serves the global ionosphere via FiLM
+conditioning; (3)~the Abel inversion physics loss is gradient-stable across all
+frequencies including near-foF2; (4)~full open-source deployment.
 
-% ── 7. Roadmap ────────────────────────────────────────────────────────────────
+% ── 7. Development Roadmap ────────────────────────────────────────────────────
 \section{Development Roadmap}
 
 \begin{enumerate}[leftmargin=1.4em, itemsep=2pt, topsep=3pt]
-  \item \textbf{Forward model} (\texttt{forward\_model.py}) — differentiable
-        Abel integral in NumPy and PyTorch; unit-tested against POLAN on
-        synthetic profiles. \emph{[Target: pynasonde v1.5]}
   \item \textbf{Synthetic data pipeline} — IRI-2020 batch generation across
-        global grid, 30-year parameter sweep, parallel execution.
-        \emph{[Target: pynasonde v1.5]}
-  \item \textbf{Stage 1 training} — FiLM-conditioned CNN+MLP on IRI data,
-        validation against POLAN on held-out locations.
-        \emph{[Target: pynasonde v1.6]}
-  \item \textbf{Stage 2 fine-tuning} — physics-only loss on WI937 and PL407
-        archives; ablation study of KL weight $\mu$.
-        \emph{[Target: pynasonde v1.6]}
-  \item \textbf{Inference integration} — \texttt{NNTrueHeightInversion} class,
-        weight export, API validation, shipped \texttt{.npz} files.
-        \emph{[Target: pynasonde v2.0]}
-  \item \textbf{Journal paper} — comparison of POLAN vs.\ NN on APEP2 eclipse
-        data, ionospheric storm case studies, uncertainty quantification.
-        \emph{[Target: Radio Science / JGR-Space Physics]}
+        global grid, 30-year parameter sweep, temporal train/val/test split.
+        \texttt{synthetic\_data.py}.
+        \emph{[Complete]}
+  \item \textbf{Stage~1 training} — FiLM-conditioned CNN encoder-decoder on
+        IRI data; Abel inversion loss + warmup curriculum.
+        Full run on VEGA HPC (V100/A100 nodes, 270 shards, 50--100 epochs).
+        \emph{[In progress]}
+  \item \textbf{Stage~2 fine-tuning} — physics-only loss on WI937 and PL407
+        archives.
+        \emph{[Planned, pending Stage~1 best.pt]}
+  \item \textbf{Inference integration} — NumPy-only \texttt{NNTrueHeightInversion}
+        class (\texttt{network.py}, \texttt{inversion\_nn.py}), weight export
+        (\texttt{.npz}), API validation.
+        \emph{[Planned]}
+  \item \textbf{Sporadic-E extension} — dedicated E-region module capable of
+        representing thin ionized layers at 90--130~km.
+        Requires (i)~synthetic Es profile generation (Gaussian peak on IRI
+        background), (ii)~monotone regulariser restricted to F-region only
+        ($h > 150$~km), (iii)~Es-aware Abel inversion splitting the trace at
+        the blanketing frequency $f_{b}E_s$, and (iv)~possible dual-decoder
+        branch for Es parameters (h$E_s$, fo$E_s$, f$_b$E$_s$).
+        \emph{[Future, v2.0]}
+  \item \textbf{Journal paper} — comparison of POLAN vs.\ NN-POLAN on APEP2
+        eclipse data, ionospheric storm case studies, uncertainty quantification.
+        \emph{[Target: JGR: Machine Learning and Computation / Radio Science]}
 \end{enumerate}
 
 % ── 8. Discussion ─────────────────────────────────────────────────────────────
 \section{Discussion}
 
-\paragraph{Why publish before pynasonde 2.0?}
+\paragraph{Why the Abel inversion loss is a non-trivial contribution.}
+The combination of a near-singular forward operator and a deep feature-space
+bottleneck creates a training regime that fails silently: the network converges
+on the background loss, producing visually plausible Ne profiles, but the Abel
+physics constraint is effectively inactive (gradient magnitude near foF2 overwhelms
+or the pool layer severs it entirely).
+Standard remedies --- learning-rate tuning, loss reweighting, gradient clipping ---
+do not resolve the root cause.
+The Abel inversion loss is the structural fix: by moving the singularity outside
+the computational graph entirely, gradients are well-conditioned at every
+frequency up to foF2.
+
+\paragraph{Why publish before \texttt{pynasonde} v2.0?}
 Circulating this design now serves three purposes: (i)~establishing scientific
-priority for the IRI-pretraining + physics-only fine-tuning combination;
+priority for the IRI-pretraining $+$ Abel-inversion physics supervision combination;
 (ii)~gathering community feedback on architecture choices before implementation
-is locked; (iii)~inviting collaborators with access to diverse ionosonde
-archives (GIRO network, SuperDARN-adjacent stations) to contribute fine-tuning
-datasets.
+is locked; (iii)~inviting collaborators with diverse ionosonde archives (GIRO
+network, SuperDARN-adjacent stations) to contribute Stage~2 fine-tuning datasets.
 
 \paragraph{Uncertainty quantification.}
-Stage~2's variational framing naturally supports posterior uncertainty
-estimates: the spread of the posterior distribution $q_\phi$ over $N(h)$
-provides height-resolved confidence intervals on the inversion — something
-POLAN cannot provide.
-This is directly useful for the APEP2 eclipse campaign, where model–data
-comparisons require quantified uncertainty.
+Stage~2's variational framing naturally supports posterior uncertainty estimates:
+the network's output uncertainty over $N(h)$ provides height-resolved confidence
+intervals on the inversion.
+This is directly useful for the APEP2 eclipse campaign, where model--data
+comparisons require quantified uncertainty — something POLAN cannot provide.
 
 \paragraph{Extensibility.}
-The FiLM conditioning vector is not fixed.
-Future versions can condition on magnetic dip angle, solar zenith angle,
-proximity to terminator, or assimilated TEC from GNSS, extending the framework
-toward a full ionospheric data assimilation system.
+The FiLM conditioning vector is not fixed: future versions can condition on
+magnetic dip angle, solar zenith angle, assimilated TEC from GNSS, or
+absorption measurements from riometers, extending the framework toward a full
+ionospheric data assimilation system.
+Sporadic-E support is the most immediate extension target (Section~7, item~5),
+requiring relatively contained changes to the data generation, loss function,
+and decoder, while keeping the foundation model architecture unchanged.
 
 % ── References ────────────────────────────────────────────────────────────────
-% \section*{References}
 \begin{thebibliography}{99}
 \small
 

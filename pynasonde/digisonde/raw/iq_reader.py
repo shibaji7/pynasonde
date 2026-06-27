@@ -92,6 +92,13 @@ class IQStream:
     def __init__(
         self, dir_iq: Path | str, epoch: dt.datetime, rx_tag: str = "ch0"
     ) -> None:
+        """Create an IQ stream reader.
+
+        Args:
+            dir_iq: Root directory containing time-partitioned IQ files.
+            epoch: Approximate start epoch; naive datetimes are treated as UTC.
+            rx_tag: Receiver/channel tag used in file names.
+        """
         dir_path = Path(dir_iq)
         epoch_utc = _ensure_utc(epoch)
         f_center, f_sample = get_frequencies(dir_path, epoch_utc)

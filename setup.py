@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pynasonde",
-    version="1.2.2",
+    version="1.3.0",
     packages=find_packages(),
     package_dir={"pynasonde": "pynasonde"},
     package_data={
@@ -44,7 +44,6 @@ setup(
         "tqdm==4.66.5",
         "timezonefinder==6.5.5",
         "scipy==1.14.1",
-        "SciencePlots==2.1.1",
         "pysolar==0.11",
         "pytz==2024.2",
         "requests==2.32.3",
@@ -55,8 +54,12 @@ setup(
         "scikit-image==0.24.0",
         "scikit-learn==1.5.2",
         "pytesseract==0.3.13",
+        "netCDF4",
     ],
     extras_require={
+        "plots": [
+            "SciencePlots==2.1.1",
+        ],
         "dev": [
             "pytest",
             "pytest-cov",
@@ -79,6 +82,7 @@ setup(
             "joblib",
             "pysolar",
             "netCDF4",
+            "scikit-learn",
         ]
     },
     include_package_data=True,

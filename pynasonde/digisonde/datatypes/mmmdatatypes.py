@@ -186,6 +186,7 @@ class ModMaxHeader:
     nom_gain: int = 0
 
     def __post_init__(self):
+        """Convert parsed frequency fields to Hz."""
         self.nom_frequency *= 1e2  # convert to Hz
         self.start_frequency *= 1e6  # convert to Hz
         self.freq_step *= 1e6  # convert to Hz

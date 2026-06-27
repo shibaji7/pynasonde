@@ -152,3 +152,61 @@ def test_run_rsf_example(monkeypatch):
 
     monkeypatch.chdir(PROJECT_ROOT)
     runpy.run_path(str(PROJECT_ROOT / "examples/digisonde/rsf.py"), run_name="__main__")
+
+
+@pytest.mark.skipif(
+    not (PROJECT_ROOT / "tmp/CADI/6E131200.md4").exists(),
+    reason="Sample CADI file not available",
+)
+def test_run_cadi_basic_example(monkeypatch):
+    output = PROJECT_ROOT / "tmp/cadi_detections.csv"
+    _cleanup([output])
+
+    monkeypatch.chdir(PROJECT_ROOT)
+    runpy.run_path(
+        str(PROJECT_ROOT / "examples/digisonde/cadi_basic.py"), run_name="__main__"
+    )
+
+    assert output.exists() and output.stat().st_size > 0
+    _cleanup([output])
+
+
+@pytest.mark.skipif(
+    not (PROJECT_ROOT / "tmp/CADI/6E131200.md4").exists(),
+    reason="Sample CADI file not available",
+)
+def test_run_cadi_products_example(monkeypatch):
+    output = PROJECT_ROOT / "tmp/cadi_products.csv"
+    _cleanup([output])
+
+    monkeypatch.chdir(PROJECT_ROOT)
+    runpy.run_path(
+        str(PROJECT_ROOT / "examples/digisonde/cadi_products.py"), run_name="__main__"
+    )
+
+    assert output.exists() and output.stat().st_size > 0
+    _cleanup([output])
+
+
+@pytest.mark.skipif(
+    not (PROJECT_ROOT / "tmp/CADI/6E131200.md4").exists(),
+    reason="Sample CADI file not available",
+)
+def test_run_cadi_interferometry_plot_example(monkeypatch):
+    pytest.importorskip("matplotlib")
+
+    outputs = [
+        FIG_DIR / "cadi_power_scatter.png",
+        FIG_DIR / "cadi_doppler_scatter.png",
+    ]
+    _cleanup(outputs)
+
+    monkeypatch.chdir(PROJECT_ROOT)
+    runpy.run_path(
+        str(PROJECT_ROOT / "examples/digisonde/cadi_interferometry_plot.py"),
+        run_name="__main__",
+    )
+
+    for output in outputs:
+        assert output.exists() and output.stat().st_size > 0
+    _cleanup(outputs)

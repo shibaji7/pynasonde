@@ -8,19 +8,17 @@ pandas.DataFrame objects suitable for plotting or downstream analysis.
 """
 
 import datetime as dt
-import glob
-import os
-from functools import partial
-from multiprocessing import Pool
 from typing import List
 
 import numpy as np
 import pandas as pd
 from loguru import logger
-from tqdm import tqdm
 
-from pynasonde.digisonde.digi_utils import get_digisonde_info, to_namespace
-from pynasonde.vipir.ngi.utils import TimeZoneConversion
+from pynasonde.digisonde.digi_utils import (
+    apply_filename_metadata,
+    load_files_to_dataframe,
+    to_namespace,
+)
 
 
 class DvlExtractor(object):
@@ -40,45 +38,23 @@ class DvlExtractor(object):
     ):
         """Create a DvlExtractor instance.
 
-        Parameters:
-            filename: str
-                Path to the DVL-format file to parse.
-            extract_time_from_name: bool, optional
-                If True, attempt to parse a timestamp from the filename
+        Args:
+            filename (str): Path to the DVL-format file to parse.
+            extract_time_from_name (bool, optional): If True, attempt to parse a timestamp from the filename
                 (default False). The expected filename format includes a
                 YYYYDDDHHMMSS-like timestamp token at the end.
-            extract_stn_from_name: bool, optional
-                If True, attempt to parse a station code from the filename
+            extract_stn_from_name (bool, optional): If True, attempt to parse a station code from the filename
                 (default False).
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
-        if extract_time_from_name:
-            date = (
-                self.filename.split("_")[-1]
-                .replace(".SAO", "")
-                .replace(".sao", "")
-                .replace(".DVL", "")
-                .replace(".dvl", "")
-            )
-            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
-                int(date[4:7]) - 1
-            )
-            self.date = self.date.replace(
-                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
-            )
-            logger.info(f"Date: {self.date}")
-        if extract_stn_from_name:
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
-            logger.info(f"Station code: {self.stn_code}")
-            self.stn_info = get_digisonde_info(self.stn_code)
-            self.local_timezone_converter = TimeZoneConversion(
-                lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
-            )
-            self.local_time = self.local_timezone_converter.utc_to_local_time(
-                [self.date]
-            )[0]
-            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
+        apply_filename_metadata(
+            self,
+            self.filename,
+            extract_time_from_name=extract_time_from_name,
+            extract_stn_from_name=extract_stn_from_name,
+        )
+        date = getattr(self, "date", None)
         self.key_order = [
             "type",
             "version",
@@ -112,9 +88,9 @@ class DvlExtractor(object):
             ursi_tag="",
             lat=np.nan,
             lon=np.nan,
-            date=self.date.date(),
-            doy=self.date.timetuple().tm_yday,
-            time=self.date.time(),
+            date=date.date() if date is not None else None,
+            doy=date.timetuple().tm_yday if date is not None else np.nan,
+            time=date.time() if date is not None else None,
             Vx=np.nan,  # in m/s; magnetic north direction
             Vx_err=np.nan,
             Vy=np.nan,  # in m/s; magnetic east direction
@@ -177,13 +153,10 @@ class DvlExtractor(object):
     ) -> pd.DataFrame:
         """Convenience wrapper to extract a single file into a pandas row.
 
-        Parameters:
-            file: str
-                Path to the DVL file.
-            extract_time_from_name: bool, optional
-                See :meth:`__init__`.
-            extract_stn_from_name: bool, optional
-                See :meth:`__init__`.
+        Args:
+            file (str): Path to the DVL file.
+            extract_time_from_name (bool, optional): See :meth:`__init__`.
+            extract_stn_from_name (bool, optional): See :meth:`__init__`.
 
         Returns:
             A 1-row DataFrame containing the parsed DVL record and two timestamp columns: ``datetime`` (UTC) and ``local_datetime``.
@@ -196,7 +169,7 @@ class DvlExtractor(object):
 
     @staticmethod
     def load_DVL_files(
-        folders: List[str] = ["tmp/SKYWAVE_DPS4D_2023_10_13"],
+        folders: List[str] = None,
         ext: str = "*.DVL",
         n_procs: int = 4,
         extract_time_from_name: bool = True,
@@ -204,56 +177,25 @@ class DvlExtractor(object):
     ) -> pd.DataFrame:
         """Recursively load DVL files from folders into a single DataFrame.
 
-        Parameters:
-            folders: list[str], optional
-                List of folders (globbed) to search for files.
-            ext: str, optional
-                Filename glob pattern to match DVL files.
-            n_procs: int, optional
-                Number of worker processes to use for parallel parsing.
-            extract_time_from_name: bool, optional
-                See :meth:`__init__`.
-            extract_stn_from_name: bool, optional
-                See :meth:`__init__`.
+        Args:
+            folders (list[str], optional): List of folders (globbed) to search for files.
+            ext (str, optional): Filename glob pattern to match DVL files.
+            n_procs (int, optional): Number of worker processes to use for parallel parsing.
+            extract_time_from_name (bool, optional): See :meth:`__init__`.
+            extract_stn_from_name (bool, optional): See :meth:`__init__`.
 
         Returns:
             Concatenated DataFrame containing parsed rows for all files discovered under the provided folders.
         """
-        collections = []
-        for folder in folders:
-            logger.info(f"Searching for files under: {os.path.join(folder, ext)}")
-            files = glob.glob(os.path.join(folder, ext))
-            files.sort()
-            logger.info(f"N files: {len(files)}")
-            with Pool(n_procs) as pool:
-                df_collection = list(
-                    tqdm(
-                        pool.imap(
-                            partial(
-                                DvlExtractor.extract_DVL_pandas,
-                                extract_time_from_name=extract_time_from_name,
-                                extract_stn_from_name=extract_stn_from_name,
-                            ),
-                            files,
-                        ),
-                        total=len(files),
-                    )
-                )
-            collections.extend(df_collection)
-        collections = pd.concat(collections)
-        return collections
-
-
-if __name__ == "__main__":
-    # extractor = DvlExtractor("tmp/KR835_2023286235715.DVL", True, True)
-    # extractor.extract()
-    collection = DvlExtractor.load_DVL_files(["tmp/SKYWAVE_DPS4D_2023_10_14"])
-    from pynasonde.digisonde.digi_plots import SkySummaryPlots
-
-    SkySummaryPlots.plot_dvl_drift_velocities(
-        collection, fname="tmp/extract_dvl.png", draw_local_time=True
-    )
-    # sky = SkySummaryPlots(figsize=(8, 4), subplot_kw=None)
-    # sky.plot_dvl_drift_velocities(collection)
-    # sky.save("tmp/extract_dvl.png")
-    # sky.close()
+        if folders is None:
+            folders = []
+        return load_files_to_dataframe(
+            folders=folders,
+            exts=ext,
+            extractor=DvlExtractor.extract_DVL_pandas,
+            n_procs=n_procs,
+            extractor_kwargs=dict(
+                extract_time_from_name=extract_time_from_name,
+                extract_stn_from_name=extract_stn_from_name,
+            ),
+        )

@@ -11,10 +11,10 @@ directly in documentation examples.
 """
 
 import copy
-import datetime as dt
 import struct
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.datatypes.dftdatatypes import (
@@ -23,6 +23,7 @@ from pynasonde.digisonde.datatypes.dftdatatypes import (
     DopplerSpectralBlock,
     SubCaseHeader,
 )
+from pynasonde.digisonde.digi_utils import apply_filename_metadata
 
 
 class DftExtractor(object):
@@ -44,17 +45,12 @@ class DftExtractor(object):
     ) -> None:
         """Create a DftExtractor instance.
 
-        Parameters:
-            filename: str
-                Path to the DFT-format file to read.
-            extract_time_from_name: bool, optional
-                If True, attempt to parse a timestamp from the filename.
-            extract_stn_from_name: bool, optional
-                If True, attempt to parse a station code from the filename.
-            DATA_BLOCK_SIZE: int, optional
-                Block size in bytes used by the DFT format.
-            SUB_CASE_NUMBER: int, optional
-                Number of sub-cases per block.
+        Args:
+            filename (str): Path to the DFT-format file to read.
+            extract_time_from_name (bool, optional): If True, attempt to parse a timestamp from the filename.
+            extract_stn_from_name (bool, optional): If True, attempt to parse a station code from the filename.
+            DATA_BLOCK_SIZE (int, optional): Block size in bytes used by the DFT format.
+            SUB_CASE_NUMBER (int, optional): Number of sub-cases per block.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
@@ -62,18 +58,13 @@ class DftExtractor(object):
         self.SUB_CASE_NUMBER = SUB_CASE_NUMBER
         with open(self.filename, "rb") as file:
             self.BLOCKS = int(len(file.read()) / self.DATA_BLOCK_SIZE)
-        if extract_time_from_name:
-            date = self.filename.split("_")[-1].replace(".SAO", "").replace(".sao", "")
-            self.date = dt.datetime(int(date[:4]), 1, 1) + dt.timedelta(
-                int(date[4:7]) - 1
-            )
-            self.date = self.date.replace(
-                hour=int(date[7:9]), minute=int(date[9:11]), second=int(date[11:13])
-            )
-            logger.info(f"Date: {self.date}")
-        if extract_stn_from_name:
-            self.stn_code = self.filename.split("/")[-1].split("_")[0]
-            logger.info(f"Station code: {self.stn_code}")
+        apply_filename_metadata(
+            self,
+            self.filename,
+            extract_time_from_name=extract_time_from_name,
+            extract_stn_from_name=extract_stn_from_name,
+            load_station_info=False,
+        )
         return
 
     def extract(self) -> None:
@@ -110,7 +101,7 @@ class DftExtractor(object):
         logger.info(f"Extracted {len(self.blocks)} DFT blocks from {self.filename}")
         return
 
-    def to_pandas(self) -> "pd.DataFrame":
+    def to_pandas(self) -> pd.DataFrame:
         """Flatten all parsed DFT blocks into a tidy DataFrame.
 
         Each row corresponds to one (block, sub-case, Doppler-bin) triplet.
@@ -134,8 +125,6 @@ class DftExtractor(object):
             * ``frequency_hz``– start frequency from the block header (Hz)
             * ``date``        – measurement timestamp (datetime)
         """
-        import pandas as pd
-
         rows = []
         date = getattr(self, "date", None)
         for bi, block in enumerate(self.blocks):
@@ -172,9 +161,8 @@ class DftExtractor(object):
         the bitstring and converts the bit fields into a
         :class:`DftHeader` dataclass instance.
 
-        Parameters:
-            amplitude_bytes: list
-                Sequence of 1-byte objects (as returned by ``file.read(1)``)
+        Args:
+            amplitude_bytes (list): Sequence of 1-byte objects (as returned by ``file.read(1)``)
                 that contain the embedded header bits in their LSB.
 
         Returns:
@@ -277,7 +265,7 @@ class DftExtractor(object):
             start_gain=int(header_bitstring[228:232][::-1], 2),
             subcases=[],
         )
-        print(header)
+        logger.debug(f"DFT header: {header}")
         logger.debug(f"Record type:{header.record_type}")
         sub = SubCaseHeader(
             frequency=(
@@ -300,7 +288,9 @@ class DftExtractor(object):
             agc_offset=int(header_bitstring[304:312][::-1], 2),
             polarization=int(header_bitstring[312:316][::-1], 2),
         )
-        print(sub, header_bitstring[312:316][::-1])
+        logger.debug(
+            f"DFT subcase header: {sub}; polarization bits={header_bitstring[312:316][::-1]}"
+        )
         return header
 
     def to_int(self, bin_strs: str, base: int = 2) -> int:
@@ -309,11 +299,9 @@ class DftExtractor(object):
         The helper pads the provided bit string to at least 8 bits and
         converts it to an integer using the provided base.
 
-        Parameters:
-            bin_strs: str
-                Bitstring fragment (e.g. '1010').
-            base: int, optional
-                Numeric base to use for conversion (default 2).
+        Args:
+            bin_strs (str): Bitstring fragment (e.g. '1010').
+            base (int, optional): Numeric base to use for conversion (default 2).
 
         Returns:
             Integer representation.
@@ -323,11 +311,9 @@ class DftExtractor(object):
     def unpack_7_1(self, bcd_byte: int, return_lsb: bool = True) -> int:
         """Unpack a 1-byte packed BCD into 7-bit MSB and 1-bit LSB.
 
-        Parameters:
-            bcd_byte: int
-                The raw byte value (0-255).
-            return_lsb: bool, optional
-                If True return the least-significant-bit, otherwise return
+        Args:
+            bcd_byte (int): The raw byte value (0-255).
+            return_lsb (bool, optional): If True return the least-significant-bit, otherwise return
                 the seven most-significant bits.
 
         Returns:
@@ -339,10 +325,3 @@ class DftExtractor(object):
             return lsb
         else:
             return msb
-
-
-if __name__ == "__main__":
-    extractor = DftExtractor(
-        "tmp/SKYWAVE_DPS4D_2023_10_13/KR835_2023286235715.DFT", True, True
-    )
-    extractor.extract()

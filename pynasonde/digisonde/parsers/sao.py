@@ -9,25 +9,20 @@ import-time so it can be used in documentation builds.
 """
 
 import datetime as dt
-import glob
-import os
 import re
-from functools import partial
-from multiprocessing import Pool
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from loguru import logger
-from lxml import etree
-from tqdm import tqdm
 
 from pynasonde.digisonde.datatypes.saoxmldatatypes import SAORecordList
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import (
-    get_digisonde_info,
-    is_valid_xml_data_string,
-    load_dtd_file,
+    apply_filename_metadata,
+    extract_datetime_token_from_filename,
+    load_files_to_dataframe,
+    parse_digisonde_datetime_token,
     to_namespace,
 )
 from pynasonde.vipir.ngi.utils import TimeZoneConversion
@@ -52,84 +47,34 @@ class SaoExtractor(object):
     ) -> None:
         """Create an extractor for the provided file.
 
-        Parameters:
-            filename:  str
-                Path to the SAO or XML file to parse.
-            extract_time_from_name:  bool, optional
-                If True, attempt to parse a timestamp from the filename.
-            extract_stn_from_name:  bool, optional
-                If True, fetch station metadata and compute local time.
-            dtd_file:  str, optional
-                Optional DTD file used to validate XML inputs.
+        Args:
+            filename (str): Path to the SAO or XML file to parse.
+            extract_time_from_name (bool, optional): If True, attempt to parse a timestamp from the filename.
+            extract_stn_from_name (bool, optional): If True, fetch station metadata and compute local time.
+            dtd_file (str, optional): Optional DTD file used to validate XML inputs.
         """
         # Initialize the data structure to hold extracted data
         self.filename = filename
         self.xml_file = True if filename.split(".")[-1].lower() == "xml" else False
         self.dtd_file = dtd_file
         self.sao_struct = {}
-        self.stn_code = os.path.basename(self.filename).split("_")[0]
-        if extract_time_from_name:
-            token = self._extract_datetime_token()
-            self.date = self._parse_datetime_token(token)
-            if self.date is not None:
-                logger.info(f"Date: {self.date}")
-            else:
-                logger.warning(
-                    f"Could not parse datetime from filename token '{token}' in '{self.filename}'"
-                )
-        if extract_stn_from_name:
-            self.stn_info = get_digisonde_info(self.stn_code)
-            if hasattr(self, "date") and self.date is not None:
-                self.local_timezone_converter = TimeZoneConversion(
-                    lat=self.stn_info["LAT"], long=self.stn_info["LONG"]
-                )
-                self.local_time = self.local_timezone_converter.utc_to_local_time(
-                    [self.date]
-                )[0]
-            logger.info(f"Station code: {self.stn_code}; {self.stn_info}")
+        apply_filename_metadata(
+            self,
+            self.filename,
+            extract_time_from_name=extract_time_from_name,
+            extract_stn_from_name=extract_stn_from_name,
+            station_code_always=True,
+        )
         return
 
     def _extract_datetime_token(self) -> str:
         """Return the trailing filename token likely containing date/time."""
-        stem = os.path.splitext(os.path.basename(self.filename))[0]
-        parts = stem.split("_")
-        return parts[-1] if parts else stem
+        return extract_datetime_token_from_filename(self.filename)
 
     @staticmethod
     def _parse_datetime_token(token: str):
-        """Parse known SAO datetime token formats.
-
-        Supported:
-        - YYYYmmddHHMMSS
-        - YYYYDDDHHMMSS
-        - YYYYmmdd(DDD)    -> day file, defaults to 00:00:00 UTC
-        - YYYYmmdd         -> day file, defaults to 00:00:00 UTC
-        - YYYYDDD          -> day file, defaults to 00:00:00 UTC
-        """
-        token = token.strip()
-
-        # 1) YYYYmmddHHMMSS
-        if re.fullmatch(r"\d{14}", token):
-            return dt.datetime.strptime(token, "%Y%m%d%H%M%S")
-
-        # 2) YYYYDDDHHMMSS
-        if re.fullmatch(r"\d{13}", token):
-            return dt.datetime.strptime(token, "%Y%j%H%M%S")
-
-        # 3) YYYYmmdd(DDD)
-        m = re.fullmatch(r"(?P<ymd>\d{8})\((?P<doy>\d{3})\)", token)
-        if m:
-            return dt.datetime.strptime(m.group("ymd"), "%Y%m%d")
-
-        # 4) YYYYmmdd
-        if re.fullmatch(r"\d{8}", token):
-            return dt.datetime.strptime(token, "%Y%m%d")
-
-        # 5) YYYYDDD
-        if re.fullmatch(r"\d{7}", token):
-            return dt.datetime.strptime(token, "%Y%j")
-
-        return None
+        """Parse known SAO datetime token formats."""
+        return parse_digisonde_datetime_token(token)
 
     def read_file(self) -> List[str]:
         """Read the file and return a list of lines without trailing newline.
@@ -142,19 +87,17 @@ class SaoExtractor(object):
             return SAOarch
 
     def pad(self, s, length, pad_char=" ") -> str:
+        """Right-pad a string to the requested fixed width."""
         return s.ljust(length, pad_char)
 
     def parse_line(self, line: str, fmt: str, num_ch: int) -> List:
         """Parse a fixed-width chunked line according to a format token.
 
-        Parameters:
-            line:  str
-                The line to parse (a concatenated fixed-width string).
-            fmt:  str
-                Format token (e.g. '%7.3f', '%120c') that controls parsing and
+        Args:
+            line (str): The line to parse (a concatenated fixed-width string).
+            fmt (str): Format token (e.g. '%7.3f', '%120c') that controls parsing and
                 type coercion.
-            num_ch:  int
-                Width of each chunk in characters.
+            num_ch (int): Width of each chunk in characters.
 
         Returns:
             Parsed values; numeric tokens are converted to float when
@@ -277,9 +220,8 @@ class SaoExtractor(object):
     def get_height_profile_xml(self, plot_ionogram: str = None) -> tuple:
         """Extract height profile and trace DataFrames from loaded XML SAO.
 
-        Parameters:
-            plot_ionogram:  str or None, optional
-                Optional filename to save an ionogram plot. If provided, a
+        Args:
+            plot_ionogram (str or None, optional): Optional filename to save an ionogram plot. If provided, a
                 plot is generated using: class:`SaoSummaryPlots`.
 
         Returns:
@@ -350,9 +292,8 @@ class SaoExtractor(object):
     ) -> pd.DataFrame:
         """Return selected characteristic parameters from XML SAO as a DataFrame.
 
-        Parameters:
-        params:  list[str], optional
-            List of characteristic names to extract. Defaults to common
+        Args:
+            params: List of characteristic names to extract. Defaults to common
                 scaled parameters like 'foF2', 'hmF2', etc.
 
         Returns:
@@ -644,7 +585,7 @@ class SaoExtractor(object):
     def extract(self, mode: str = "auto", record_index: int = 0):
         """Parse legacy SAO text with single/multi record support.
 
-        Parameters:
+        Args:
             mode: ``'auto'`` | ``'single'`` | ``'multi'``.
             record_index: Record index used when ``mode='single'`` and file is multi.
         """
@@ -702,8 +643,8 @@ class SaoExtractor(object):
     def get_scaled_datasets(self, asdf: bool = True) -> pd.DataFrame:
         """Return scaled dataset fields from parsed legacy SAO as a DataFrame.
 
-        Parameters:
-            asdf:  Retured as `df` if `True`.
+        Args:
+            asdf: Return as a DataFrame when ``True``.
 
         Returns:
             Single-row DataFrame containing scaled parameters with
@@ -763,10 +704,10 @@ class SaoExtractor(object):
     ) -> pd.DataFrame:
         """Return the height profile DataFrame extracted from the parsed SAO.
 
-        Parameters:
-            asdf:  Retured as `df` if `True`.
-            plot_ionogram:  If True, generate and save an ionogram plot alongside the
-                returned DataFrame.
+        Args:
+            asdf: Return as a DataFrame when ``True``.
+            plot_ionogram: If True, generate and save an ionogram plot
+                alongside the returned DataFrame.
 
         Returns:
             DataFrame with columns for height (`th`), plasma frequency
@@ -866,19 +807,13 @@ class SaoExtractor(object):
     ) -> pd.DataFrame:
         """Convenience function to extract a single SAO/XML file into a DataFrame.
 
-        Parameters:
-            file:  str
-                Path to the SAO or XML file.
-            extract_time_from_name:  bool, optional
-                If True, infer timestamps from the filename.
-            extract_stn_from_name:  bool, optional
-                If True, infer station and compute local time.
-            func_name:  str, optional
-                Which view to return: ``'height_profile'`` or ``'scaled'``.
-            mode:  str, optional
-                SAO parsing mode for text files: ``'auto'``, ``'single'``, ``'multi'``.
-            record_index:  int, optional
-                Record index when ``mode='single'`` on multi-record SAO files.
+        Args:
+            file (str): Path to the SAO or XML file.
+            extract_time_from_name (bool, optional): If True, infer timestamps from the filename.
+            extract_stn_from_name (bool, optional): If True, infer station and compute local time.
+            func_name (str, optional): Which view to return: ``'height_profile'`` or ``'scaled'``.
+            mode (str, optional): SAO parsing mode for text files: ``'auto'``, ``'single'``, ``'multi'``.
+            record_index (int, optional): Record index when ``mode='single'`` on multi-record SAO files.
 
         Returns:
             DataFrame corresponding to the requested view. For XML inputs
@@ -916,53 +851,32 @@ class SaoExtractor(object):
     ) -> pd.DataFrame:
         """Load fixed-width SAO files from folders into a single DataFrame.
 
-        Parameters:
-            folders:  list[str], optional
-                List of folders to search for files.
-            ext:  str, optional
-                Glob pattern to match files (default ``'*.SAO'``).
-            n_procs:  int, optional
-                Number of worker processes used for parallel extraction.
-            extract_time_from_name:  bool, optional
-                See: meth:`extract_SAO`.
-            extract_stn_from_name:  bool, optional
-                See: meth:`extract_SAO`.
-            func_name:  str, optional
-                View to extract (``'height_profile'`` or ``'scaled'``).
-            mode:  str, optional
-                SAO parsing mode for text files.
-            record_index:  int, optional
-                Record index used when forcing ``mode='single'``.
+        Args:
+            folders (list[str], optional): List of folders to search for files.
+            ext (str, optional): Glob pattern to match files (default ``'*.SAO'``).
+            n_procs (int, optional): Number of worker processes used for parallel extraction.
+            extract_time_from_name: See :meth:`extract_SAO`.
+            extract_stn_from_name: See :meth:`extract_SAO`.
+            func_name (str, optional): View to extract (``'height_profile'`` or ``'scaled'``).
+            mode (str, optional): SAO parsing mode for text files.
+            record_index (int, optional): Record index used when forcing ``mode='single'``.
 
         Returns:
             Concatenated DataFrame of all extracted rows.
         """
-        collections = []
-        for folder in folders:
-            logger.info(f"Searching for files under: {os.path.join(folder, ext)}")
-            files = glob.glob(os.path.join(folder, ext))
-            files.sort()
-            logger.info(f"N files: {len(files)}")
-            with Pool(n_procs) as pool:
-                df_collection = list(
-                    tqdm(
-                        pool.imap(
-                            partial(
-                                SaoExtractor.extract_SAO,
-                                extract_time_from_name=extract_time_from_name,
-                                extract_stn_from_name=extract_stn_from_name,
-                                func_name=func_name,
-                                mode=mode,
-                                record_index=record_index,
-                            ),
-                            files,
-                        ),
-                        total=len(files),
-                    )
-                )
-            collections.extend(df_collection)
-        collections = pd.concat(collections)
-        return collections
+        return load_files_to_dataframe(
+            folders=folders,
+            exts=ext,
+            extractor=SaoExtractor.extract_SAO,
+            n_procs=n_procs,
+            extractor_kwargs=dict(
+                extract_time_from_name=extract_time_from_name,
+                extract_stn_from_name=extract_stn_from_name,
+                func_name=func_name,
+                mode=mode,
+                record_index=record_index,
+            ),
+        )
 
     @staticmethod
     def load_XML_files(
@@ -980,29 +894,16 @@ class SaoExtractor(object):
         Same behaviour as: meth:`load_SAO_files` but matches XML file
         extensions by default.
         """
-        collections = []
-        for folder in folders:
-            logger.info(f"Searching for files under: {os.path.join(folder, ext)}")
-            files = glob.glob(os.path.join(folder, ext))
-            files.sort()
-            logger.info(f"N files: {len(files)}")
-            with Pool(n_procs) as pool:
-                df_collection = list(
-                    tqdm(
-                        pool.imap(
-                            partial(
-                                SaoExtractor.extract_SAO,
-                                extract_time_from_name=extract_time_from_name,
-                                extract_stn_from_name=extract_stn_from_name,
-                                func_name=func_name,
-                                mode=mode,
-                                record_index=record_index,
-                            ),
-                            files,
-                        ),
-                        total=len(files),
-                    )
-                )
-            collections.extend(df_collection)
-        collections = pd.concat(collections)
-        return collections
+        return load_files_to_dataframe(
+            folders=folders,
+            exts=ext,
+            extractor=SaoExtractor.extract_SAO,
+            n_procs=n_procs,
+            extractor_kwargs=dict(
+                extract_time_from_name=extract_time_from_name,
+                extract_stn_from_name=extract_stn_from_name,
+                func_name=func_name,
+                mode=mode,
+                record_index=record_index,
+            ),
+        )

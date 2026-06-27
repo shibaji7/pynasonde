@@ -84,9 +84,15 @@ DIGISONDE_TOP = [
     ("pynasonde.digisonde", "SkySummaryPlots"),
     ("pynasonde.digisonde", "RsfIonogram"),
     ("pynasonde.digisonde", "to_namespace"),
+    ("pynasonde.digisonde", "apply_filename_metadata"),
+    ("pynasonde.digisonde", "extract_datetime_token_from_filename"),
+    ("pynasonde.digisonde", "extract_station_code_from_filename"),
+    ("pynasonde.digisonde", "flatten_dict"),
     ("pynasonde.digisonde", "get_digisonde_info"),
     ("pynasonde.digisonde", "load_station_csv"),
     ("pynasonde.digisonde", "get_gridded_parameters"),
+    ("pynasonde.digisonde", "merge_dicts_selected_keys"),
+    ("pynasonde.digisonde", "parse_digisonde_datetime_token"),
 ]
 
 # ---------------------------------------------------------------------------

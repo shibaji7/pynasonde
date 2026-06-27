@@ -127,6 +127,20 @@ class DigiPlots(object):
         subplot_kw: dict = None,
         draw_local_time: bool = False,
     ):
+        """Create a Digisonde plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date used by time-axis helpers.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Optional keyword arguments passed to
+                ``matplotlib.pyplot.subplots``.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
         self.fig_title = fig_title
         self.nrows = nrows
         self.ncols = ncols
@@ -218,12 +232,8 @@ class DigiPlots(object):
             fig: The Matplotlib figure containing the axis.
             ax: The axis to which the colorbar applies.
             label: Colorbar label text.
-            mpos: List of 4 floats describing the colorbar axes position
-                relative to `ax`. The list contains [left, bottom, width,
-                height] where left/bottom are offsets from `ax` and height is
-                a fraction of `ax` height. For example, the default value
-                places a thin colorbar to the right of `ax` with half its
-                height.
+            mpos: List of four floats describing the colorbar axes position
+                relative to `ax`: ``[left, bottom, width, height]``.
         """
         pos = ax.get_position()
         cpos = [
@@ -236,6 +246,157 @@ class DigiPlots(object):
         cb = fig.colorbar(im, ax=ax, cax=cax)
         cb.set_label(label)
         return
+
+    def add_frequency_height_scatter(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_mhz",
+        yparam: str = "height_km",
+        zparam: str = "power",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[float] = [1.0, 22.0],
+        ylim: List[float] = [80.0, 1100.0],
+        xticks: List[float] = [1.5, 2, 3, 5, 7, 10, 15, 20],
+        cmap: str | LinearSegmentedColormap = "viridis",
+        prange: List[float] = None,
+        cbar_label: str = "",
+        marker: str = "s",
+        ms: float = 4.0,
+        alpha: float = 0.8,
+        log_x: bool = True,
+        text: str = None,
+        del_ticks: bool = False,
+        add_cbar: bool = True,
+    ):
+        """Add a colored frequency-height scatter plot.
+
+        This is the generic numeric scatter primitive used by CADI power and
+        Doppler-bin plots, but it is intentionally format-agnostic so examples
+        can use ``DigiPlots`` directly when no specialized plot class is needed.
+        """
+        utils.setsize(self.font_size)
+        ax = self.get_axes(del_ticks=del_ticks)
+        work = df.dropna(subset=[xparam, yparam, zparam]).copy()
+
+        xvals = work[xparam].to_numpy(dtype=float)
+        if log_x:
+            xvals = np.log10(xvals)
+            ax.set_xlim(np.log10(xlim))
+            if not del_ticks:
+                ax.set_xticks(np.log10(xticks))
+                ax.set_xticklabels(xticks)
+        else:
+            ax.set_xlim(xlim)
+
+        ax.set_ylim(ylim)
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
+        ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
+
+        scatter_kwargs = {}
+        if prange is not None:
+            scatter_kwargs.update(vmin=prange[0], vmax=prange[1])
+
+        im = ax.scatter(
+            xvals,
+            work[yparam].to_numpy(dtype=float),
+            c=work[zparam].to_numpy(dtype=float),
+            s=ms,
+            marker=marker,
+            cmap=cmap,
+            alpha=alpha,
+            **scatter_kwargs,
+        )
+        if add_cbar:
+            self._add_colorbar(im, self.fig, ax, label=cbar_label)
+
+        if text:
+            ax.text(
+                0.02,
+                0.96,
+                text,
+                ha="left",
+                va="top",
+                transform=ax.transAxes,
+                fontdict={"size": self.font_size},
+            )
+        return ax, im
+
+    def add_categorical_frequency_height_scatter(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_mhz",
+        yparam: str = "height_km",
+        category_param: str = "mode",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[float] = [1.0, 22.0],
+        ylim: List[float] = [80.0, 1100.0],
+        xticks: List[float] = [1.5, 2, 3, 5, 7, 10, 15, 20],
+        colors: dict = None,
+        category_order: List[str] = None,
+        marker: str = "s",
+        ms: float = 4.0,
+        alpha: float = 0.8,
+        log_x: bool = True,
+        text: str = None,
+        del_ticks: bool = False,
+        legend_loc: str = "upper right",
+    ):
+        """Add a categorical frequency-height scatter plot."""
+        utils.setsize(self.font_size)
+        ax = self.get_axes(del_ticks=del_ticks)
+        work = df.dropna(subset=[xparam, yparam, category_param]).copy()
+
+        if log_x:
+            ax.set_xlim(np.log10(xlim))
+            if not del_ticks:
+                ax.set_xticks(np.log10(xticks))
+                ax.set_xticklabels(xticks)
+        else:
+            ax.set_xlim(xlim)
+
+        ax.set_ylim(ylim)
+        ax.set_xlabel(xlabel, fontdict={"size": self.font_size})
+        ax.set_ylabel(ylabel, fontdict={"size": self.font_size})
+
+        colors = colors or {}
+        if category_order is None:
+            category_order = list(pd.unique(work[category_param]))
+
+        handles = []
+        for category in category_order:
+            category_df = work[work[category_param] == category]
+            if category_df.empty:
+                continue
+            xvals = category_df[xparam].to_numpy(dtype=float)
+            if log_x:
+                xvals = np.log10(xvals)
+            handle = ax.scatter(
+                xvals,
+                category_df[yparam].to_numpy(dtype=float),
+                c=colors.get(category, "#474747"),
+                s=ms,
+                marker=marker,
+                alpha=alpha,
+                label=category,
+            )
+            handles.append(handle)
+
+        if handles:
+            ax.legend(loc=legend_loc, fontsize=max(self.font_size - 2, 6))
+
+        if text:
+            ax.text(
+                0.02,
+                0.96,
+                text,
+                ha="left",
+                va="top",
+                transform=ax.transAxes,
+                fontdict={"size": self.font_size},
+            )
+        return ax, handles
 
 
 class SaoSummaryPlots(DigiPlots):
@@ -264,6 +425,19 @@ class SaoSummaryPlots(DigiPlots):
         subplot_kw: dict = None,
         draw_local_time: bool = False,
     ):
+        """Create an SAO summary plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date used by time-axis helpers.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Optional subplot keyword arguments.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
         super().__init__(
             fig_title,
             nrows,
@@ -663,8 +837,6 @@ class SaoSummaryPlots(DigiPlots):
         vmin, vmax = prange if prange is not None else [fbins[0], fbins[-1]]
 
         # ── Build a regular time × height grid for pcolormesh ─────────────────
-        # Bin time into ionogram slots (detect cadence from unique timestamps)
-        times = np.sort(df[xparam].unique())
         heights = np.arange(ylim[0], ylim[1] + 1, 5.0)  # 5 km bins
 
         df["_h_bin"] = pd.cut(df[yparam], bins=heights, labels=heights[:-1])
@@ -793,7 +965,7 @@ class SaoSummaryPlots(DigiPlots):
         for i in range(len(fbins) - 1):
             f_max, f_min = fbins[i + 1], fbins[i]
             o = df[(df[zparam] >= f_min) & (df[zparam] <= f_max)]
-            im = ax.scatter(
+            ax.scatter(
                 o[xparam],
                 o[yparam],
                 c=o[zparam],
@@ -840,6 +1012,19 @@ class SkySummaryPlots(DigiPlots):
         subplot_kw: dict = dict(projection="polar"),
         draw_local_time: bool = False,
     ):
+        """Create a SKY polar plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date used by time-axis helpers.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Subplot keyword arguments; defaults to polar axes.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
         super().__init__(
             fig_title,
             nrows,
@@ -1406,6 +1591,19 @@ class RsfIonogram(DigiPlots):
         subplot_kw: dict = None,
         draw_local_time: bool = False,
     ):
+        """Create an RSF ionogram plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date used by time-axis helpers.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Optional subplot keyword arguments.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
         super().__init__(
             fig_title,
             nrows,
@@ -1488,6 +1686,7 @@ class RsfIonogram(DigiPlots):
         }
 
         def _classify(row):
+            """Map one RSF echo row to a direction/polarization category."""
             if row["amplitude"] <= 0:
                 return "NoVal"
             azm = row["azm_directions"]
@@ -1626,6 +1825,7 @@ class RsfIonogram(DigiPlots):
         _AZM_TO_CATEGORY = {"NE": "NNE", "SE": "E", "SW": "W", "S": "SSW", "NW": "NNW"}
 
         def _classify(row):
+            """Map one RSF echo row to a directogram category."""
             if row["amplitude"] <= 0:
                 return None
             azm = row["azm_directions"]
@@ -1861,3 +2061,180 @@ class RsfIonogram(DigiPlots):
         if text:
             ax.set_title(text, pad=20, fontsize=self.font_size)
         return
+
+
+class CadiIonogram(DigiPlots):
+    """Plotting helpers for CADI-derived ionogram products.
+
+    Expected input columns are produced by
+    ``pynasonde.digisonde.cadi.CadiExtractor.to_dataframe_products``.
+    """
+
+    def __init__(
+        self,
+        fig_title: str = "",
+        nrows: int = 1,
+        ncols: int = 1,
+        font_size: float = 10,
+        figsize: tuple = (4, 3),
+        date: dt.datetime = None,
+        date_lims: List[dt.datetime] = [],
+        subplot_kw: dict = None,
+        draw_local_time: bool = False,
+    ):
+        """Create a CADI ionogram plotting canvas.
+
+        Args:
+            fig_title: Text drawn above the first subplot.
+            nrows: Number of subplot rows.
+            ncols: Number of subplot columns.
+            font_size: Base font size for labels and ticks.
+            figsize: Per-subplot figure size in inches.
+            date: Optional reference date used by time-axis helpers.
+            date_lims: Optional datetime axis limits.
+            subplot_kw: Optional subplot keyword arguments.
+            draw_local_time: If True, prefer local-time columns when available.
+        """
+        super().__init__(
+            fig_title,
+            nrows,
+            ncols,
+            font_size,
+            figsize,
+            date,
+            date_lims,
+            subplot_kw,
+            draw_local_time,
+        )
+        return
+
+    def add_power_ionogram(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_mhz",
+        yparam: str = "height_km",
+        zparam: str = "mean_power_db",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[float] = [1.0, 22.0],
+        ylim: List[float] = [80.0, 1100.0],
+        xticks: List[float] = [1.5, 2, 3, 5, 7, 10, 15, 20],
+        cmap: str = "viridis",
+        prange: List[float] = [0.0, 35.0],
+        cbar_label: str = "Mean Power, dB",
+        marker: str = "s",
+        ms: float = 4.0,
+        alpha: float = 0.8,
+        log_x: bool = True,
+        text: str = None,
+        del_ticks: bool = False,
+    ):
+        """Add a CADI power ionogram (frequency-height scatter)."""
+        return self.add_frequency_height_scatter(
+            df=df,
+            xparam=xparam,
+            yparam=yparam,
+            zparam=zparam,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            xlim=xlim,
+            ylim=ylim,
+            xticks=xticks,
+            cmap=cmap,
+            prange=prange,
+            cbar_label=cbar_label,
+            marker=marker,
+            ms=ms,
+            alpha=alpha,
+            log_x=log_x,
+            text=text,
+            del_ticks=del_ticks,
+        )
+
+    def add_doppler_ionogram(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_mhz",
+        yparam: str = "height_km",
+        zparam: str = "doppler_bin",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[float] = [1.0, 22.0],
+        ylim: List[float] = [80.0, 1100.0],
+        xticks: List[float] = [1.5, 2, 3, 5, 7, 10, 15, 20],
+        cmap: str = "turbo",
+        prange: List[float] = [0.0, 7.0],
+        cbar_label: str = "Doppler Bin",
+        marker: str = "s",
+        ms: float = 4.0,
+        alpha: float = 0.8,
+        log_x: bool = True,
+        text: str = None,
+        del_ticks: bool = False,
+    ):
+        """Add a CADI Doppler-bin ionogram (frequency-height scatter)."""
+        return self.add_frequency_height_scatter(
+            df=df,
+            xparam=xparam,
+            yparam=yparam,
+            zparam=zparam,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            xlim=xlim,
+            ylim=ylim,
+            xticks=xticks,
+            cmap=cmap,
+            prange=prange,
+            cbar_label=cbar_label,
+            marker=marker,
+            ms=ms,
+            alpha=alpha,
+            log_x=log_x,
+            text=text,
+            del_ticks=del_ticks,
+        )
+
+    def add_mode_ionogram(
+        self,
+        df: pd.DataFrame,
+        xparam: str = "frequency_mhz",
+        yparam: str = "height_km",
+        mode_param: str = "mode",
+        xlabel: str = "Frequency, MHz",
+        ylabel: str = "Virtual Height, km",
+        xlim: List[float] = [1.0, 22.0],
+        ylim: List[float] = [80.0, 1100.0],
+        xticks: List[float] = [1.5, 2, 3, 5, 7, 10, 15, 20],
+        marker: str = "s",
+        ms: float = 4.0,
+        alpha: float = 0.8,
+        log_x: bool = True,
+        text: str = None,
+        del_ticks: bool = False,
+    ):
+        """Add a CADI O/X mode ionogram from echo-level products."""
+        colors = {
+            "O": "#0C5DA5",
+            "X": "#FF9500",
+            "ambiguous": "#9E9E9E",
+            "unknown": "#474747",
+        }
+        return self.add_categorical_frequency_height_scatter(
+            df=df,
+            xparam=xparam,
+            yparam=yparam,
+            category_param=mode_param,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            xlim=xlim,
+            ylim=ylim,
+            xticks=xticks,
+            colors=colors,
+            category_order=["O", "X", "ambiguous", "unknown"],
+            marker=marker,
+            ms=ms,
+            alpha=alpha,
+            log_x=log_x,
+            text=text,
+            del_ticks=del_ticks,
+        )
