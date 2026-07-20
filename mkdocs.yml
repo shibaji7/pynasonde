@@ -63,7 +63,6 @@ extra_css:
 
 extra_javascript:
     - javascripts/mathjax.js
-    - https://polyfill.io/v3/polyfill.min.js?features=es6
     - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
@@ -92,6 +91,7 @@ nav:
                     - Read/Plot SKY: examples/digisonde/sky.md
                     - Read/Plot DVL: examples/digisonde/dvl.md
                     - RSF Parse and Inspect: examples/digisonde/rsf.md
+                    - RSF Viterbi Autoscaling: examples/digisonde/rsf_scaler.md
                     - RSF Direction Ionogram + Directogram: examples/digisonde/rsf_direction_ionogram.md
                     - MMM ModMax Ionogram: examples/digisonde/mmm.md
                     - SAO Multi-Record Day-Files: examples/digisonde/sao_multi.md
