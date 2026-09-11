@@ -2,10 +2,11 @@
 
 This script queries GIRO DIDBase (via :class:`pynasonde.digisonde.didbase.
 DidBaseConnector`) for every (station, event) combination defined below,
-parses the returned SAO characteristics with :class:`pynasonde.digisonde.
-parsers.sao.SaoExtractor`, and produces a two-panel time-series plot (foF2
-on top, h'F on the bottom) spanning a configurable window around each
-interplanetary (IP) shock / CME-driven storm onset.
+fetching scaled foF2/h'F characteristics directly via
+:meth:`~pynasonde.digisonde.didbase.DidBaseConnector.fetch_scaled_params`,
+and produces a two-panel time-series plot (foF2 on top, h'F on the bottom)
+spanning a configurable window around each interplanetary (IP) shock /
+CME-driven storm onset.
 
 Recipe
 ------
@@ -15,30 +16,20 @@ Recipe
    2010-2020). Only the shock/storm date is known precisely here; the
    default query window is +/- 24 h around 00:00 UT of that date, via the
    ``pre_hours``/``post_hours`` parameters.
-3. :func:`fetch_scaled_dataframe` pulls raw SAO ionogram files for one
-   station/event window through ``DidBaseConnector.fetch_files`` and parses
-   the scaled characteristics (``foF2``, ``hF``) with
-   ``SaoExtractor.load_SAO_files``.
+3. :func:`fetch_scaled_dataframe` pulls ``foF2``/``hF`` for one
+   station/event window through ``DidBaseConnector.fetch_scaled_params``,
+   which reads DIDBase's ``PARAM``/``PARAMCAT`` tables directly via SQL —
+   no ionogram or SAO blob download/parsing involved.
 4. :func:`plot_foF2_hpF` renders the two-panel figure and saves it under
    ``tmp/ip/``.
 5. :func:`run` loops over every station/event pair, skipping (with a
-   logged warning) any combination that DIDBase has no coverage for, or
-   that otherwise fails to download/parse, instead of crashing the run.
+   logged warning) any combination that DIDBase has no scaled coverage
+   for, or that otherwise fails to fetch, instead of crashing the run.
 
 DIDBase credentials are read from the ``DIDBASE_USER``, ``DIDBASE_PASSWORD``
 and (optionally) ``DIDBASE_URL``/``DIDBASE_ROLE`` environment variables —
 register for DIDBase access at https://ulcar.uml.edu/DIDBase/ before running
 this script. See ``if __name__ == "__main__":`` below for a usage example.
-
-Performance note (observed against live DIDBase): ``DidBaseConnector.
-fetch_files`` downloads every ionogram blob in the requested window and
-only filters by format *after* the download, so a single station/event
-call can take several minutes even when it ultimately returns zero
-``SAO`` files (not every station reports the ``SAO`` product for every
-window — e.g. some report only ``RSF``). A full run across all
-stations/events can therefore take hours. To keep re-runs cheap,
-:func:`fetch_scaled_dataframe` reuses any ``*.SAO`` files already present
-in ``raw_dir`` from a previous run instead of re-querying DIDBase.
 """
 
 from __future__ import annotations
@@ -56,7 +47,6 @@ from loguru import logger
 from pynasonde.digisonde.didbase import DidBaseConnector
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import setsize
-from pynasonde.digisonde.parsers.sao import SaoExtractor
 
 # ── DIDBase connection settings ─────────────────────────────────────────────
 DIDBASE_URL = os.environ.get(
@@ -116,14 +106,13 @@ def fetch_scaled_dataframe(
     event_date: dt.date,
     pre_hours: float = 24,
     post_hours: float = 24,
-    raw_dir: Optional[Path] = None,
 ) -> Optional[pd.DataFrame]:
-    """Fetch and parse scaled SAO characteristics for one station/event window.
+    """Fetch scaled foF2/h'F characteristics for one station/event window.
 
-    Downloads raw SAO ionogram files for ``station`` over
-    ``[00:00 UT of event_date - pre_hours, 00:00 UT of event_date + post_hours]``
-    via ``DidBaseConnector.fetch_files`` and parses them with
-    ``SaoExtractor.load_SAO_files(func_name="scaled")``.
+    Queries ``[00:00 UT of event_date - pre_hours, 00:00 UT of event_date +
+    post_hours]`` via ``DidBaseConnector.fetch_scaled_params``, which reads
+    DIDBase's ``PARAM``/``PARAMCAT`` tables directly — no ionogram or SAO
+    blob download/parsing involved.
 
     Args:
         connector: An already-connected ``DidBaseConnector``.
@@ -131,60 +120,30 @@ def fetch_scaled_dataframe(
         event_date: The storm/shock date (UT).
         pre_hours: Hours before 00:00 UT of ``event_date`` to include.
         post_hours: Hours after 00:00 UT of ``event_date`` to include.
-        raw_dir: Directory to download raw SAO files into. Defaults to
-            ``tmp/ip/raw/{URSI}_{YYYYMMDD}``.
 
     Returns:
-        A DataFrame with (at least) ``datetime``, ``foF2`` and ``hF``
-        columns, or ``None`` if no usable data was found/parsed.
+        A DataFrame with ``datetime``, ``foF2`` and ``hF`` columns, or
+        ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
     start = dt.datetime.combine(event_date, dt.time.min) - dt.timedelta(hours=pre_hours)
     end = dt.datetime.combine(event_date, dt.time.min) + dt.timedelta(hours=post_hours)
-    raw_dir = raw_dir or OUTPUT_DIR / "raw" / f"{ursi}_{event_date:%Y%m%d}"
-
-    cached = sorted(Path(raw_dir).glob("*.SAO")) if Path(raw_dir).exists() else []
-    if cached:
-        logger.info(f"[{ursi}] reusing {len(cached)} cached SAO file(s) in {raw_dir}.")
-        paths = cached
-    else:
-        # DIDBase downloads every ionogram blob in the window and only
-        # filters by format client-side, so this can take several minutes
-        # per station/event even when it returns nothing (see module
-        # docstring). Results are cached under raw_dir for cheap re-runs.
-        try:
-            paths = connector.fetch_files(
-                station=ursi, start=start, end=end, fmt="SAO", out_dir=raw_dir
-            )
-        except Exception as exc:  # station unknown to DIDBase, network error, etc.
-            logger.warning(f"[{ursi}] fetch_files failed for {event_date}: {exc}")
-            return None
-
-    if not paths:
-        logger.warning(f"[{ursi}] no SAO coverage for {event_date} in DIDBase.")
-        return None
 
     try:
-        df = SaoExtractor.load_SAO_files(
-            folders=[str(raw_dir)],
-            func_name="scaled",
-            extract_time_from_name=True,
-            extract_stn_from_name=True,
+        df = connector.fetch_scaled_params(
+            station=ursi, start=start, end=end, params=["foF2", "hF"]
         )
-    except Exception as exc:
-        logger.warning(f"[{ursi}] failed to parse SAO files for {event_date}: {exc}")
+    except Exception as exc:  # station unknown to DIDBase, network error, etc.
+        logger.warning(f"[{ursi}] fetch_scaled_params failed for {event_date}: {exc}")
         return None
 
     if df is None or df.empty:
-        logger.warning(f"[{ursi}] SAO parsing returned no rows for {event_date}.")
+        logger.warning(f"[{ursi}] no scaled foF2/hF coverage for {event_date} in DIDBase.")
         return None
 
-    missing = [c for c in ("foF2", "hF") if c not in df.columns or df[c].isna().all()]
-    if missing:
-        logger.warning(
-            f"[{ursi}] {event_date}: no usable data for {missing} "
-            "(malformed record or XML SAO variant without h'F)."
-        )
+    df = df.dropna(subset=["foF2", "hF"], how="all")
+    if df.empty:
+        logger.warning(f"[{ursi}] {event_date}: foF2/hF rows were all NaN.")
         return None
 
     df = df.sort_values("datetime").reset_index(drop=True)

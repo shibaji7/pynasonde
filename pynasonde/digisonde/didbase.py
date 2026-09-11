@@ -38,6 +38,16 @@ Typical usage::
             fmt="MMM",
         )
 
+        # Fetch scaled characteristics (foF2, hF, ...) directly via SQL --
+        # no blob download/parsing, works whenever DIDBase has scaled the
+        # measurement, independent of SAO blob availability.
+        scaled = db.fetch_scaled_params(
+            station="AU930",
+            start="2017-05-27",
+            end="2017-05-27",
+            params=["foF2", "hF"],
+        )
+
 Query flow
 ----------
 1. :meth:`_loc_id` — look up numeric location IDENT for a URSI station code
@@ -501,6 +511,82 @@ class DidBaseConnector:
             f"{len(result):,} rows  [{station} {fmt}]"
         )
         return result
+
+    def fetch_scaled_params(
+        self,
+        station: str,
+        start: DateLike,
+        end: DateLike,
+        params: List[str] = ["foF2", "hF"],
+        chunk_size: int = 400,
+    ) -> pd.DataFrame:
+        """Fetch scaled ionosonde characteristics directly via SQL.
+
+        Unlike :meth:`fetch_files`/:meth:`fetch_dataframe` (which download
+        and parse raw ionogram or SAO blobs), this reads scaled
+        characteristics straight out of DIDBase's ``PARAM``/``PARAMCAT``
+        tables — one numeric value per (measurement, parameter), no blob
+        download or parsing involved. This is available for any
+        measurement DIDBase has scaled, independent of whether a ``SAO``
+        blob was ever uploaded for it.
+
+        Args:
+            station: URSI station code (e.g. ``"AL945"``).
+            start:   Start date/datetime (inclusive).
+            end:     End date/datetime (inclusive).
+            params:  ``PARAMCAT.NAME`` values to fetch, e.g. ``["foF2",
+                "hF"]``. See ``PARAMCAT`` for the full catalog (``foF2``,
+                ``hF``, ``hF2``, ``foE``, ``foEs``, ``hmF1``, ...).
+            chunk_size: Maximum measurement IDs per SQL query, to stay
+                well under Firebird's bound-parameter limit for windows
+                with many measurements.
+
+        Returns:
+            DataFrame with a ``datetime`` column plus one column per
+            requested parameter name. Empty if nothing found.
+        """
+        meas = self._get_measurements(station, start, end)
+        if not meas:
+            return pd.DataFrame()
+
+        meas_time = {meas_id: timeut for meas_id, timeut in meas}
+        meas_ids = list(meas_time.keys())
+
+        cur = self._cur()
+        records: Dict[int, dict] = {}
+        param_placeholders = ",".join("?" for _ in params)
+        for i in range(0, len(meas_ids), chunk_size):
+            batch = meas_ids[i : i + chunk_size]
+            batch_placeholders = ",".join("?" for _ in batch)
+            cur.execute(
+                f"""
+                SELECT p.MEASUREMENTID, pc.NAME, p.VAL
+                FROM PARAM p
+                JOIN PARAMCAT pc ON p.PARAMCATID = pc.IDENT
+                WHERE p.MEASUREMENTID IN ({batch_placeholders})
+                  AND pc.NAME IN ({param_placeholders})
+                """,
+                (*batch, *params),
+            )
+            for meas_id, name, val in cur.fetchall():
+                row = records.setdefault(
+                    meas_id, {"datetime": meas_time[meas_id]}
+                )
+                row[name.strip()] = val
+
+        if not records:
+            logger.warning(
+                f"No scaled parameters {params} found for {station} in range."
+            )
+            return pd.DataFrame()
+
+        df = pd.DataFrame(list(records.values())).sort_values(
+            "datetime"
+        ).reset_index(drop=True)
+        logger.info(
+            f"fetch_scaled_params → {len(df)} scaled record(s)  [{station} {params}]"
+        )
+        return df
 
     # ── convenience ───────────────────────────────────────────────────────────
 
