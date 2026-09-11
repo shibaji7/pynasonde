@@ -379,7 +379,14 @@ class DidBaseConnector:
             return None
 
         data, zipped, fmt_id = row
-        raw = bytes(data)
+        if hasattr(data, "read"):
+            # fdb returns a streaming BlobReader for this column; bytes(data)
+            # trips a str/bytes bug in fdb's own BlobReader.readline(), so
+            # read the reader directly instead.
+            raw = data.read()
+            data.close()
+        else:
+            raw = bytes(data)
         if zipped:
             with zipfile.ZipFile(io.BytesIO(raw)) as zf:
                 raw = zf.read(zf.namelist()[0])

@@ -29,6 +29,16 @@ DIDBase credentials are read from the ``DIDBASE_USER``, ``DIDBASE_PASSWORD``
 and (optionally) ``DIDBASE_URL``/``DIDBASE_ROLE`` environment variables —
 register for DIDBase access at https://ulcar.uml.edu/DIDBase/ before running
 this script. See ``if __name__ == "__main__":`` below for a usage example.
+
+Performance note (observed against live DIDBase): ``DidBaseConnector.
+fetch_files`` downloads every ionogram blob in the requested window and
+only filters by format *after* the download, so a single station/event
+call can take several minutes even when it ultimately returns zero
+``SAO`` files (not every station reports the ``SAO`` product for every
+window — e.g. some report only ``RSF``). A full run across all
+stations/events can therefore take hours. To keep re-runs cheap,
+:func:`fetch_scaled_dataframe` reuses any ``*.SAO`` files already present
+in ``raw_dir`` from a previous run instead of re-querying DIDBase.
 """
 
 from __future__ import annotations
@@ -133,13 +143,22 @@ def fetch_scaled_dataframe(
     end = dt.datetime.combine(event_date, dt.time.min) + dt.timedelta(hours=post_hours)
     raw_dir = raw_dir or OUTPUT_DIR / "raw" / f"{ursi}_{event_date:%Y%m%d}"
 
-    try:
-        paths = connector.fetch_files(
-            station=ursi, start=start, end=end, fmt="SAO", out_dir=raw_dir
-        )
-    except Exception as exc:  # station unknown to DIDBase, network error, etc.
-        logger.warning(f"[{ursi}] fetch_files failed for {event_date}: {exc}")
-        return None
+    cached = sorted(Path(raw_dir).glob("*.SAO")) if Path(raw_dir).exists() else []
+    if cached:
+        logger.info(f"[{ursi}] reusing {len(cached)} cached SAO file(s) in {raw_dir}.")
+        paths = cached
+    else:
+        # DIDBase downloads every ionogram blob in the window and only
+        # filters by format client-side, so this can take several minutes
+        # per station/event even when it returns nothing (see module
+        # docstring). Results are cached under raw_dir for cheap re-runs.
+        try:
+            paths = connector.fetch_files(
+                station=ursi, start=start, end=end, fmt="SAO", out_dir=raw_dir
+            )
+        except Exception as exc:  # station unknown to DIDBase, network error, etc.
+            logger.warning(f"[{ursi}] fetch_files failed for {event_date}: {exc}")
+            return None
 
     if not paths:
         logger.warning(f"[{ursi}] no SAO coverage for {event_date} in DIDBase.")
