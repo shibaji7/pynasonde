@@ -156,6 +156,7 @@ def plot_foF2_hpF(
     event: Dict,
     xlim: List[dt.datetime],
     out_path: Path,
+    shock_time: Optional[dt.datetime] = None,
     font_size: float = 14,
 ) -> None:
     """Render a two-panel foF2 (top) / h'F (bottom) time-series figure.
@@ -166,9 +167,15 @@ def plot_foF2_hpF(
         event: One entry from ``EVENTS``.
         xlim: ``[start, end]`` datetimes for the x-axis.
         out_path: PNG path to save the figure to.
+        shock_time: UT of the IP shock/storm onset, marked as a dashed
+            vertical line on both panels. Defaults to 00:00 UT of
+            ``event["date"]`` (the shock/storm date; see the module
+            docstring's caveat that exact shock-arrival UT is not
+            independently verified for every event).
         font_size: Base font size for the figure.
     """
     setsize(font_size)
+    shock_time = shock_time or dt.datetime.combine(event["date"], dt.time.min)
     title = f"{station['ursi']} {station['name']} / {event['name']}"
     sao_plot = SaoSummaryPlots(
         fig_title=title,
@@ -177,7 +184,7 @@ def plot_foF2_hpF(
         figsize=(8, 3),
         font_size=font_size,
     )
-    sao_plot.plot_TS(
+    ax0, _ = sao_plot.plot_TS(
         df,
         left_yparams=["foF2"],
         right_yparams=[],
@@ -188,7 +195,7 @@ def plot_foF2_hpF(
         major_locator=mdates.HourLocator(byhour=range(0, 24, 12)),
         minor_locator=mdates.HourLocator(byhour=range(0, 24, 4)),
     )
-    sao_plot.plot_TS(
+    ax1, _ = sao_plot.plot_TS(
         df,
         left_yparams=["hF"],
         right_yparams=[],
@@ -198,6 +205,18 @@ def plot_foF2_hpF(
         xlim=xlim,
         major_locator=mdates.HourLocator(byhour=range(0, 24, 12)),
         minor_locator=mdates.HourLocator(byhour=range(0, 24, 4)),
+    )
+    for ax in (ax0, ax1):
+        ax.axvline(shock_time, color="k", ls="--", lw=1.2, zorder=5)
+    y0, y1 = ax0.get_ylim()
+    ax0.text(
+        shock_time,
+        y1 - 0.05 * (y1 - y0),
+        " IP shock",
+        rotation=90,
+        va="top",
+        ha="left",
+        fontsize=max(font_size - 4, 6),
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     sao_plot.save(str(out_path))
