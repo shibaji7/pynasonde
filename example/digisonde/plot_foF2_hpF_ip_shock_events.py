@@ -4,25 +4,33 @@ This script queries GIRO DIDBase (via :class:`pynasonde.digisonde.didbase.
 DidBaseConnector`) for every (station, event) combination defined below,
 fetching scaled foF2/h'F characteristics directly via
 :meth:`~pynasonde.digisonde.didbase.DidBaseConnector.fetch_scaled_params`,
-and produces a two-panel time-series plot (foF2 on top, h'F on the bottom)
-spanning a configurable window around each interplanetary (IP) shock /
-CME-driven storm onset.
+and produces a two-panel, 24-hour-UT time-series plot (foF2 on top, h'F on
+the bottom) for the interplanetary (IP) shock / CME-driven storm day,
+overlaid with a quiet-time baseline (median +/- 1 STD per time-of-day)
+computed from the ``n_baseline_days`` calendar days immediately preceding
+the event.
 
 Recipe
 ------
 1. ``STATIONS`` lists the CONUS Digisonde network (URSI code, name, and
    coordinates) to query.
 2. ``EVENTS`` lists the storm/shock dates of interest (Dst minima from
-   2010-2020). Only the shock/storm date is known precisely here; the
-   default query window is +/- 24 h around 00:00 UT of that date, via the
-   ``pre_hours``/``post_hours`` parameters.
-3. :func:`fetch_scaled_dataframe` pulls ``foF2``/``hF`` for one
-   station/event window through ``DidBaseConnector.fetch_scaled_params``,
-   which reads DIDBase's ``PARAM``/``PARAMCAT`` tables directly via SQL —
-   no ionogram or SAO blob download/parsing involved.
-4. :func:`plot_foF2_hpF` renders the two-panel figure and saves it under
-   ``tmp/ip/``.
-5. :func:`run` loops over every station/event pair, skipping (with a
+   2010-2020). Only the shock/storm date is known precisely here (see the
+   caveat below on exact shock-arrival UT).
+3. :func:`fetch_event_day_dataframe` pulls ``foF2``/``hF`` for the single
+   00:00-24:00 UT day of the event through ``DidBaseConnector.
+   fetch_scaled_params``, which reads DIDBase's ``PARAM``/``PARAMCAT``
+   tables directly via SQL — no ionogram or SAO blob download/parsing
+   involved.
+4. :func:`fetch_quiet_baseline` pulls the same characteristics for the
+   ``n_baseline_days`` days immediately before the event, bins them by
+   time-of-day (15-minute bins by default), and computes the per-bin
+   median and standard deviation — reprojected onto the event day's
+   calendar date so it can be overlaid on the same x-axis.
+5. :func:`plot_foF2_hpF` renders the two-panel figure (event-day markers
+   plus the baseline median line and +/-1 STD shaded band) and saves it
+   under ``tmp/ip/``.
+6. :func:`run` loops over every station/event pair, skipping (with a
    logged warning) any combination that DIDBase has no scaled coverage
    for, or that otherwise fails to fetch, instead of crashing the run.
 
@@ -30,6 +38,11 @@ DIDBase credentials are read from the ``DIDBASE_USER``, ``DIDBASE_PASSWORD``
 and (optionally) ``DIDBASE_URL``/``DIDBASE_ROLE`` environment variables —
 register for DIDBase access at https://ulcar.uml.edu/DIDBase/ before running
 this script. See ``if __name__ == "__main__":`` below for a usage example.
+
+Note: the shock/storm date given in ``EVENTS`` is the calendar UT day, not
+an independently verified shock-arrival timestamp; the IP-shock marker on
+the plot defaults to 00:00 UT of that date (the left edge of the 24-hour
+window) unless a more precise time is supplied.
 """
 
 from __future__ import annotations
@@ -100,54 +113,137 @@ def _slugify(name: str) -> str:
     return slug
 
 
-def fetch_scaled_dataframe(
+PARAMS: List[str] = ["foF2", "hF"]
+
+
+def fetch_event_day_dataframe(
     connector: DidBaseConnector,
     station: Dict,
     event_date: dt.date,
-    pre_hours: float = 24,
-    post_hours: float = 24,
+    params: List[str] = PARAMS,
 ) -> Optional[pd.DataFrame]:
-    """Fetch scaled foF2/h'F characteristics for one station/event window.
+    """Fetch scaled foF2/h'F characteristics for the 24-hour UT shock day.
 
-    Queries ``[00:00 UT of event_date - pre_hours, 00:00 UT of event_date +
-    post_hours]`` via ``DidBaseConnector.fetch_scaled_params``, which reads
-    DIDBase's ``PARAM``/``PARAMCAT`` tables directly — no ionogram or SAO
-    blob download/parsing involved.
+    Queries ``[00:00 UT of event_date, 00:00 UT of event_date + 1 day]``
+    via ``DidBaseConnector.fetch_scaled_params``, which reads DIDBase's
+    ``PARAM``/``PARAMCAT`` tables directly — no ionogram or SAO blob
+    download/parsing involved.
 
     Args:
         connector: An already-connected ``DidBaseConnector``.
         station: One entry from ``STATIONS`` (must have a ``ursi`` key).
         event_date: The storm/shock date (UT).
-        pre_hours: Hours before 00:00 UT of ``event_date`` to include.
-        post_hours: Hours after 00:00 UT of ``event_date`` to include.
+        params: ``PARAMCAT.NAME`` values to fetch.
 
     Returns:
-        A DataFrame with ``datetime``, ``foF2`` and ``hF`` columns, or
-        ``None`` if no usable data was found.
+        A DataFrame with ``datetime`` plus one column per requested
+        parameter, or ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
-    start = dt.datetime.combine(event_date, dt.time.min) - dt.timedelta(hours=pre_hours)
-    end = dt.datetime.combine(event_date, dt.time.min) + dt.timedelta(hours=post_hours)
+    start = dt.datetime.combine(event_date, dt.time.min)
+    end = start + dt.timedelta(days=1)
 
     try:
-        df = connector.fetch_scaled_params(
-            station=ursi, start=start, end=end, params=["foF2", "hF"]
-        )
+        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
     except Exception as exc:  # station unknown to DIDBase, network error, etc.
         logger.warning(f"[{ursi}] fetch_scaled_params failed for {event_date}: {exc}")
         return None
 
     if df is None or df.empty:
-        logger.warning(f"[{ursi}] no scaled foF2/hF coverage for {event_date} in DIDBase.")
+        logger.warning(f"[{ursi}] no scaled {params} coverage for {event_date} in DIDBase.")
         return None
 
-    df = df.dropna(subset=["foF2", "hF"], how="all")
+    df = df.dropna(subset=params, how="all")
     if df.empty:
-        logger.warning(f"[{ursi}] {event_date}: foF2/hF rows were all NaN.")
+        logger.warning(f"[{ursi}] {event_date}: {params} rows were all NaN.")
         return None
 
-    df = df.sort_values("datetime").reset_index(drop=True)
-    return df
+    return df.sort_values("datetime").reset_index(drop=True)
+
+
+def fetch_quiet_baseline(
+    connector: DidBaseConnector,
+    station: Dict,
+    event_date: dt.date,
+    n_baseline_days: int = 7,
+    params: List[str] = PARAMS,
+    bin_minutes: int = 15,
+) -> Optional[pd.DataFrame]:
+    """Build a quiet-time per-time-of-day median/STD baseline.
+
+    Fetches ``n_baseline_days`` calendar days immediately before
+    ``event_date`` (``[event_date - n_baseline_days, event_date)`` UT),
+    bins every sample by time-of-day (rounded to the nearest
+    ``bin_minutes``), and computes the median/standard deviation/count
+    across those days for each bin. Bin timestamps are reprojected onto
+    ``event_date`` itself so the result can be overlaid directly on the
+    event day's 24-hour x-axis.
+
+    Args:
+        connector: An already-connected ``DidBaseConnector``.
+        station: One entry from ``STATIONS`` (must have a ``ursi`` key).
+        event_date: The storm/shock date (UT); the baseline window ends
+            at 00:00 UT of this date (the event day itself is excluded).
+        n_baseline_days: Number of preceding calendar days to average.
+        params: ``PARAMCAT.NAME`` values to fetch/summarize.
+        bin_minutes: Time-of-day bin width in minutes.
+
+    Returns:
+        DataFrame with a ``datetime`` column (event-day timestamps) and,
+        per requested parameter, ``{param}_median``/``{param}_std``/
+        ``{param}_n`` columns, or ``None`` if no usable data was found.
+    """
+    ursi = station["ursi"]
+    end = dt.datetime.combine(event_date, dt.time.min)
+    start = end - dt.timedelta(days=n_baseline_days)
+
+    try:
+        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+    except Exception as exc:
+        logger.warning(f"[{ursi}] baseline fetch_scaled_params failed for {event_date}: {exc}")
+        return None
+
+    if df is None or df.empty:
+        logger.warning(
+            f"[{ursi}] no {n_baseline_days}-day quiet-baseline coverage before {event_date}."
+        )
+        return None
+
+    df = df.dropna(subset=params, how="all")
+    if df.empty:
+        logger.warning(f"[{ursi}] {event_date}: baseline {params} rows were all NaN.")
+        return None
+
+    bin_size = pd.Timedelta(minutes=bin_minutes)
+    time_of_day = df["datetime"] - df["datetime"].dt.normalize()
+    df = df.assign(time_of_day=(time_of_day / bin_size).round().astype(int) * bin_size)
+
+    agg_kwargs = {}
+    for p in params:
+        agg_kwargs[f"{p}_median"] = (p, "median")
+        agg_kwargs[f"{p}_std"] = (p, "std")
+        agg_kwargs[f"{p}_n"] = (p, "count")
+    baseline = df.groupby("time_of_day").agg(**agg_kwargs).reset_index()
+    baseline["datetime"] = pd.Timestamp(event_date) + baseline["time_of_day"]
+
+    return baseline.sort_values("datetime").reset_index(drop=True)
+
+
+def _overlay_baseline(ax, baseline: pd.DataFrame, param: str, n_baseline_days: int) -> None:
+    """Draw the quiet-time median line and +/-1 STD shaded band on ``ax``."""
+    median_col, std_col = f"{param}_median", f"{param}_std"
+    if median_col not in baseline.columns:
+        return
+    med = baseline[median_col]
+    std = baseline[std_col].fillna(0.0)
+    ax.plot(
+        baseline["datetime"], med, color="k", lw=1.5, zorder=4,
+        label=f"{n_baseline_days}-day median",
+    )
+    ax.fill_between(
+        baseline["datetime"], med - std, med + std,
+        color="k", alpha=0.15, zorder=1, label="±1 STD",
+    )
 
 
 def plot_foF2_hpF(
@@ -156,17 +252,28 @@ def plot_foF2_hpF(
     event: Dict,
     xlim: List[dt.datetime],
     out_path: Path,
+    baseline: Optional[pd.DataFrame] = None,
+    n_baseline_days: int = 7,
     shock_time: Optional[dt.datetime] = None,
     font_size: float = 14,
 ) -> None:
     """Render a two-panel foF2 (top) / h'F (bottom) time-series figure.
 
+    The event day's actual values are drawn as markers; if ``baseline`` is
+    given, its quiet-time median (line) and +/-1 STD (shaded band) are
+    overlaid on each panel for comparison.
+
     Args:
-        df: DataFrame from :func:`fetch_scaled_dataframe`.
+        df: Event-day DataFrame from :func:`fetch_event_day_dataframe`.
         station: One entry from ``STATIONS``.
         event: One entry from ``EVENTS``.
-        xlim: ``[start, end]`` datetimes for the x-axis.
+        xlim: ``[start, end]`` datetimes for the x-axis (the 24-hour UT
+            event day).
         out_path: PNG path to save the figure to.
+        baseline: Optional quiet-time baseline from
+            :func:`fetch_quiet_baseline`.
+        n_baseline_days: Number of days the baseline was averaged over
+            (only used for the legend label).
         shock_time: UT of the IP shock/storm onset, marked as a dashed
             vertical line on both panels. Defaults to 00:00 UT of
             ``event["date"]`` (the shock/storm date; see the module
@@ -192,8 +299,8 @@ def plot_foF2_hpF(
         xlabel="",
         left_ylim=[1, 15],
         xlim=xlim,
-        major_locator=mdates.HourLocator(byhour=range(0, 24, 12)),
-        minor_locator=mdates.HourLocator(byhour=range(0, 24, 4)),
+        major_locator=mdates.HourLocator(byhour=range(0, 24, 6)),
+        minor_locator=mdates.HourLocator(byhour=range(0, 24, 2)),
     )
     ax1, _ = sao_plot.plot_TS(
         df,
@@ -203,11 +310,15 @@ def plot_foF2_hpF(
         xlabel="Time, UT",
         left_ylim=[100, 400],
         xlim=xlim,
-        major_locator=mdates.HourLocator(byhour=range(0, 24, 12)),
-        minor_locator=mdates.HourLocator(byhour=range(0, 24, 4)),
+        major_locator=mdates.HourLocator(byhour=range(0, 24, 6)),
+        minor_locator=mdates.HourLocator(byhour=range(0, 24, 2)),
     )
+    if baseline is not None:
+        _overlay_baseline(ax0, baseline, "foF2", n_baseline_days)
+        _overlay_baseline(ax1, baseline, "hF", n_baseline_days)
     for ax in (ax0, ax1):
-        ax.axvline(shock_time, color="k", ls="--", lw=1.2, zorder=5)
+        ax.axvline(shock_time, color="r", ls="--", lw=1.2, zorder=5)
+        ax.legend(loc=2, fontsize=max(font_size - 4, 6))
     y0, y1 = ax0.get_ylim()
     ax0.text(
         shock_time,
@@ -216,6 +327,7 @@ def plot_foF2_hpF(
         rotation=90,
         va="top",
         ha="left",
+        color="r",
         fontsize=max(font_size - 4, 6),
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -226,15 +338,17 @@ def plot_foF2_hpF(
 def run(
     stations: List[Dict] = STATIONS,
     events: List[Dict] = EVENTS,
-    pre_hours: float = 24,
-    post_hours: float = 24,
+    n_baseline_days: int = 7,
     out_dir: Path = OUTPUT_DIR,
 ) -> List[Path]:
     """Fetch, plot and save foF2/h'F figures for every station/event pair.
 
-    Failures (no DIDBase coverage, malformed SAO records, missing
-    characteristics, etc.) are logged as warnings for the offending
-    station/event combination and skipped, not raised.
+    Each figure spans the 24-hour UT shock day and overlays a quiet-time
+    median/STD baseline computed from the ``n_baseline_days`` days
+    immediately before it. Failures (no DIDBase coverage, all-NaN rows,
+    etc.) are logged as warnings for the offending station/event
+    combination and skipped, not raised. A missing baseline does not
+    block the plot -- it is simply omitted with a warning.
 
     Returns:
         List of PNG paths that were successfully written.
@@ -247,29 +361,31 @@ def run(
         DIDBASE_URL, DIDBASE_USER, DIDBASE_PASSWORD, DIDBASE_ROLE
     ) as connector:
         for event in events:
-            start = dt.datetime.combine(event["date"], dt.time.min) - dt.timedelta(
-                hours=pre_hours
-            )
-            end = dt.datetime.combine(event["date"], dt.time.min) + dt.timedelta(
-                hours=post_hours
-            )
+            start = dt.datetime.combine(event["date"], dt.time.min)
+            end = start + dt.timedelta(days=1)
             for station in stations:
-                df = fetch_scaled_dataframe(
-                    connector,
-                    station,
-                    event["date"],
-                    pre_hours=pre_hours,
-                    post_hours=post_hours,
-                )
+                df = fetch_event_day_dataframe(connector, station, event["date"])
                 if df is None:
                     continue
+
+                baseline = fetch_quiet_baseline(
+                    connector, station, event["date"], n_baseline_days=n_baseline_days
+                )
+                if baseline is None:
+                    logger.warning(
+                        f"[{station['ursi']}] plotting {event['date']} without a "
+                        f"{n_baseline_days}-day baseline (none available)."
+                    )
 
                 slug = _slugify(station["name"])
                 out_path = out_dir / (
                     f"{station['ursi']}_{slug}_{event['date']:%Y%m%d}_foF2_hpF.png"
                 )
                 try:
-                    plot_foF2_hpF(df, station, event, [start, end], out_path)
+                    plot_foF2_hpF(
+                        df, station, event, [start, end], out_path,
+                        baseline=baseline, n_baseline_days=n_baseline_days,
+                    )
                 except Exception as exc:
                     logger.warning(
                         f"[{station['ursi']}] plotting failed for {event['date']}: {exc}"
@@ -286,13 +402,12 @@ def run(
 if __name__ == "__main__":
     # Requires DIDBASE_USER / DIDBASE_PASSWORD environment variables set to
     # valid GIRO DIDBase credentials (see https://ulcar.uml.edu/DIDBase/).
-    # Example: run only two stations for a single event, with a narrower
-    # +/-12 h window:
+    # Example: run only two stations for a single event, with a shorter
+    # 3-day quiet baseline instead of the 7-day default:
     #
     #   run(
     #       stations=[s for s in STATIONS if s["ursi"] in ("BC840", "AU930")],
     #       events=[e for e in EVENTS if e["date"] == dt.date(2015, 3, 17)],
-    #       pre_hours=12,
-    #       post_hours=12,
+    #       n_baseline_days=3,
     #   )
     run()
