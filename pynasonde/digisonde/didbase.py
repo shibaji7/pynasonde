@@ -459,6 +459,39 @@ class DidBaseConnector:
         fmt_name = self._formats().get(fmt_id, "UNKNOWN")
         return raw, fmt_name
 
+    def _format_id(self, fmt: str) -> Optional[int]:
+        """Reverse-lookup ``FORMAT.IDENT`` for a format name (e.g. ``"SAO"``)."""
+        fmt_upper = fmt.strip().upper()
+        for ident, name in self._formats().items():
+            if name.upper() == fmt_upper:
+                return ident
+        return None
+
+    def _measurement_ids_with_format(
+        self,
+        meas_ids: List[int],
+        fmt_id: int,
+        chunk_size: int = 400,
+    ) -> set:
+        """Return the subset of ``meas_ids`` whose ``IONOGRAMHEADER.FORMATID``
+        matches ``fmt_id`` — a metadata-only query with no blob transfer.
+
+        Chunked to stay under Firebird's bound-parameter limit for windows
+        with many measurements.
+        """
+        cur = self._cur()
+        matching: set = set()
+        for i in range(0, len(meas_ids), chunk_size):
+            batch = meas_ids[i : i + chunk_size]
+            placeholders = ",".join("?" for _ in batch)
+            cur.execute(
+                f"SELECT MEASUREMENTID FROM IONOGRAMHEADER "
+                f"WHERE MEASUREMENTID IN ({placeholders}) AND FORMATID = ?",
+                (*batch, fmt_id),
+            )
+            matching.update(r[0] for r in cur.fetchall())
+        return matching
+
     # ── public API ────────────────────────────────────────────────────────────
 
     def fetch_files(
@@ -475,8 +508,13 @@ class DidBaseConnector:
             station: URSI station code (e.g. ``"AU930"``).
             start:   Start date/datetime (inclusive).
             end:     End date/datetime (inclusive).
-            fmt:     Restrict to one format (``"MMM"``, ``"RSF"``, ``"SBF"``).
-                     ``None`` → all formats.
+            fmt:     Restrict to one format (``"MMM"``, ``"RSF"``, ``"SBF"``,
+                     ``"SAO"``, ...). ``None`` → all formats. When given,
+                     measurements are pre-filtered via ``IONOGRAMHEADER``
+                     (metadata only) so non-matching blobs are never
+                     downloaded — the previous implementation fetched every
+                     blob in the window before filtering client-side, which
+                     could take minutes even for zero matches.
             out_dir: Directory to write files into (created if absent).
 
         Returns:
@@ -486,14 +524,24 @@ class DidBaseConnector:
         out_dir.mkdir(parents=True, exist_ok=True)
 
         meas = self._get_measurements(station, start, end)
+        if not meas:
+            return []
+
+        meas_ids = [meas_id for meas_id, _ in meas]
+        if fmt:
+            fmt_id = self._format_id(fmt)
+            if fmt_id is None:
+                logger.warning(f"Unknown format '{fmt}' — no matching FORMAT entry.")
+                return []
+            wanted = self._measurement_ids_with_format(meas_ids, fmt_id)
+            meas = [(mid, t) for mid, t in meas if mid in wanted]
+
         paths = []
         for meas_id, timeut in meas:
             result = self._fetch_blob(meas_id)
             if result is None:
                 continue
             data, fmt_name = result
-            if fmt and fmt.upper() != fmt_name.upper():
-                continue
             fname = out_dir / f"{station}_{timeut.strftime('%Y%j%H%M%S')}.{fmt_name}"
             fname.write_bytes(data)
             paths.append(fname)
@@ -516,6 +564,9 @@ class DidBaseConnector:
             start:   Start date/datetime (inclusive).
             end:     End date/datetime (inclusive).
             fmt:     Ionogram format (``"MMM"``, ``"RSF"``, ``"SBF"``).
+                     Measurements are pre-filtered via ``IONOGRAMHEADER``
+                     (metadata only) so non-matching blobs are never
+                     downloaded.
 
         Returns:
             Combined :class:`~pandas.DataFrame`.  Empty if nothing found.
@@ -527,14 +578,23 @@ class DidBaseConnector:
             raise ValueError(f"Unknown format '{fmt}'. Choose MMM, RSF, or SBF.")
 
         meas = self._get_measurements(station, start, end)
+        if not meas:
+            return pd.DataFrame()
+
+        meas_ids = [meas_id for meas_id, _ in meas]
+        fmt_id = self._format_id(fmt)
+        if fmt_id is None:
+            logger.warning(f"Unknown format '{fmt}' — no matching FORMAT entry.")
+            return pd.DataFrame()
+        wanted = self._measurement_ids_with_format(meas_ids, fmt_id)
+        meas = [(mid, t) for mid, t in meas if mid in wanted]
+
         frames = []
         for meas_id, timeut in meas:
             result = self._fetch_blob(meas_id)
             if result is None:
                 continue
-            data, fmt_name = result
-            if fmt_name.upper() != fmt.upper():
-                continue
+            data, _fmt_name = result
 
             suffix = f".{fmt.upper()}"
             tmp_path = None
