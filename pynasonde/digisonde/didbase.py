@@ -11,6 +11,7 @@ Install::
 
     pip install fdb
     sudo apt-get install libfbclient2
+    sudo apt-get install firebird3.0-utils
 
 Typical usage::
 
@@ -38,6 +39,10 @@ Typical usage::
             fmt="MMM",
         )
 
+        # See what scaled characteristic names DIDBase actually has
+        # (foF2, hF, hF2, foE, hmF2, ... one row per PARAMCAT entry).
+        catalog = db.scaled_params_catalog()
+
         # Fetch scaled characteristics (foF2, hF, ...) directly via SQL --
         # no blob download/parsing, works whenever DIDBase has scaled the
         # measurement, independent of SAO blob availability.
@@ -48,8 +53,8 @@ Typical usage::
             params=["foF2", "hF"],
         )
 
-Query flow
-----------
+Query flow (raw ionograms — fetch_files / fetch_dataframe)
+------------------------------------------------------------
 1. :meth:`_loc_id` — look up numeric location IDENT for a URSI station code
    via ``STATIONSLIST`` (cached after first call).
 2. ``SELECT * FROM GETMEASUREMENTS(loc_id, start, end)`` — returns one row
@@ -58,6 +63,23 @@ Query flow
    — returns the raw binary blob for each measurement.
 4. If ``ZIPPED = 1`` the blob is zlib-decompressed before being written or
    parsed.
+
+Query flow (scaled characteristics — fetch_scaled_params)
+-------------------------------------------------------------
+Scaled characteristics (foF2, hF, hmF2, foE, ...) are stored relationally
+in DIDBase, independent of whether a raw ionogram or a SAO blob exists for
+the measurement, so no blob download/parsing is needed:
+
+1. :meth:`_loc_id` + ``GETMEASUREMENTS`` — same measurement lookup as above.
+2. ``PARAMCAT`` — the catalog of every scaled characteristic name DIDBase
+   knows about (``IDENT``, ``NAME`` e.g. ``"foF2"``/``"hF"``, ``DESCRIPTION``,
+   units, valid range). Browse it with :meth:`scaled_params_catalog`.
+3. ``SELECT p.MEASUREMENTID, pc.NAME, p.VAL FROM PARAM p JOIN PARAMCAT pc
+   ON p.PARAMCATID = pc.IDENT WHERE p.MEASUREMENTID IN (...) AND pc.NAME
+   IN (...)`` — one numeric ``VAL`` row per (measurement, parameter).
+   :meth:`fetch_scaled_params` pivots these into one DataFrame row per
+   measurement with a ``datetime`` column plus one column per requested
+   parameter name.
 """
 
 from __future__ import annotations
@@ -135,6 +157,7 @@ class DidBaseConnector:
         self._con      = None
         self._stations_cache: Optional[pd.DataFrame] = None
         self._format_cache:   Optional[Dict[int, str]] = None
+        self._paramcat_cache: Optional[pd.DataFrame] = None
 
     # ── setup validation ──────────────────────────────────────────────────────
 
@@ -340,6 +363,38 @@ class DidBaseConnector:
         self._format_cache = {r[0]: r[1].strip() for r in cur.fetchall()}
         return self._format_cache
 
+    def scaled_params_catalog(self) -> pd.DataFrame:
+        """Return the catalog of every scaled characteristic DIDBase knows.
+
+        Each row is one ``PARAMCAT`` entry — its ``NAME`` (e.g. ``"foF2"``,
+        ``"hF"``, ``"hF2"``, ``"foE"``, ``"hmF2"``, ...) is exactly what can
+        be passed in :meth:`fetch_scaled_params`'s ``params`` argument.
+        Browse this first if you don't already know which characteristic
+        names DIDBase supports.
+
+        Result is cached after the first call.
+
+        Returns:
+            DataFrame with columns ``IDENT``, ``NAME``, ``DESCRIPTION``,
+            ``WIDTH``, ``FRACTION``, ``EXPONENT``, ``UNITSID``,
+            ``MINVALUE``, ``MAXVALUE``, ``FILLVALUE``.
+        """
+        if self._paramcat_cache is not None:
+            return self._paramcat_cache
+        cur = self._cur()
+        cur.execute(
+            "SELECT IDENT, NAME, DESCRIPTION, WIDTH, FRACTION, EXPONENT, "
+            "UNITSID, MINVALUE, MAXVALUE, FILLVALUE FROM PARAMCAT "
+            "ORDER BY IDENT"
+        )
+        cols = [d[0] for d in cur.description]
+        df = pd.DataFrame(cur.fetchall(), columns=cols)
+        df["NAME"] = df["NAME"].str.strip()
+        df["DESCRIPTION"] = df["DESCRIPTION"].str.strip()
+        self._paramcat_cache = df
+        logger.info(f"scaled_params_catalog: {len(df)} known characteristic(s)")
+        return df
+
     # ── measurement index ─────────────────────────────────────────────────────
 
     def _get_measurements(
@@ -535,8 +590,9 @@ class DidBaseConnector:
             start:   Start date/datetime (inclusive).
             end:     End date/datetime (inclusive).
             params:  ``PARAMCAT.NAME`` values to fetch, e.g. ``["foF2",
-                "hF"]``. See ``PARAMCAT`` for the full catalog (``foF2``,
-                ``hF``, ``hF2``, ``foE``, ``foEs``, ``hmF1``, ...).
+                "hF"]``. Call :meth:`scaled_params_catalog` to browse every
+                name DIDBase supports (``foF2``, ``hF``, ``hF2``, ``foE``,
+                ``foEs``, ``hmF1``, ...) instead of guessing.
             chunk_size: Maximum measurement IDs per SQL query, to stay
                 well under Firebird's bound-parameter limit for windows
                 with many measurements.
