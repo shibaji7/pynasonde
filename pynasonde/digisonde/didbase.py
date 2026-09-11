@@ -627,12 +627,49 @@ class DidBaseConnector:
         )
         return result
 
+    def _scaler_info(self, scaler_ids: List[int]) -> Dict[int, tuple]:
+        """Return {SCALERID: (is_human, rank)} for the given scaler IDs."""
+        if not scaler_ids:
+            return {}
+        cur = self._cur()
+        placeholders = ",".join("?" for _ in scaler_ids)
+        cur.execute(
+            f"SELECT IDENT, HUMAN, RANK FROM SCALER WHERE IDENT IN ({placeholders})",
+            tuple(scaler_ids),
+        )
+        return {r[0]: (bool(r[1]), r[2]) for r in cur.fetchall()}
+
+    @staticmethod
+    def _choose_scaler(
+        candidate_ids: List[int],
+        scaler_info: Dict[int, tuple],
+        prefer_human: bool,
+    ) -> int:
+        """Pick one ``SCALERID`` when a measurement has more than one.
+
+        If ``prefer_human`` and at least one candidate is a human scaler,
+        pick the human with the highest ``RANK``; otherwise pick the
+        highest-``RANK`` candidate overall (ties broken arbitrarily).
+        """
+        if len(candidate_ids) == 1:
+            return candidate_ids[0]
+        if prefer_human:
+            human_ids = [
+                i for i in candidate_ids if scaler_info.get(i, (False, 0))[0]
+            ]
+            if human_ids:
+                return max(human_ids, key=lambda i: scaler_info.get(i, (False, 0))[1])
+        return max(candidate_ids, key=lambda i: scaler_info.get(i, (False, 0))[1])
+
     def fetch_scaled_params(
         self,
         station: str,
         start: DateLike,
         end: DateLike,
         params: List[str] = ["foF2", "hF"],
+        prefer_human: bool = True,
+        include_quality: bool = True,
+        include_provenance: bool = False,
         chunk_size: int = 400,
     ) -> pd.DataFrame:
         """Fetch scaled ionosonde characteristics directly via SQL.
@@ -645,6 +682,13 @@ class DidBaseConnector:
         measurement DIDBase has scaled, independent of whether a ``SAO``
         blob was ever uploaded for it.
 
+        A measurement can be scaled more than once (e.g. once by the
+        ARTIST autoscaler, once by a human reviewer) — ``PARAM`` is keyed
+        by ``(SCALERID, MEASUREMENTID, PARAMCATID)``. When a measurement
+        has multiple scalers, exactly one is chosen per :meth:`_choose_scaler`
+        (see ``prefer_human``) and all returned columns for that row come
+        from that single scaler, so values stay internally consistent.
+
         Args:
             station: URSI station code (e.g. ``"AL945"``).
             start:   Start date/datetime (inclusive).
@@ -653,30 +697,69 @@ class DidBaseConnector:
                 "hF"]``. Call :meth:`scaled_params_catalog` to browse every
                 name DIDBase supports (``foF2``, ``hF``, ``hF2``, ``foE``,
                 ``foEs``, ``hmF1``, ...) instead of guessing.
+            prefer_human: When a measurement was scaled by more than one
+                scaler, prefer a human-reviewed value (``SCALER.HUMAN=1``)
+                over an autoscaler's when both exist. If False, always
+                pick the highest-``SCALER.RANK`` scaler regardless of
+                human/auto.
+            include_quality: If True, add ``{param}_qletter``/
+                ``{param}_dletter`` (per-value URSI quality-flag letters
+                from ``PARAM``) and ``scaling_quality``/
+                ``scaling_confidence`` (per-measurement overall scores
+                from ``SCALINGHEADER``) columns. Note: for autoscaler
+                (non-human) rows, ``scaling_quality`` has been observed to
+                just echo that scaler's ``SCALER.RANK`` rather than vary
+                per measurement — ``scaling_confidence`` is the field
+                that actually carries per-measurement signal.
+            include_provenance: If True, add ``equipment_id``/
+                ``program_id`` columns from ``MEASUREMENT`` — useful for
+                spotting instrument/program changes across a long time
+                series that could otherwise look like real variability.
             chunk_size: Maximum measurement IDs per SQL query, to stay
                 well under Firebird's bound-parameter limit for windows
                 with many measurements.
 
         Returns:
-            DataFrame with a ``datetime`` column plus one column per
-            requested parameter name. Empty if nothing found.
+            DataFrame with a ``datetime`` column, a ``scaler_id`` column,
+            one column per requested parameter name, and the optional
+            quality/provenance columns described above. Empty if nothing
+            found.
+
+        Raises:
+            ValueError: if any ``params`` entry is longer than
+                ``PARAMCAT.NAME``'s column width (15 chars) — such a name
+                can never match and would otherwise fail with a cryptic
+                low-level ``fdb`` bind error instead.
         """
+        too_long = [p for p in params if len(p) > 15]
+        if too_long:
+            raise ValueError(
+                f"Invalid parameter name(s) {too_long}: longer than "
+                "PARAMCAT.NAME's 15-char column width. Call "
+                "scaled_params_catalog() to see valid names."
+            )
+
         meas = self._get_measurements(station, start, end)
         if not meas:
             return pd.DataFrame()
 
         meas_time = {meas_id: timeut for meas_id, timeut in meas}
         meas_ids = list(meas_time.keys())
-
         cur = self._cur()
-        records: Dict[int, dict] = {}
+
+        def _chunks(seq):
+            for i in range(0, len(seq), chunk_size):
+                yield seq[i : i + chunk_size]
+
+        # ── 1/2. Raw (measurement, scaler, param) rows + quality letters ───────
         param_placeholders = ",".join("?" for _ in params)
-        for i in range(0, len(meas_ids), chunk_size):
-            batch = meas_ids[i : i + chunk_size]
+        raw_rows = []
+        for batch in _chunks(meas_ids):
             batch_placeholders = ",".join("?" for _ in batch)
             cur.execute(
                 f"""
-                SELECT p.MEASUREMENTID, pc.NAME, p.VAL
+                SELECT p.MEASUREMENTID, p.SCALERID, pc.NAME, p.VAL,
+                       p.QLETTER, p.DLETTER
                 FROM PARAM p
                 JOIN PARAMCAT pc ON p.PARAMCATID = pc.IDENT
                 WHERE p.MEASUREMENTID IN ({batch_placeholders})
@@ -684,23 +767,91 @@ class DidBaseConnector:
                 """,
                 (*batch, *params),
             )
-            for meas_id, name, val in cur.fetchall():
-                row = records.setdefault(
-                    meas_id, {"datetime": meas_time[meas_id]}
-                )
-                row[name.strip()] = val
+            raw_rows.extend(cur.fetchall())
 
-        if not records:
+        if not raw_rows:
             logger.warning(
                 f"No scaled parameters {params} found for {station} in range."
             )
             return pd.DataFrame()
 
-        df = pd.DataFrame(list(records.values())).sort_values(
-            "datetime"
-        ).reset_index(drop=True)
+        by_meas: Dict[int, list] = {}
+        for meas_id, scaler_id, name, val, qletter, dletter in raw_rows:
+            by_meas.setdefault(meas_id, []).append(
+                (scaler_id, name.strip(), val, qletter, dletter)
+            )
+
+        # ── 1. Disambiguate multi-scaler measurements ──────────────────────────
+        scaler_ids = sorted({r[1] for r in raw_rows})
+        scaler_info = self._scaler_info(scaler_ids)
+        chosen_scaler: Dict[int, int] = {}
+        collisions = 0
+        for meas_id, rows in by_meas.items():
+            candidates = sorted({r[0] for r in rows})
+            if len(candidates) > 1:
+                collisions += 1
+            chosen_scaler[meas_id] = self._choose_scaler(
+                candidates, scaler_info, prefer_human
+            )
+        if collisions:
+            logger.info(
+                f"[{station}] {collisions} measurement(s) had multiple scalers; "
+                f"{'preferring human' if prefer_human else 'using highest-rank'} "
+                "scaler per measurement."
+            )
+
+        # ── 3. Per-measurement scaling quality/confidence ──────────────────────
+        quality_map: Dict[tuple, tuple] = {}
+        if include_quality:
+            for batch in _chunks(meas_ids):
+                batch_placeholders = ",".join("?" for _ in batch)
+                cur.execute(
+                    f"SELECT MEASUREMENTID, SCALERID, QUALITY, CONFIDENCE "
+                    f"FROM SCALINGHEADER WHERE MEASUREMENTID IN ({batch_placeholders})",
+                    tuple(batch),
+                )
+                for mid, sid, quality, confidence in cur.fetchall():
+                    quality_map[(mid, sid)] = (quality, confidence)
+
+        # ── 4. Equipment/program provenance ─────────────────────────────────────
+        provenance_map: Dict[int, tuple] = {}
+        if include_provenance:
+            for batch in _chunks(meas_ids):
+                batch_placeholders = ",".join("?" for _ in batch)
+                cur.execute(
+                    f"SELECT IDENT, EQUIPMENTID, PROGRAMID FROM MEASUREMENT "
+                    f"WHERE IDENT IN ({batch_placeholders})",
+                    tuple(batch),
+                )
+                for mid, equipment_id, program_id in cur.fetchall():
+                    provenance_map[mid] = (equipment_id, program_id)
+
+        # ── Assemble one row per measurement from its chosen scaler only ──────
+        records = []
+        for meas_id, rows in by_meas.items():
+            sid = chosen_scaler[meas_id]
+            row = {"datetime": meas_time[meas_id], "scaler_id": sid}
+            for scaler_id, name, val, qletter, dletter in rows:
+                if scaler_id != sid:
+                    continue
+                row[name] = val
+                if include_quality:
+                    row[f"{name}_qletter"] = (qletter or "").strip() or None
+                    row[f"{name}_dletter"] = (dletter or "").strip() or None
+            if include_quality:
+                quality, confidence = quality_map.get((meas_id, sid), (None, None))
+                row["scaling_quality"] = quality
+                row["scaling_confidence"] = confidence
+            if include_provenance:
+                equipment_id, program_id = provenance_map.get(meas_id, (None, None))
+                row["equipment_id"] = equipment_id
+                row["program_id"] = program_id
+            records.append(row)
+
+        df = pd.DataFrame(records).sort_values("datetime").reset_index(drop=True)
         logger.info(
             f"fetch_scaled_params → {len(df)} scaled record(s)  [{station} {params}]"
+            + (f", {collisions} multi-scaler" if collisions else "")
         )
         return df
 
