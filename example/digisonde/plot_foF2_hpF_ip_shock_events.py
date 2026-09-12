@@ -230,7 +230,7 @@ def fetch_quiet_baseline(
     connector: DidBaseConnector,
     station: Dict,
     event_date: dt.date,
-    n_baseline_days: int = 7,
+    n_baseline_days: int = 27,
     params: List[str] = PARAMS,
     bin_minutes: int = 15,
 ) -> Optional[pd.DataFrame]:
@@ -339,7 +339,7 @@ def fetch_velocity_baseline(
     connector: DriftBaseConnector,
     station: Dict,
     event_date: dt.date,
-    n_baseline_days: int = 7,
+    n_baseline_days: int = 27,
     params: List[str] = VEL_PARAMS,
     bin_minutes: int = 15,
 ) -> Optional[pd.DataFrame]:
@@ -415,7 +415,7 @@ def plot_foF2_hpF(
     xlim: List[dt.datetime],
     out_path: Path,
     baseline: Optional[pd.DataFrame] = None,
-    n_baseline_days: int = 7,
+    n_baseline_days: int = 27,
     vel_df: Optional[pd.DataFrame] = None,
     vel_baseline: Optional[pd.DataFrame] = None,
     shock_time: Optional[dt.datetime] = None,
@@ -536,7 +536,7 @@ def plot_foF2_hpF(
 def run(
     stations: List[Dict] = STATIONS,
     events: List[Dict] = EVENTS,
-    n_baseline_days: int = 7,
+    n_baseline_days: int = 27,
     out_dir: Path = OUTPUT_DIR,
     include_velocity: bool = True,
 ) -> List[Path]:
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     # panel, DRIFTBASE_USER / DRIFTBASE_PASSWORD) environment variables
     # set to valid GIRO credentials (see https://ulcar.uml.edu/DIDBase/).
     # Example: run only two stations for a single event, with a shorter
-    # 3-day quiet baseline instead of the 7-day default:
+    # 3-day quiet baseline instead of the 27-day default:
     #
     #   run(
     #       stations=[s for s in STATIONS if s["ursi"] in ("AL945", "IF843")],
