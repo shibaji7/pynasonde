@@ -283,7 +283,8 @@ def fetch_quiet_baseline(
     return _time_of_day_baseline(df, params, event_date, bin_minutes)
 
 
-VEL_PARAMS: List[str] = ["VX", "VY", "VZ"]
+VEL_PARAMS: List[str] = ["VZ"]
+VEL_YLIMS: Dict[str, List[float]] = {"VX": [-150, 150], "VY": [-150, 150], "VZ": [-20, 20]}
 
 
 def fetch_event_day_velocity(
@@ -502,7 +503,7 @@ def plot_foF2_hpF(
                 right_yparams=[],
                 ylabels=[f"{p}, m/s", ""],
                 xlabel="Time, UT" if is_last else "",
-                left_ylim=[-150, 150],
+                left_ylim=VEL_YLIMS.get(p, [-150, 150]),
                 xlim=xlim,
                 major_locator=major_locator,
                 minor_locator=minor_locator,
