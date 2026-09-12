@@ -278,12 +278,16 @@ def fetch_quiet_baseline(
     return _time_of_day_baseline(df, params, event_date, bin_minutes)
 
 
+VEL_PARAMS: List[str] = ["VX", "VY", "VZ"]
+
+
 def fetch_event_day_velocity(
     connector: DriftBaseConnector,
     station: Dict,
     event_date: dt.date,
+    params: List[str] = VEL_PARAMS,
 ) -> Optional[pd.DataFrame]:
-    """Fetch scaled horizontal drift velocity for the 24-hour UT shock day.
+    """Fetch scaled drift velocity components for the 24-hour UT shock day.
 
     Queries ``[00:00 UT of event_date, 00:00 UT of event_date + 1 day]``
     via ``DriftBaseConnector.fetch_velocity``, which reads DriftBase's
@@ -295,10 +299,14 @@ def fetch_event_day_velocity(
         connector: An already-connected ``DriftBaseConnector``.
         station: One entry from ``STATIONS`` (must have a ``ursi`` key).
         event_date: The storm/shock date (UT).
+        params: ``VELOCITY`` columns to keep, e.g. ``["VX", "VY", "VZ"]``
+            (geographic/geomagnetic drift components, m/s). ``VH``
+            (horizontal speed) and ``AZ`` (azimuth) are also available
+            from ``fetch_velocity`` if needed.
 
     Returns:
-        A DataFrame with ``datetime`` and ``VH`` (horizontal drift speed,
-        m/s) columns, or ``None`` if no usable data was found.
+        A DataFrame with ``datetime`` plus one column per requested
+        component, or ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
     start = dt.datetime.combine(event_date, dt.time.min)
@@ -314,12 +322,12 @@ def fetch_event_day_velocity(
         logger.warning(f"[{ursi}] no DriftBase VELOCITY coverage for {event_date}.")
         return None
 
-    df = df.dropna(subset=["VH"])
+    df = df.dropna(subset=params, how="all")
     if df.empty:
-        logger.warning(f"[{ursi}] {event_date}: VH rows were all NaN.")
+        logger.warning(f"[{ursi}] {event_date}: {params} rows were all NaN.")
         return None
 
-    return df[["datetime", "VH"]].sort_values("datetime").reset_index(drop=True)
+    return df[["datetime", *params]].sort_values("datetime").reset_index(drop=True)
 
 
 def fetch_velocity_baseline(
@@ -327,13 +335,13 @@ def fetch_velocity_baseline(
     station: Dict,
     event_date: dt.date,
     n_baseline_days: int = 7,
+    params: List[str] = VEL_PARAMS,
     bin_minutes: int = 15,
 ) -> Optional[pd.DataFrame]:
     """Build a quiet-time per-time-of-day drift-velocity median/STD baseline.
 
     Same approach as :func:`fetch_quiet_baseline`, but against DriftBase's
-    ``VELOCITY`` table (``VH``, horizontal drift speed) instead of
-    DIDBase's scaled characteristics.
+    ``VELOCITY`` table instead of DIDBase's scaled characteristics.
 
     Args:
         connector: An already-connected ``DriftBaseConnector``.
@@ -341,11 +349,13 @@ def fetch_velocity_baseline(
         event_date: The storm/shock date (UT); the baseline window ends
             at 00:00 UT of this date (the event day itself is excluded).
         n_baseline_days: Number of preceding calendar days to average.
+        params: ``VELOCITY`` columns to fetch/summarize.
         bin_minutes: Time-of-day bin width in minutes.
 
     Returns:
-        DataFrame with a ``datetime`` column and ``VH_median``/``VH_std``/
-        ``VH_n`` columns, or ``None`` if no usable data was found.
+        DataFrame with a ``datetime`` column and, per requested
+        component, ``{param}_median``/``{param}_std``/``{param}_n``
+        columns, or ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
     end = dt.datetime.combine(event_date, dt.time.min)
@@ -363,12 +373,12 @@ def fetch_velocity_baseline(
         )
         return None
 
-    df = df.dropna(subset=["VH"])
+    df = df.dropna(subset=params, how="all")
     if df.empty:
-        logger.warning(f"[{ursi}] {event_date}: baseline VH rows were all NaN.")
+        logger.warning(f"[{ursi}] {event_date}: baseline {params} rows were all NaN.")
         return None
 
-    return _time_of_day_baseline(df, ["VH"], event_date, bin_minutes)
+    return _time_of_day_baseline(df, params, event_date, bin_minutes)
 
 
 def _overlay_baseline(ax, baseline: pd.DataFrame, param: str, n_baseline_days: int) -> None:
@@ -421,9 +431,9 @@ def plot_foF2_hpF(
             :func:`fetch_quiet_baseline`.
         n_baseline_days: Number of days the baselines were averaged over
             (only used for the legend labels).
-        vel_df: Optional event-day horizontal drift-velocity (``VH``)
-            DataFrame from :func:`fetch_event_day_velocity`. When
-            ``None``, no velocity panel is drawn.
+        vel_df: Optional event-day drift-velocity-component DataFrame
+            (``VX``/``VY``/``VZ``) from :func:`fetch_event_day_velocity`.
+            When ``None``, no velocity panels are drawn.
         vel_baseline: Optional drift-velocity quiet-time baseline from
             :func:`fetch_velocity_baseline`.
         shock_time: UT of the IP shock/storm onset, marked as a dashed
@@ -436,8 +446,9 @@ def plot_foF2_hpF(
     setsize(font_size)
     shock_time = shock_time or dt.datetime.combine(event["date"], dt.time.min)
     title = f"{station['ursi']} {station['name']} / {event['name']}"
-    has_velocity = vel_df is not None and not vel_df.empty
-    nrows = 3 if has_velocity else 2
+    vel_params = [p for p in VEL_PARAMS if vel_df is not None and p in vel_df.columns]
+    has_velocity = vel_df is not None and not vel_df.empty and len(vel_params) > 0
+    nrows = 2 + len(vel_params) if has_velocity else 2
     sao_plot = SaoSummaryPlots(
         fig_title=title,
         nrows=nrows,
@@ -473,20 +484,22 @@ def plot_foF2_hpF(
     axes = [ax0, ax1]
 
     if has_velocity:
-        ax2, _ = sao_plot.plot_TS(
-            vel_df,
-            left_yparams=["VH"],
-            right_yparams=[],
-            ylabels=["V_H, m/s", ""],
-            xlabel="Time, UT",
-            left_ylim=[0, 200],
-            xlim=xlim,
-            major_locator=major_locator,
-            minor_locator=minor_locator,
-        )
-        if vel_baseline is not None:
-            _overlay_baseline(ax2, vel_baseline, "VH", n_baseline_days)
-        axes.append(ax2)
+        for i, p in enumerate(vel_params):
+            is_last = i == len(vel_params) - 1
+            ax_v, _ = sao_plot.plot_TS(
+                vel_df,
+                left_yparams=[p],
+                right_yparams=[],
+                ylabels=[f"{p}, m/s", ""],
+                xlabel="Time, UT" if is_last else "",
+                left_ylim=[-150, 150],
+                xlim=xlim,
+                major_locator=major_locator,
+                minor_locator=minor_locator,
+            )
+            if vel_baseline is not None:
+                _overlay_baseline(ax_v, vel_baseline, p, n_baseline_days)
+            axes.append(ax_v)
 
     if baseline is not None:
         _overlay_baseline(ax0, baseline, "foF2", n_baseline_days)
