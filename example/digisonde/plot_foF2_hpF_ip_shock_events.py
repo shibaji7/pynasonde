@@ -255,7 +255,12 @@ def fetch_quiet_baseline(
         ``{param}_n`` columns, or ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
-    end = dt.datetime.combine(event_date, dt.time.min)
+    # GETMEASUREMENTS' end bound is inclusive (timeUT <= :et), and the
+    # event day's own window starts at this same midnight timestamp
+    # (timeUT >= :st, also inclusive) -- subtract 1s so a measurement at
+    # exactly 00:00:00 UT on event_date is never double-counted in both
+    # the quiet baseline and the event day.
+    end = dt.datetime.combine(event_date, dt.time.min) - dt.timedelta(seconds=1)
     start = end - dt.timedelta(days=n_baseline_days)
 
     try:
@@ -358,7 +363,12 @@ def fetch_velocity_baseline(
         columns, or ``None`` if no usable data was found.
     """
     ursi = station["ursi"]
-    end = dt.datetime.combine(event_date, dt.time.min)
+    # GETMEASUREMENTS' end bound is inclusive (timeUT <= :et), and the
+    # event day's own window starts at this same midnight timestamp
+    # (timeUT >= :st, also inclusive) -- subtract 1s so a measurement at
+    # exactly 00:00:00 UT on event_date is never double-counted in both
+    # the quiet baseline and the event day.
+    end = dt.datetime.combine(event_date, dt.time.min) - dt.timedelta(seconds=1)
     start = end - dt.timedelta(days=n_baseline_days)
 
     try:
