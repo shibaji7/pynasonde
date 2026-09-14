@@ -160,10 +160,86 @@ def fetch_zoom_dataframe(
     return df.sort_values("datetime").reset_index(drop=True)
 
 
+def _time_of_day_median(
+    df: pd.DataFrame, params: List[str], bin_minutes: int = 15
+) -> pd.DataFrame:
+    """Bin ``df`` by time-of-day and compute the per-bin median.
+
+    Same approach as ``plot_foF2_hpF_ip_shock_events.py``'s
+    ``_time_of_day_baseline`` (duplicated here to keep this script
+    standalone), but median-only -- no STD band for this plot.
+    """
+    bin_size = pd.Timedelta(minutes=bin_minutes)
+    time_of_day = df["datetime"] - df["datetime"].dt.normalize()
+    df = df.assign(time_of_day=(time_of_day / bin_size).round().astype(int) * bin_size)
+    agg_kwargs = {f"{p}_median": (p, "median") for p in params}
+    baseline = df.groupby("time_of_day").agg(**agg_kwargs).reset_index()
+    baseline["datetime"] = pd.Timestamp(EVENT_DATE) + baseline["time_of_day"]
+    return baseline.sort_values("datetime").reset_index(drop=True)
+
+
+def fetch_zoom_baseline(
+    connector: DidBaseConnector,
+    station: Dict,
+    params: List[str] = PARAMS,
+    n_baseline_days: int = 27,
+    bin_minutes: int = 15,
+) -> Optional[pd.DataFrame]:
+    """Build a quiet-time per-time-of-day median baseline for the zoom window.
+
+    Fetches ``n_baseline_days`` calendar days immediately before
+    ``EVENT_DATE`` (event day excluded), restricts each day's samples to
+    the same time-of-day range as the zoom window (18:00-21:00 UT), bins
+    by time-of-day, and computes the median -- reprojected onto
+    ``EVENT_DATE`` so it overlays the zoom x-axis directly.
+
+    Args:
+        connector: An already-connected ``DidBaseConnector``.
+        station: One entry from ``STATIONS`` (must have a ``ursi`` key).
+        params: ``PARAMCAT.NAME`` values to fetch/summarize.
+        n_baseline_days: Number of preceding calendar days to average.
+        bin_minutes: Time-of-day bin width in minutes.
+
+    Returns:
+        DataFrame with a ``datetime`` column and, per requested
+        parameter, a ``{param}_median`` column, or ``None`` if no usable
+        data was found.
+    """
+    ursi = station["ursi"]
+    end = dt.datetime.combine(EVENT_DATE, dt.time.min) - dt.timedelta(seconds=1)
+    start = end - dt.timedelta(days=n_baseline_days)
+
+    try:
+        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+    except Exception as exc:
+        logger.warning(f"[{ursi}] baseline fetch_scaled_params failed: {exc}")
+        return None
+
+    if df is None or df.empty:
+        logger.warning(f"[{ursi}] no {n_baseline_days}-day baseline coverage.")
+        return None
+
+    df = df.dropna(subset=params, how="all")
+    if df.empty:
+        return None
+
+    midnight = dt.datetime.combine(EVENT_DATE, dt.time.min)
+    tod = df["datetime"] - df["datetime"].dt.normalize()
+    lo, hi = ZOOM_START - midnight, ZOOM_END - midnight
+    df = df[(tod >= lo) & (tod <= hi)]
+    if df.empty:
+        logger.warning(f"[{ursi}] no baseline samples within the zoom time-of-day range.")
+        return None
+
+    return _time_of_day_median(df, params, bin_minutes)
+
+
 def plot_zoom(
     df: pd.DataFrame,
     station: Dict,
     out_path: Path,
+    baseline: Optional[pd.DataFrame] = None,
+    n_baseline_days: int = 27,
     xlim: List[dt.datetime] = None,
     shock_time: dt.datetime = SHOCK_TIME,
     font_size: float = 14,
@@ -172,12 +248,17 @@ def plot_zoom(
 
     One panel per ionospheric layer: F2 (foF2/h'F), E (foE/h'E), and Es
     (foEs/h'Es), each spanning the 18:00-21:00 UT zoom window with the
-    shock time marked as a dashed vertical line.
+    shock time marked as a dashed vertical line. If ``baseline`` is
+    given, its quiet-time median is overlaid on both axes of each panel.
 
     Args:
         df: DataFrame from :func:`fetch_zoom_dataframe`.
         station: One entry from ``STATIONS``.
         out_path: PNG path to save the figure to.
+        baseline: Optional quiet-time median baseline from
+            :func:`fetch_zoom_baseline`.
+        n_baseline_days: Number of days the baseline was averaged over
+            (only used for the legend labels).
         xlim: ``[start, end]`` datetimes for the x-axis. Defaults to
             ``[ZOOM_START, ZOOM_END]``.
         shock_time: UT of the IP shock, marked as a dashed vertical line
@@ -200,7 +281,7 @@ def plot_zoom(
     axes = []
     for i, (fparam, hparam) in enumerate(LAYER_PAIRS):
         is_last = i == len(LAYER_PAIRS) - 1
-        ax, _tax = sao_plot.plot_TS(
+        ax, tax = sao_plot.plot_TS(
             df,
             left_yparams=[fparam],
             right_yparams=[hparam],
@@ -212,13 +293,29 @@ def plot_zoom(
             major_locator=major_locator,
             minor_locator=minor_locator,
         )
-        axes.append(ax)
+        if baseline is not None:
+            f_med_col, h_med_col = f"{fparam}_median", f"{hparam}_median"
+            if f_med_col in baseline.columns:
+                ax.plot(
+                    baseline["datetime"], baseline[f_med_col], color="k", lw=1.5,
+                    zorder=4, label=f"{n_baseline_days}-day median",
+                )
+            if tax is not None and h_med_col in baseline.columns:
+                tax.plot(
+                    baseline["datetime"], baseline[h_med_col], color="gray", lw=1.5,
+                    ls="--", zorder=4, label=f"{n_baseline_days}-day median (height)",
+                )
+        axes.append((ax, tax))
 
-    for ax in axes:
+    for ax, tax in axes:
         ax.axvline(shock_time, color="r", ls="--", lw=1.2, zorder=5)
-        ax.legend(loc=2, fontsize=max(font_size - 4, 6))
-    y0, y1 = axes[0].get_ylim()
-    axes[0].text(
+        handles, labels = ax.get_legend_handles_labels()
+        if tax is not None:
+            h2, l2 = tax.get_legend_handles_labels()
+            handles, labels = handles + h2, labels + l2
+        ax.legend(handles, labels, loc=2, fontsize=max(font_size - 4, 6))
+    y0, y1 = axes[0][0].get_ylim()
+    axes[0][0].text(
         shock_time, y1 - 0.05 * (y1 - y0), " IP shock",
         rotation=90, va="top", ha="left", color="r", fontsize=max(font_size - 4, 6),
     )
@@ -307,12 +404,17 @@ def plot_station_skymaps(
 def run(
     stations: List[Dict] = STATIONS,
     out_dir: Path = OUTPUT_DIR,
+    n_baseline_days: int = 27,
 ) -> Dict[str, List[Path]]:
     """Produce the zoom plot and skymaps for every station, for the single
     2026-01-19 event.
 
-    Failures (no DIDBase/DriftBase coverage, malformed records, etc.) are
-    logged as warnings for the offending station and skipped, not raised.
+    Each zoom figure overlays a quiet-time median baseline computed from
+    the ``n_baseline_days`` days immediately before the event, restricted
+    to the same 18:00-21:00 UT time-of-day range. Failures (no DIDBase/
+    DriftBase coverage, malformed records, etc.) are logged as warnings
+    for the offending station and skipped, not raised. A missing baseline
+    does not block the plot -- it is simply omitted with a warning.
 
     Returns:
         ``{"zoom": [...], "skymaps": [...]}`` -- lists of PNG paths
@@ -329,10 +431,23 @@ def run(
             df = fetch_zoom_dataframe(connector, station)
             if df is None:
                 continue
+
+            baseline = fetch_zoom_baseline(
+                connector, station, n_baseline_days=n_baseline_days
+            )
+            if baseline is None:
+                logger.warning(
+                    f"[{station['ursi']}] plotting zoom without a "
+                    f"{n_baseline_days}-day baseline (none available)."
+                )
+
             slug = _slugify(station["name"])
             out_path = out_dir / f"{station['ursi']}_{slug}_20260119_zoom_1821UT.png"
             try:
-                plot_zoom(df, station, out_path)
+                plot_zoom(
+                    df, station, out_path,
+                    baseline=baseline, n_baseline_days=n_baseline_days,
+                )
             except Exception as exc:
                 logger.warning(f"[{station['ursi']}] zoom plotting failed: {exc}")
                 continue
