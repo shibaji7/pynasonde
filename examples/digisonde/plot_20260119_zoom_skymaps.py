@@ -96,7 +96,7 @@ ZOOM_END = dt.datetime(2026, 1, 19, 21, 0)
 
 PARAMS: List[str] = ["foF2", "hF", "foE", "foEs", "hE", "hEs"]
 # (frequency, height) pairs per ionospheric layer -> one dual-axis panel each
-LAYER_PAIRS: List[Tuple[str, str]] = [("foF2", "hF"), ("foE", "hE"), ("foEs", "hEs")]
+LAYER_PAIRS: List[Tuple[str, str]] = [("foF2", "hF")]
 LAYER_LABELS: Dict[str, str] = {
     "foF2": "foF2, MHz", "hF": "h'F, km",
     "foE": "foE, MHz", "hE": "h'E, km",
@@ -275,8 +275,11 @@ def plot_zoom(
         figsize=(8, 3),
         font_size=font_size,
     )
+    # digi_plots.py's plot_TS applies minor_locator's spacing as the
+    # effective (only) tick spacing -- set both to 30 min so ticks land
+    # every 30 minutes regardless.
     major_locator = mdates.MinuteLocator(byminute=range(0, 60, 30))
-    minor_locator = mdates.MinuteLocator(byminute=range(0, 60, 10))
+    minor_locator = mdates.MinuteLocator(byminute=range(0, 60, 30))
 
     axes = []
     for i, (fparam, hparam) in enumerate(LAYER_PAIRS):
@@ -287,7 +290,7 @@ def plot_zoom(
             right_yparams=[hparam],
             ylabels=[LAYER_LABELS[fparam], LAYER_LABELS[hparam]],
             xlabel="Time, UT" if is_last else "",
-            left_ylim=[0, 15],
+            left_ylim=[7, 14],
             right_ylim=[80, 400],
             xlim=xlim,
             major_locator=major_locator,
