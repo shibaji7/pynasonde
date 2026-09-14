@@ -111,6 +111,10 @@ STATIONS: List[Dict] = [
 
 # ── IP-shock / CME-driven storms, 2010-2020 (date = storm/shock date) ───────
 EVENTS: List[Dict] = [
+    dict(
+        name="2026-01-19 storm", date=dt.date(2026, 1, 19),
+        shock_time=dt.datetime(2026, 1, 19, 19, 15),
+    ),
     dict(name="2015-03-17 St. Patrick's Day storm", date=dt.date(2015, 3, 17), dst=-234),
     dict(name="2015-06-22 double-CME storm", date=dt.date(2015, 6, 22), dst=-198),
     dict(name="2018-08-26 storm", date=dt.date(2018, 8, 26), dst=-175),
