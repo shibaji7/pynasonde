@@ -396,21 +396,25 @@ def fetch_velocity_baseline(
     return _time_of_day_baseline(df, params, event_date, bin_minutes)
 
 
-def _overlay_baseline(ax, baseline: pd.DataFrame, param: str, n_baseline_days: int) -> None:
-    """Draw the quiet-time median line and +/-1 STD shaded band on ``ax``."""
+def _overlay_baseline(
+    ax, baseline: pd.DataFrame, param: str, n_baseline_days: int, show_std: bool = False
+) -> None:
+    """Draw the quiet-time median line (and, if ``show_std``, the +/-1 STD
+    shaded band) on ``ax``."""
     median_col, std_col = f"{param}_median", f"{param}_std"
     if median_col not in baseline.columns:
         return
     med = baseline[median_col]
-    std = baseline[std_col].fillna(0.0)
     ax.plot(
         baseline["datetime"], med, color="k", lw=1.5, zorder=4,
         label=f"{n_baseline_days}-day median",
     )
-    ax.fill_between(
-        baseline["datetime"], med - std, med + std,
-        color="k", alpha=0.15, zorder=1, label="±1 STD",
-    )
+    if show_std:
+        std = baseline[std_col].fillna(0.0)
+        ax.fill_between(
+            baseline["datetime"], med - std, med + std,
+            color="k", alpha=0.15, zorder=1, label="±1 STD",
+        )
 
 
 def plot_foF2_hpF(
