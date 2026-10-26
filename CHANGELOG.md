@@ -19,7 +19,10 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
   regime helpers) with an RSF example and API reference pages.
 - `GrmSplitter.load_dataframes(frame_slice=...)` to load a subset of ionograms.
 - `pynasonde.timeutils.TimeZoneConversion` (shared by Digisonde and VIPIR).
-- Docs: examples for `PolarizationClassifier` and `IonogramScaler`.
+- Docs: examples for `PolarizationClassifier` and `IonogramScaler`; the VIPIR ionogram
+  filter example also saves the decoded RIQ power figure, and its page now matches
+  the current output.
+- `CONTRIBUTING.md` and `ROADMAP.md`, linked from the README.
 - Credentials via a git-ignored `.env` (template: `.env.example`) and an opt-in live
   DIDBase login test (`make test-live`).
 - Developer tooling: colourful `make` targets (`env`, `install-dev`, `test`,
@@ -37,6 +40,9 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
   2.0 docs, examples or extras (see the 1.3 docs for them).
 - Version is single-sourced from the git tag via setuptools-scm.
 - `pyproject.toml` is the single metadata source (`setup.py` is a stub).
+- `examples/digisonde/rsf_direction_ionogram.py` is portable: station and data directory
+  come from `RSF_EXAMPLE_STN` / `RSF_EXAMPLE_DIR` (default: bundled WS833 files).
+- The `digisonde` extra now includes `joblib` (used by the Digisonde examples).
 - Docs build uses `pip install .[docs]`; the stale `docs/requirements.txt` is gone.
 - One-time isort/black formatting of the code base.
 

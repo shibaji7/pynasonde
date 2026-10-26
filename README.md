@@ -9,6 +9,9 @@
 ![GitHub Stable Release (latest by date)](https://img.shields.io/github/v/release/shibaji7/pynasonde)
 [![Documentation Status](https://img.shields.io/readthedocs/pynasonde?logo=readthedocs&label=docs)](https://pynasonde.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/shibaji7/pynasonde/branch/main/graph/badge.svg)](https://codecov.io/gh/shibaji7/pynasonde)
+[![Roadmap](https://img.shields.io/badge/roadmap-published-blue)](ROADMAP.md)
+
+**[📖 Documentation](https://pynasonde.readthedocs.io/) · [📦 PyPI](https://pypi.org/project/pynasonde/) · [🐙 GitHub](https://github.com/shibaji7/pynasonde) · [🐛 Issues](https://github.com/shibaji7/pynasonde/issues) · [📜 Changelog](CHANGELOG.md) · [🗺️ Roadmap](ROADMAP.md) · [🤝 Contributing](CONTRIBUTING.md)**
 
 
 Pynasonde is an open-source Python-based application designed for precision ionospheric radio sounding, with a strong focus on analyzing the phase characteristics of radio echoes. Tailored for Space Weather applications, Pynasonde offers a suite of unique tools that help extract valuable insights directly and autonomously from ionogram data.
@@ -30,6 +33,14 @@ See the [install guide](https://pynasonde.readthedocs.io/en/latest/user/install/
 [What's new in 2.0](https://pynasonde.readthedocs.io/en/latest/user/whats_new_2_0/) if you are upgrading
 from 1.x, and the [CHANGELOG](CHANGELOG.md). Docs for each release are on Read the Docs
 (use the version menu).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup (`make env`,
+`make test`, `make format`), branch model, commit conventions, test and
+documentation conventions, the pull-request checklist, and the release procedure.
+See [ROADMAP.md](ROADMAP.md) for what is done, in progress, and open for
+contribution, and [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ## Source Code 
 
