@@ -23,8 +23,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from loguru import logger
 
 from pynasonde.digisonde.digi_utils import setsize
@@ -33,7 +33,7 @@ from pynasonde.digisonde.parsers.mmm import ModMaxExtractor
 MMM_FILE = "/home/chakras4/Research/ERAUCodeBase/apep_eclipse/AU930_2017147000005.MMM"
 OUT_DIR = Path("docs/examples/figures")
 FONT_SIZE = 14
-NOISE_FLOOR = 10   # dB — discard bins at or below this amplitude
+NOISE_FLOOR = 10  # dB — discard bins at or below this amplitude
 VMIN, VMAX = 10, 84
 
 setsize(FONT_SIZE)
@@ -49,7 +49,9 @@ if df.empty:
     logger.error("No data extracted — check file path and format.")
     sys.exit(1)
 
-logger.info(f"Frequency range : {df.frequency_mhz.min():.2f} – {df.frequency_mhz.max():.2f} MHz")
+logger.info(
+    f"Frequency range : {df.frequency_mhz.min():.2f} – {df.frequency_mhz.max():.2f} MHz"
+)
 logger.info(f"Height range    : {df.range_km.min():.0f} – {df.range_km.max():.0f} km")
 logger.info(f"Polarisation    : {df.polarization.value_counts().to_dict()}")
 logger.info(f"Doppler channels: {sorted(df.doppler_channel.unique())}")
@@ -61,7 +63,7 @@ dtime = df["datetime"].iloc[0]
 title_base = f"AU930  {dtime.strftime('%Y DOY%j  %H:%M')} UT"
 
 # ── Grid axes (from actual sounding values) ───────────────────────────────────
-freq_bins   = np.sort(df["frequency_mhz"].unique())
+freq_bins = np.sort(df["frequency_mhz"].unique())
 height_bins = np.sort(df["range_km"].unique())
 F, H = np.meshgrid(freq_bins, height_bins)
 
@@ -74,8 +76,10 @@ def _to_grid(sub, fill=np.nan):
     """
     grid = (
         sub.pivot_table(
-            index="range_km", columns="frequency_mhz",
-            values="amplitude_dB", aggfunc="max",
+            index="range_km",
+            columns="frequency_mhz",
+            values="amplitude_dB",
+            aggfunc="max",
         )
         .reindex(index=height_bins, columns=freq_bins)
         .values
@@ -97,8 +101,9 @@ def _style(ax):
 
 # ── Figure 1: combined O+X ────────────────────────────────────────────────────
 fig, ax = plt.subplots(figsize=(10, 6))
-pc = ax.pcolormesh(F, H, _to_grid(df),
-                   cmap="plasma", vmin=VMIN, vmax=VMAX, shading="nearest")
+pc = ax.pcolormesh(
+    F, H, _to_grid(df), cmap="plasma", vmin=VMIN, vmax=VMAX, shading="nearest"
+)
 _style(ax)
 ax.set_title(f"MMM Ionogram (O+X) — {title_base}", fontsize=FONT_SIZE)
 plt.colorbar(pc, ax=ax, label="Amplitude (dB)", pad=0.02)
@@ -111,13 +116,23 @@ logger.info(f"Saved: {out1}")
 fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
 fig.subplots_adjust(wspace=0.35)
 
-for ax, (pol, cmap, label) in zip(axes, [
-    ("O", "plasma", "O-mode"),
-    ("X", "viridis", "X-mode"),
-]):
+for ax, (pol, cmap, label) in zip(
+    axes,
+    [
+        ("O", "plasma", "O-mode"),
+        ("X", "viridis", "X-mode"),
+    ],
+):
     sub = df[df["polarization"] == pol]
-    pc = ax.pcolormesh(F, H, _to_grid(sub, fill=VMIN),
-                       cmap=cmap, vmin=VMIN, vmax=VMAX, shading="nearest")
+    pc = ax.pcolormesh(
+        F,
+        H,
+        _to_grid(sub, fill=VMIN),
+        cmap=cmap,
+        vmin=VMIN,
+        vmax=VMAX,
+        shading="nearest",
+    )
     _style(ax)
     ax.set_title(f"{label}  ({len(sub):,} pts)", fontsize=FONT_SIZE)
     plt.colorbar(pc, ax=ax, label="Amplitude (dB)", pad=0.02)

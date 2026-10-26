@@ -12,8 +12,6 @@ Test strategy
 """
 
 import datetime as dt
-import struct
-import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -36,20 +34,22 @@ _AU930_MMM = "/home/chakras4/Research/ERAUCodeBase/apep_eclipse/AU930_2017147000
 _RT = {"RSF": 7, "SBF": 3, "MMM": 9}
 
 
-def _mmm_header_bytes(year: int, doy: int, hour: int, minute: int, second: int) -> bytes:
+def _mmm_header_bytes(
+    year: int, doy: int, hour: int, minute: int, second: int
+) -> bytes:
     """Build a minimal 60-byte MMM block header with correct BCD preface fields."""
     hdr = bytearray(BLOCK_SIZE)
-    hdr[0] = _RT["MMM"]   # record_type = 9
-    hdr[1] = 60           # header_length
-    hdr[2] = 0x01         # version_maker
+    hdr[0] = _RT["MMM"]  # record_type = 9
+    hdr[1] = 60  # header_length
+    hdr[2] = 0x01  # version_maker
     year_2d = year % 100
     hdr[3] = year_2d // 10
     hdr[4] = year_2d % 10
     hdr[5] = doy // 100
     hdr[6] = (doy % 100) // 10
     hdr[7] = doy % 10
-    hdr[8]  = hour // 10
-    hdr[9]  = hour % 10
+    hdr[8] = hour // 10
+    hdr[9] = hour % 10
     hdr[10] = minute // 10
     hdr[11] = minute % 10
     hdr[12] = second // 10
@@ -60,7 +60,9 @@ def _mmm_header_bytes(year: int, doy: int, hour: int, minute: int, second: int) 
     return bytes(hdr)
 
 
-def _rsf_header_bytes(year: int, month: int, day: int, hour: int, minute: int, second: int) -> bytes:
+def _rsf_header_bytes(
+    year: int, month: int, day: int, hour: int, minute: int, second: int
+) -> bytes:
     """Build a minimal 4096-byte RSF block with packed BCD datetime."""
     hdr = bytearray(BLOCK_SIZE)
     hdr[0] = _RT["RSF"]
@@ -75,7 +77,9 @@ def _rsf_header_bytes(year: int, month: int, day: int, hour: int, minute: int, s
     return bytes(hdr)
 
 
-def _make_grm(tmp_path: Path, fmt: str, n_ionograms: int = 2, blocks_per: int = 3) -> Path:
+def _make_grm(
+    tmp_path: Path, fmt: str, n_ionograms: int = 2, blocks_per: int = 3
+) -> Path:
     """Write a synthetic GRM file with ``n_ionograms`` ionograms of ``blocks_per`` blocks each."""
     grm = tmp_path / f"TEST_{fmt}.GRM"
     with grm.open("wb") as f:
@@ -95,6 +99,7 @@ def _make_grm(tmp_path: Path, fmt: str, n_ionograms: int = 2, blocks_per: int = 
 
 
 # ── _parse_block_date ─────────────────────────────────────────────────────────
+
 
 class TestParseBlockDate:
     def test_mmm_roundtrip(self):
@@ -131,6 +136,7 @@ class TestParseBlockDate:
 
 # ── detect_format ─────────────────────────────────────────────────────────────
 
+
 class TestDetectFormat:
     def test_detects_mmm(self, tmp_path):
         grm = _make_grm(tmp_path, "MMM")
@@ -162,6 +168,7 @@ class TestDetectFormat:
 
 # ── station name ──────────────────────────────────────────────────────────────
 
+
 class TestStation:
     def test_default_from_filename(self, tmp_path):
         grm = tmp_path / "AU930_20171470000.GRM"
@@ -174,6 +181,7 @@ class TestStation:
 
 
 # ── _scan_offsets ─────────────────────────────────────────────────────────────
+
 
 class TestScanOffsets:
     def test_count(self, tmp_path):
@@ -203,6 +211,7 @@ class TestScanOffsets:
 
 
 # ── split ─────────────────────────────────────────────────────────────────────
+
 
 class TestSplit:
     def test_file_count(self, tmp_path):
@@ -257,6 +266,7 @@ class TestSplit:
 
 # ── load (lazy) ───────────────────────────────────────────────────────────────
 
+
 class TestLoad:
     def test_count(self, tmp_path):
         grm = _make_grm(tmp_path, "MMM", n_ionograms=2)
@@ -292,6 +302,7 @@ class TestLoad:
 
 # ── _resolve_workers ──────────────────────────────────────────────────────────
 
+
 class TestResolveWorkers:
     def test_positive(self):
         assert _resolve_workers(3) == 3
@@ -301,6 +312,7 @@ class TestResolveWorkers:
 
     def test_minus_one(self):
         import os
+
         assert _resolve_workers(-1) == (os.cpu_count() or 1)
 
     def test_clamp_zero(self):
@@ -309,6 +321,7 @@ class TestResolveWorkers:
 
 # ── _worker_split and _worker_extract (module-level, must be picklable) ───────
 
+
 class TestWorkerFunctions:
     def test_worker_split_writes_file(self, tmp_path):
         grm = _make_grm(tmp_path, "MMM", n_ionograms=1, blocks_per=2)
@@ -316,7 +329,9 @@ class TestWorkerFunctions:
         date, start, length = slices[0]
         out = tmp_path / "workers"
         out.mkdir()
-        result = _worker_split((str(grm), "TEST1", "MMM", date, start, length, str(out)))
+        result = _worker_split(
+            (str(grm), "TEST1", "MMM", date, start, length, str(out))
+        )
         assert result.exists()
         assert result.stat().st_size == length
 
@@ -330,6 +345,7 @@ class TestWorkerFunctions:
 
 
 # ── Integration test (real AU930 file) ───────────────────────────────────────
+
 
 @pytest.mark.skipif(
     not Path(_AU930_MMM).exists(),
@@ -365,7 +381,12 @@ class TestIntegrationAU930:
     def test_load_dataframes_shape(self):
         df = GrmSplitter(_AU930_MMM).load_dataframes()
         assert not df.empty
-        assert set(df.columns) >= {"datetime", "frequency_mhz", "range_km", "amplitude_dB"}
+        assert set(df.columns) >= {
+            "datetime",
+            "frequency_mhz",
+            "range_km",
+            "amplitude_dB",
+        }
 
     def test_load_dataframes_height_range(self):
         df = GrmSplitter(_AU930_MMM).load_dataframes()

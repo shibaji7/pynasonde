@@ -9,8 +9,6 @@ lightweight unit conversions in ``__post_init__`` where necessary.
 from dataclasses import dataclass
 from typing import List
 
-import numpy as np
-
 
 @dataclass
 class ModMaxHeader:

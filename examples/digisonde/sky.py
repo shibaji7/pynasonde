@@ -67,7 +67,6 @@ import datetime as dt
 import glob
 
 # Generate a multi-panel sky map layout for comparative analysis.
-import numpy as np
 
 font_size = 20
 setsize(font_size)

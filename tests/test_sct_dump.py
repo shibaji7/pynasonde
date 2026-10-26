@@ -1,8 +1,6 @@
 """Tests for SctType.dump_sct() — covers lines 760-984 of sct.py."""
 
-import pytest
-
-from pynasonde.vipir.riq.datatypes.sct import SctType, StationType
+from pynasonde.vipir.riq.datatypes.sct import SctType
 
 
 class TestSctTypeDumpSct:

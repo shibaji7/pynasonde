@@ -10,7 +10,6 @@ from pathlib import Path
 
 from pynasonde.digisonde.cadi import CadiExtractor
 
-
 folders = ["tmp/CADI"]
 out_csv = Path("tmp/cadi_products.csv")
 

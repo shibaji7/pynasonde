@@ -18,7 +18,6 @@ from pynasonde.digisonde.cadi import (
     map_file_iq_to_physical_rx,
 )
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_MD4 = PROJECT_ROOT / "tmp" / "CADI" / "6E131200.md4"
 
@@ -299,7 +298,9 @@ def test_cadi_interferometry_accepts_two_receivers(monkeypatch):
             "record_datetime": [None],
         }
     )
-    monkeypatch.setattr(extractor, "to_dataframe_products", lambda **kwargs: df_products)
+    monkeypatch.setattr(
+        extractor, "to_dataframe_products", lambda **kwargs: df_products
+    )
 
     df = extractor.to_dataframe_interferometry(
         lat=17.47,
@@ -472,7 +473,9 @@ def test_cadi_interferometry_uses_physical_rx_from_bitmask(monkeypatch):
             "record_datetime": [None],
         }
     )
-    monkeypatch.setattr(extractor, "to_dataframe_products", lambda **kwargs: df_products)
+    monkeypatch.setattr(
+        extractor, "to_dataframe_products", lambda **kwargs: df_products
+    )
 
     df = extractor.to_dataframe_interferometry(
         lat=17.47,

@@ -39,7 +39,6 @@ import numpy as np
 from pynasonde.digisonde import DigiPlots
 from pynasonde.digisonde.cadi import CadiExtractor, CadiReceiverLayout
 
-
 folders = ["tmp/CADI"]
 lat = 17.47
 lon = 78.57
@@ -293,8 +292,6 @@ else:
                 ),
             )
         else:
-            print(
-                "Doppler Hz range unavailable: provide fft_size for calibration."
-            )
+            print("Doppler Hz range unavailable: provide fft_size for calibration.")
         print("AOA method counts:", df_echoes["aoa_method"].value_counts().to_dict())
         print("Echo mode counts:", df_echoes["mode"].value_counts().to_dict())

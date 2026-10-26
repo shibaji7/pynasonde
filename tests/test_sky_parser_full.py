@@ -5,7 +5,6 @@ parse_freq_header, get_doppler_freq, to_pandas) and the full extract()
 pipeline using a synthetic in-memory SKY file written to a tmp_path.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 

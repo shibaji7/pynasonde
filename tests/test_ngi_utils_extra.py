@@ -10,7 +10,6 @@ from pynasonde.vipir.ngi.utils import (
     get_gridded_parameters,
     load_toml,
     smooth,
-    to_namespace,
 )
 
 

@@ -15,7 +15,6 @@ from pynasonde.digisonde.cadi import (
     debug_echo_geometry,
 )
 
-
 file = "tmp/CADI/6E131200.md4"
 row_index = 1652
 

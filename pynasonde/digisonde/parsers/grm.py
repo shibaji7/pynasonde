@@ -80,28 +80,36 @@ _Slice = Tuple[dt.datetime, int, int]  # (date, start_byte, byte_length)
 
 # ── Date helpers ──────────────────────────────────────────────────────────────
 
+
 def _parse_block_date(block: bytes, fmt: str) -> dt.datetime:
     """Extract the timestamp from the first block of an ionogram."""
     if fmt == "MMM":
         yr_tens = block[3] & 0x0F
         yr_ones = block[4] & 0x0F
         year_2d = 10 * yr_tens + yr_ones
-        year   = 1900 + year_2d if year_2d >= 90 else 2000 + year_2d
-        doy    = 100 * (block[5] & 0x0F) + 10 * (block[6] & 0x0F) + (block[7] & 0x0F)
-        hour   = 10  * (block[8] & 0x0F) + (block[9] & 0x0F)
-        minute = 10  * (block[10] & 0x0F) + (block[11] & 0x0F)
-        second = 10  * (block[12] & 0x0F) + (block[13] & 0x0F)
-        return dt.datetime(year, 1, 1, hour, minute, second) + dt.timedelta(days=doy - 1)
+        year = 1900 + year_2d if year_2d >= 90 else 2000 + year_2d
+        doy = 100 * (block[5] & 0x0F) + 10 * (block[6] & 0x0F) + (block[7] & 0x0F)
+        hour = 10 * (block[8] & 0x0F) + (block[9] & 0x0F)
+        minute = 10 * (block[10] & 0x0F) + (block[11] & 0x0F)
+        second = 10 * (block[12] & 0x0F) + (block[13] & 0x0F)
+        return dt.datetime(year, 1, 1, hour, minute, second) + dt.timedelta(
+            days=doy - 1
+        )
 
     # RSF / SBF: packed BCD
     raw = (
-        block[3:4].hex() + block[6:7].hex() + block[7:8].hex()
-        + block[8:9].hex() + block[9:10].hex() + block[10:11].hex()
+        block[3:4].hex()
+        + block[6:7].hex()
+        + block[7:8].hex()
+        + block[8:9].hex()
+        + block[9:10].hex()
+        + block[10:11].hex()
     )
     return dt.datetime.strptime(raw, "%y%m%d%H%M%S")
 
 
 # ── Module-level worker functions (must be top-level for pickle) ──────────────
+
 
 def _read_slice(path: str, start: int, length: int) -> bytes:
     """Read a byte slice from a GRM archive."""
@@ -144,6 +152,7 @@ def _worker_extract(args: tuple) -> Optional[pd.DataFrame]:
 
 
 # ── GrmSplitter ───────────────────────────────────────────────────────────────
+
 
 class GrmSplitter:
     """Split or load a GRM batch archive from GIRO DIDBase.
@@ -281,7 +290,9 @@ class GrmSplitter:
         else:
             written = [None] * len(args_list)
             with ThreadPoolExecutor(max_workers=n_workers) as pool:
-                futures = {pool.submit(_worker_split, a): i for i, a in enumerate(args_list)}
+                futures = {
+                    pool.submit(_worker_split, a): i for i, a in enumerate(args_list)
+                }
                 for fut in as_completed(futures):
                     written[futures[fut]] = fut.result()
 
@@ -325,8 +336,7 @@ class GrmSplitter:
 
         # Pass cls as a string key so the tuple is always picklable
         args_list = [
-            (str(self.path), fmt, date, start, length)
-            for date, start, length in slices
+            (str(self.path), fmt, date, start, length) for date, start, length in slices
         ]
 
         if n_workers == 1:
@@ -334,7 +344,9 @@ class GrmSplitter:
         else:
             frames = [None] * len(args_list)
             with ProcessPoolExecutor(max_workers=n_workers) as pool:
-                futures = {pool.submit(_worker_extract, a): i for i, a in enumerate(args_list)}
+                futures = {
+                    pool.submit(_worker_extract, a): i for i, a in enumerate(args_list)
+                }
                 for fut in as_completed(futures):
                     frames[futures[fut]] = fut.result()
 
@@ -353,13 +365,16 @@ class GrmSplitter:
 
 # ── Lazy extractor wrapper ────────────────────────────────────────────────────
 
+
 class _LazyExtractor:
     """Returned by :meth:`GrmSplitter.load`.
 
     Defers temp-file creation until ``.extract()`` is first called.
     """
 
-    def __init__(self, cls: type, path: str, start: int, length: int, date: dt.datetime):
+    def __init__(
+        self, cls: type, path: str, start: int, length: int, date: dt.datetime
+    ):
         """Create a lazy wrapper for one GRM ionogram slice."""
         self._cls = cls
         self._path = path
@@ -403,6 +418,7 @@ class _LazyExtractor:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _resolve_workers(n: int) -> int:
     """Map -1 → os.cpu_count(), clamp minimum to 1."""

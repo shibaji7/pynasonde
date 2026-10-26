@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import numpy as np
-import pytest
 
 from pynasonde.vipir.riq.parsers.read_riq import (
     Pulset,

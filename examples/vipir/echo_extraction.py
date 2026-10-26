@@ -33,7 +33,6 @@ Update ``fname`` to point to your local copy of the file.
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.riq.echo import EchoExtractor

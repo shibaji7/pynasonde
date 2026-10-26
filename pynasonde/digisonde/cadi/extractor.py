@@ -20,8 +20,8 @@ from pynasonde.digisonde.cadi.echo import (
     CadiReceiverLayout,
     compute_height_correction_km,
 )
-from pynasonde.digisonde.digi_utils import load_files_to_dataframe
 from pynasonde.digisonde.cadi.reader import CadiReader
+from pynasonde.digisonde.digi_utils import load_files_to_dataframe
 
 
 class CadiExtractor:
@@ -167,8 +167,12 @@ class CadiExtractor:
             phase_rad_col = f"rx{idx}_phase_rad"
             phase_deg_col = f"rx{idx}_phase_deg"
 
-            df[amp_col] = np.sqrt(df[i_col].astype(float) ** 2 + df[q_col].astype(float) ** 2)
-            df[phase_rad_col] = np.arctan2(df[q_col].astype(float), df[i_col].astype(float))
+            df[amp_col] = np.sqrt(
+                df[i_col].astype(float) ** 2 + df[q_col].astype(float) ** 2
+            )
+            df[phase_rad_col] = np.arctan2(
+                df[q_col].astype(float), df[i_col].astype(float)
+            )
             df[phase_deg_col] = np.degrees(df[phase_rad_col])
             amp_cols.append(amp_col)
 
@@ -307,7 +311,9 @@ class CadiExtractor:
             transmitting_delay_us=transmitting_delay_us,
             sampling_delay_us=sampling_delay_us,
         )
-        return CadiInterferometryExtractor(products, array=array).extract().to_dataframe()
+        return (
+            CadiInterferometryExtractor(products, array=array).extract().to_dataframe()
+        )
 
     @staticmethod
     def extract_CADI(
@@ -365,9 +371,7 @@ class CadiExtractor:
             )
         if product == "echoes":
             if lat is None or lon is None or diagonal_m is None:
-                raise ValueError(
-                    "product='echoes' requires lat, lon, and diagonal_m."
-                )
+                raise ValueError("product='echoes' requires lat, lon, and diagonal_m.")
             return extractor.to_dataframe_echoes(
                 lat=lat,
                 lon=lon,

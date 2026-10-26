@@ -124,6 +124,7 @@ def _parse_jdbc_url(url: str) -> tuple[str, str]:
 
 # ── connector ─────────────────────────────────────────────────────────────────
 
+
 class DidBaseConnector:
     """Read ionograms from GIRO DIDBase over a native Firebird connection.
 
@@ -149,14 +150,14 @@ class DidBaseConnector:
             password: Database password.
             role: Firebird role used for data access.
         """
-        self.url      = url
+        self.url = url
         self.host, self.database = _parse_jdbc_url(url)
-        self.user     = user
-        self.role     = role
+        self.user = user
+        self.role = role
         self._password = password
-        self._con      = None
+        self._con = None
         self._stations_cache: Optional[pd.DataFrame] = None
-        self._format_cache:   Optional[Dict[int, str]] = None
+        self._format_cache: Optional[Dict[int, str]] = None
         self._paramcat_cache: Optional[pd.DataFrame] = None
 
     # ── setup validation ──────────────────────────────────────────────────────
@@ -188,10 +189,7 @@ class DidBaseConnector:
         try:
             import fdb as _fdb
         except ImportError:
-            raise RuntimeError(
-                "fdb package not installed.\n"
-                "Fix: pip install fdb"
-            )
+            raise RuntimeError("fdb package not installed.\n" "Fix: pip install fdb")
 
         # 2 ── native client library present?
         try:
@@ -220,12 +218,20 @@ class DidBaseConnector:
             )
         except _fdb.fbcore.DatabaseError as e:
             msg = str(e)
-            if "335544472" in msg or "password" in msg.lower() or "login" in msg.lower():
+            if (
+                "335544472" in msg
+                or "password" in msg.lower()
+                or "login" in msg.lower()
+            ):
                 raise RuntimeError(
                     f"Authentication failed for user '{user}'.\n"
                     f"Check username and password.\nFirebird error: {e}"
                 )
-            if "335544578" in msg or "unavailable" in msg.lower() or "connection" in msg.lower():
+            if (
+                "335544578" in msg
+                or "unavailable" in msg.lower()
+                or "connection" in msg.lower()
+            ):
                 raise RuntimeError(
                     f"Cannot reach {host}/{database}.\n"
                     f"Check host, database path, and network access.\nFirebird error: {e}"
@@ -276,6 +282,7 @@ class DidBaseConnector:
     def connect(self) -> "DidBaseConnector":
         """Open the connection.  Returns ``self`` for chaining."""
         import fdb
+
         try:
             self._con = fdb.connect(
                 host=self.host,
@@ -408,9 +415,9 @@ class DidBaseConnector:
         Uses ``GETMEASUREMENTS(loc_id, start, end)`` → joins against IONOGRAM
         view to add format_id.
         """
-        loc_id   = self._loc_id(station)
+        loc_id = self._loc_id(station)
         start_dt = _to_datetime(start)
-        end_dt   = _to_datetime(end, end_of_day=True)
+        end_dt = _to_datetime(end, end_of_day=True)
 
         cur = self._cur()
         logger.info(
@@ -428,7 +435,7 @@ class DidBaseConnector:
             return []
 
         logger.info(f"Found {len(meas_rows)} measurements.")
-        return meas_rows   # [(meas_id, timeut), …]
+        return meas_rows  # [(meas_id, timeut), …]
 
     # ── blob retrieval ────────────────────────────────────────────────────────
 
@@ -654,9 +661,7 @@ class DidBaseConnector:
         if len(candidate_ids) == 1:
             return candidate_ids[0]
         if prefer_human:
-            human_ids = [
-                i for i in candidate_ids if scaler_info.get(i, (False, 0))[0]
-            ]
+            human_ids = [i for i in candidate_ids if scaler_info.get(i, (False, 0))[0]]
             if human_ids:
                 return max(human_ids, key=lambda i: scaler_info.get(i, (False, 0))[1])
         return max(candidate_ids, key=lambda i: scaler_info.get(i, (False, 0))[1])
@@ -864,6 +869,7 @@ class DidBaseConnector:
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _to_datetime(val: DateLike, end_of_day: bool = False) -> dt.datetime:
     """Convert supported date-like values to ``datetime``.

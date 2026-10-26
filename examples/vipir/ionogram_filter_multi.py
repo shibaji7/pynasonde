@@ -37,7 +37,6 @@ occupancy, not time ordering.
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.riq.echo import EchoExtractor

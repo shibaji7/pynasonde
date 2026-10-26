@@ -105,7 +105,9 @@ class CadiArray:
         self.n_rx = len(self.active_rx)
         self.baselines = self._build_baselines()
 
-    def _resolve_layout(self) -> Tuple[Dict[int, Tuple[float, float]], Dict[int, float]]:
+    def _resolve_layout(
+        self,
+    ) -> Tuple[Dict[int, Tuple[float, float]], Dict[int, float]]:
         if self.receiver_layout == CadiReceiverLayout.CUSTOM:
             if self.unit_vectors is None or self.dipole_orient_deg is None:
                 raise ValueError(
@@ -200,9 +202,10 @@ class CadiArray:
     def get_same_orientation_baselines(self) -> List[Tuple[int, int, float, float]]:
         same = []
         for rx_i, rx_j, de, dn in self.baselines:
-            diff = abs(
-                self.dipole_orientations[rx_i] - self.dipole_orientations[rx_j]
-            ) % 180.0
+            diff = (
+                abs(self.dipole_orientations[rx_i] - self.dipole_orientations[rx_j])
+                % 180.0
+            )
             if diff < 15.0:
                 same.append((rx_i, rx_j, de, dn))
         return same
@@ -395,7 +398,9 @@ def compute_aoa(
         method = "uncorrected" if not same_bl else "fallback_all_baselines"
 
     if len(baselines) < 2:
-        raise ValueError(f"Need at least 2 baselines for 2D AOA; have {len(baselines)}.")
+        raise ValueError(
+            f"Need at least 2 baselines for 2D AOA; have {len(baselines)}."
+        )
 
     A_rows = []
     b_vals = []
@@ -666,7 +671,9 @@ class CadiInterferometryExtractor:
     def to_dataframe(self) -> pd.DataFrame:
         if not self.products:
             return pd.DataFrame()
-        return pd.DataFrame.from_records([product.to_dict() for product in self.products])
+        return pd.DataFrame.from_records(
+            [product.to_dict() for product in self.products]
+        )
 
 
 def compute_velocity_from_skymap(skymap_points: Sequence[dict]) -> dict:

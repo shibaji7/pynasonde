@@ -185,6 +185,7 @@ def _to_datetime(val: DateLike, end_of_day: bool = False) -> dt.datetime:
 
 # ── connector ─────────────────────────────────────────────────────────────────
 
+
 class DriftBaseConnector:
     """Read drift-velocity/skymap data from GIRO DriftBase over a native
     Firebird connection.
@@ -211,14 +212,14 @@ class DriftBaseConnector:
             password: Database password.
             role: Firebird role used for data access.
         """
-        self.url      = url
+        self.url = url
         self.host, self.database = _parse_jdbc_url(url)
-        self.user     = user
-        self.role     = role
+        self.user = user
+        self.role = role
         self._password = password
-        self._con      = None
+        self._con = None
         self._stations_cache: Optional[pd.DataFrame] = None
-        self._expert_cache:   Optional[pd.DataFrame] = None
+        self._expert_cache: Optional[pd.DataFrame] = None
 
     # ── setup validation ──────────────────────────────────────────────────────
 
@@ -248,10 +249,7 @@ class DriftBaseConnector:
         try:
             import fdb as _fdb
         except ImportError:
-            raise RuntimeError(
-                "fdb package not installed.\n"
-                "Fix: pip install fdb"
-            )
+            raise RuntimeError("fdb package not installed.\n" "Fix: pip install fdb")
 
         try:
             _fdb.load_api()
@@ -277,7 +275,11 @@ class DriftBaseConnector:
             )
         except _fdb.fbcore.DatabaseError as e:
             msg = str(e)
-            if "335544472" in msg or "password" in msg.lower() or "login" in msg.lower():
+            if (
+                "335544472" in msg
+                or "password" in msg.lower()
+                or "login" in msg.lower()
+            ):
                 raise RuntimeError(
                     f"Authentication failed for user '{user}'.\n"
                     f"Check username and password.\nFirebird error: {e}"
@@ -289,7 +291,11 @@ class DriftBaseConnector:
                     "path), double-check the alias name with the DriftBase "
                     "administrator.\nFirebird error: {e}"
                 )
-            if "335544578" in msg or "unavailable" in msg.lower() or "connection" in msg.lower():
+            if (
+                "335544578" in msg
+                or "unavailable" in msg.lower()
+                or "connection" in msg.lower()
+            ):
                 raise RuntimeError(
                     f"Cannot reach {host}/{database}.\n"
                     f"Check host, database path, and network access.\nFirebird error: {e}"
@@ -338,6 +344,7 @@ class DriftBaseConnector:
     def connect(self) -> "DriftBaseConnector":
         """Open the connection.  Returns ``self`` for chaining."""
         import fdb
+
         try:
             self._con = fdb.connect(
                 host=self.host,
@@ -456,7 +463,7 @@ class DriftBaseConnector:
         numeric location IDENT first.
         """
         start_dt = _to_datetime(start)
-        end_dt   = _to_datetime(end, end_of_day=True)
+        end_dt = _to_datetime(end, end_of_day=True)
 
         cur = self._cur()
         logger.info(
@@ -477,7 +484,9 @@ class DriftBaseConnector:
         logger.info(f"Found {len(rows)} measurements.")
         return rows
 
-    def _best_experts(self, meas_ids: List[int], chunk_size: int = 400) -> Dict[int, int]:
+    def _best_experts(
+        self, meas_ids: List[int], chunk_size: int = 400
+    ) -> Dict[int, int]:
         """Return {MEASUREMENTID: EXPERTID} using DriftBase's own
         ``BESTEXPERT`` view — the officially designated expert per
         measurement, when one has been chosen."""
@@ -529,7 +538,9 @@ class DriftBaseConnector:
                 raw = zf.read(zf.namelist()[0])
         return raw
 
-    def _fetch_sky_blob(self, meas_id: int, expert_id: Optional[int]) -> Optional[tuple]:
+    def _fetch_sky_blob(
+        self, meas_id: int, expert_id: Optional[int]
+    ) -> Optional[tuple]:
         """Return (data_bytes, expert_id) for one measurement's skymap
         blob, or None. If ``expert_id`` is None, the first available
         expert's blob for this measurement is returned."""

@@ -12,7 +12,6 @@ from typing import List
 
 import pandas as pd
 
-from pynasonde.digisonde.digi_plots import SkySummaryPlots
 from pynasonde.digisonde.digi_utils import apply_filename_metadata, to_namespace
 
 

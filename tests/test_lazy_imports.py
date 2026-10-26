@@ -11,10 +11,7 @@ HEAVY = ["cv2", "sklearn", "skimage", "pytesseract", "timezonefinder", "fdb", "p
 
 
 def test_bare_import_does_not_load_heavy_modules():
-    code = (
-        "import sys, pynasonde;"
-        f"print([m for m in {HEAVY!r} if m in sys.modules])"
-    )
+    code = "import sys, pynasonde;" f"print([m for m in {HEAVY!r} if m in sys.modules])"
     out = subprocess.run(
         [sys.executable, "-W", "ignore", "-c", code], capture_output=True, text=True
     )

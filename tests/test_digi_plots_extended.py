@@ -8,11 +8,9 @@ plot_doppler_spectra, plot_drift_velocities, and RsfIonogram.add_direction_ionog
 
 import datetime as dt
 
-import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
-import pytest
 
 from pynasonde.digisonde.digi_plots import (
     RsfIonogram,

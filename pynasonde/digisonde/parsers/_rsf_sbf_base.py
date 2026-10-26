@@ -126,8 +126,7 @@ class RsfSbfBinaryBlockExtractor:
                 + self.unpack_bcd(rb()) * 1e2
                 + self.unpack_bcd(rb())
             ),
-            coarse_frequency_step=self.unpack_bcd(rb()) * 1e2
-            + self.unpack_bcd(rb()),
+            coarse_frequency_step=self.unpack_bcd(rb()) * 1e2 + self.unpack_bcd(rb()),
             stop_frequency=(
                 self.unpack_bcd(rb()) * 1e3
                 + self.unpack_bcd(rb()) * 1e2

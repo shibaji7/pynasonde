@@ -20,16 +20,16 @@ The functions here are lightweight and intended to be used by the
 parsers and plotting helpers under ``pynasonde.digisonde``.
 """
 
+import datetime as dt
 import glob
 import importlib.resources
-import datetime as dt
 import os
 import re
 import struct
+from collections.abc import Mapping
 from functools import partial
 from multiprocessing import Pool
 from types import SimpleNamespace
-from collections.abc import Mapping
 from typing import BinaryIO, Callable, Iterable, Sequence, Union
 
 import numpy as np

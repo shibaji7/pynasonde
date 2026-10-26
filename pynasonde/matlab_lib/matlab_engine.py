@@ -26,7 +26,6 @@ Typical usage::
 
 import matlab
 import matlab.engine
-import numpy as np
 import pandas as pd
 from loguru import logger
 

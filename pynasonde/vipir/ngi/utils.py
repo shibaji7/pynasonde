@@ -9,8 +9,9 @@ import pandas as pd
 import toml
 from loguru import logger
 
-
-from pynasonde.timeutils import TimeZoneConversion  # noqa: F401  (re-export, 1.x compat)
+from pynasonde.timeutils import (  # noqa: F401  (re-export, 1.x compat)
+    TimeZoneConversion,
+)
 
 
 def to_local_time(dates: list, tz1, tz2):

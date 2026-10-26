@@ -34,10 +34,8 @@ A 2×2 comparison figure saved to
 Update ``fname`` to point to your local copy of the file.
 """
 
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 from pynasonde.digisonde.digi_utils import setsize
 from pynasonde.vipir.riq.echo import EchoExtractor

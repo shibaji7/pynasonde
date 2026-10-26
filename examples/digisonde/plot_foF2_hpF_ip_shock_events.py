@@ -71,9 +71,9 @@ import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.didbase import DidBaseConnector
-from pynasonde.digisonde.driftbase import DriftBaseConnector
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots
 from pynasonde.digisonde.digi_utils import setsize
+from pynasonde.digisonde.driftbase import DriftBaseConnector
 
 # ── DIDBase connection settings ─────────────────────────────────────────────
 DIDBASE_URL = os.environ.get(
@@ -112,15 +112,20 @@ STATIONS: List[Dict] = [
 # ── IP-shock / CME-driven storms, 2010-2020 (date = storm/shock date) ───────
 EVENTS: List[Dict] = [
     dict(
-        name="2026-01-19 storm", date=dt.date(2026, 1, 19),
+        name="2026-01-19 storm",
+        date=dt.date(2026, 1, 19),
         shock_time=dt.datetime(2026, 1, 19, 19, 15),
     ),
-    dict(name="2015-03-17 St. Patrick's Day storm", date=dt.date(2015, 3, 17), dst=-234),
+    dict(
+        name="2015-03-17 St. Patrick's Day storm", date=dt.date(2015, 3, 17), dst=-234
+    ),
     dict(name="2015-06-22 double-CME storm", date=dt.date(2015, 6, 22), dst=-198),
     dict(name="2018-08-26 storm", date=dt.date(2018, 8, 26), dst=-175),
     dict(name="2015-12-19 storm", date=dt.date(2015, 12, 19), dst=-166),
     dict(
-        name="2011-10-24 storm", date=dt.date(2011, 10, 24), dst=-147,
+        name="2011-10-24 storm",
+        date=dt.date(2011, 10, 24),
+        dst=-147,
         shock_time=dt.datetime(2011, 10, 24, 18, 25),
     ),
     dict(name="2012-03-08 double-shock storm", date=dt.date(2012, 3, 8), dst=-145),
@@ -173,13 +178,17 @@ def fetch_event_day_dataframe(
     end = start + dt.timedelta(days=1)
 
     try:
-        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+        df = connector.fetch_scaled_params(
+            station=ursi, start=start, end=end, params=params
+        )
     except Exception as exc:  # station unknown to DIDBase, network error, etc.
         logger.warning(f"[{ursi}] fetch_scaled_params failed for {event_date}: {exc}")
         return None
 
     if df is None or df.empty:
-        logger.warning(f"[{ursi}] no scaled {params} coverage for {event_date} in DIDBase.")
+        logger.warning(
+            f"[{ursi}] no scaled {params} coverage for {event_date} in DIDBase."
+        )
         return None
 
     df = df.dropna(subset=params, how="all")
@@ -268,9 +277,13 @@ def fetch_quiet_baseline(
     start = end - dt.timedelta(days=n_baseline_days)
 
     try:
-        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+        df = connector.fetch_scaled_params(
+            station=ursi, start=start, end=end, params=params
+        )
     except Exception as exc:
-        logger.warning(f"[{ursi}] baseline fetch_scaled_params failed for {event_date}: {exc}")
+        logger.warning(
+            f"[{ursi}] baseline fetch_scaled_params failed for {event_date}: {exc}"
+        )
         return None
 
     if df is None or df.empty:
@@ -288,7 +301,11 @@ def fetch_quiet_baseline(
 
 
 VEL_PARAMS: List[str] = ["VZ"]
-VEL_YLIMS: Dict[str, List[float]] = {"VX": [-150, 150], "VY": [-150, 150], "VZ": [-20, 20]}
+VEL_YLIMS: Dict[str, List[float]] = {
+    "VX": [-150, 150],
+    "VY": [-150, 150],
+    "VZ": [-20, 20],
+}
 
 
 def fetch_event_day_velocity(
@@ -379,7 +396,9 @@ def fetch_velocity_baseline(
     try:
         df = connector.fetch_velocity(station=ursi, start=start, end=end)
     except Exception as exc:
-        logger.warning(f"[{ursi}] baseline fetch_velocity failed for {event_date}: {exc}")
+        logger.warning(
+            f"[{ursi}] baseline fetch_velocity failed for {event_date}: {exc}"
+        )
         return None
 
     if df is None or df.empty:
@@ -406,14 +425,23 @@ def _overlay_baseline(
         return
     med = baseline[median_col]
     ax.plot(
-        baseline["datetime"], med, color="k", lw=1.5, zorder=4,
+        baseline["datetime"],
+        med,
+        color="k",
+        lw=1.5,
+        zorder=4,
         label=f"{n_baseline_days}-day median",
     )
     if show_std:
         std = baseline[std_col].fillna(0.0)
         ax.fill_between(
-            baseline["datetime"], med - std, med + std,
-            color="k", alpha=0.15, zorder=1, label="±1 STD",
+            baseline["datetime"],
+            med - std,
+            med + std,
+            color="k",
+            alpha=0.15,
+            zorder=1,
+            label="±1 STD",
         )
 
 
@@ -600,7 +628,10 @@ def run(
                         continue
 
                     baseline = fetch_quiet_baseline(
-                        connector, station, event["date"], n_baseline_days=n_baseline_days
+                        connector,
+                        station,
+                        event["date"],
+                        n_baseline_days=n_baseline_days,
                     )
                     if baseline is None:
                         logger.warning(
@@ -615,7 +646,9 @@ def run(
                         )
                         if vel_df is not None:
                             vel_baseline = fetch_velocity_baseline(
-                                drift_connector, station, event["date"],
+                                drift_connector,
+                                station,
+                                event["date"],
                                 n_baseline_days=n_baseline_days,
                             )
 
@@ -625,9 +658,15 @@ def run(
                     )
                     try:
                         plot_foF2_hpF(
-                            df, station, event, [start, end], out_path,
-                            baseline=baseline, n_baseline_days=n_baseline_days,
-                            vel_df=vel_df, vel_baseline=vel_baseline,
+                            df,
+                            station,
+                            event,
+                            [start, end],
+                            out_path,
+                            baseline=baseline,
+                            n_baseline_days=n_baseline_days,
+                            vel_df=vel_df,
+                            vel_baseline=vel_baseline,
                             shock_time=event.get("shock_time"),
                         )
                     except Exception as exc:

@@ -49,9 +49,9 @@ import pandas as pd
 from loguru import logger
 
 from pynasonde.digisonde.didbase import DidBaseConnector
-from pynasonde.digisonde.driftbase import DriftBaseConnector
 from pynasonde.digisonde.digi_plots import SaoSummaryPlots, SkySummaryPlots
 from pynasonde.digisonde.digi_utils import setsize
+from pynasonde.digisonde.driftbase import DriftBaseConnector
 from pynasonde.digisonde.parsers.sky import SkyExtractor
 
 # ── DIDBase connection settings ─────────────────────────────────────────────
@@ -98,9 +98,12 @@ PARAMS: List[str] = ["foF2", "hF", "foE", "foEs", "hE", "hEs"]
 # (frequency, height) pairs per ionospheric layer -> one dual-axis panel each
 LAYER_PAIRS: List[Tuple[str, str]] = [("foF2", "hF")]
 LAYER_LABELS: Dict[str, str] = {
-    "foF2": "foF2, MHz", "hF": "h'F, km",
-    "foE": "foE, MHz", "hE": "h'E, km",
-    "foEs": "foEs, MHz", "hEs": "h'Es, km",
+    "foF2": "foF2, MHz",
+    "hF": "h'F, km",
+    "foE": "foE, MHz",
+    "hE": "h'E, km",
+    "foEs": "foEs, MHz",
+    "hEs": "h'Es, km",
 }
 
 OUTPUT_DIR = Path("tmp/ip/19_Jan_2026")
@@ -139,9 +142,13 @@ def fetch_zoom_dataframe(
     """
     ursi = station["ursi"]
     try:
-        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+        df = connector.fetch_scaled_params(
+            station=ursi, start=start, end=end, params=params
+        )
     except Exception as exc:  # station unknown to DIDBase, network error, etc.
-        logger.warning(f"[{ursi}] fetch_scaled_params failed for the zoom window: {exc}")
+        logger.warning(
+            f"[{ursi}] fetch_scaled_params failed for the zoom window: {exc}"
+        )
         return None
 
     if df is None or df.empty:
@@ -210,7 +217,9 @@ def fetch_zoom_baseline(
     start = end - dt.timedelta(days=n_baseline_days)
 
     try:
-        df = connector.fetch_scaled_params(station=ursi, start=start, end=end, params=params)
+        df = connector.fetch_scaled_params(
+            station=ursi, start=start, end=end, params=params
+        )
     except Exception as exc:
         logger.warning(f"[{ursi}] baseline fetch_scaled_params failed: {exc}")
         return None
@@ -228,7 +237,9 @@ def fetch_zoom_baseline(
     lo, hi = ZOOM_START - midnight, ZOOM_END - midnight
     df = df[(tod >= lo) & (tod <= hi)]
     if df.empty:
-        logger.warning(f"[{ursi}] no baseline samples within the zoom time-of-day range.")
+        logger.warning(
+            f"[{ursi}] no baseline samples within the zoom time-of-day range."
+        )
         return None
 
     return _time_of_day_median(df, params, bin_minutes)
@@ -300,13 +311,22 @@ def plot_zoom(
             f_med_col, h_med_col = f"{fparam}_median", f"{hparam}_median"
             if f_med_col in baseline.columns:
                 ax.plot(
-                    baseline["datetime"], baseline[f_med_col], color="k", lw=1.5,
-                    zorder=4, label=f"{n_baseline_days}-day median",
+                    baseline["datetime"],
+                    baseline[f_med_col],
+                    color="k",
+                    lw=1.5,
+                    zorder=4,
+                    label=f"{n_baseline_days}-day median",
                 )
             if tax is not None and h_med_col in baseline.columns:
                 tax.plot(
-                    baseline["datetime"], baseline[h_med_col], color="gray", lw=1.5,
-                    ls="--", zorder=4, label=f"{n_baseline_days}-day median (height)",
+                    baseline["datetime"],
+                    baseline[h_med_col],
+                    color="gray",
+                    lw=1.5,
+                    ls="--",
+                    zorder=4,
+                    label=f"{n_baseline_days}-day median (height)",
                 )
         axes.append((ax, tax))
 
@@ -319,8 +339,14 @@ def plot_zoom(
         ax.legend(handles, labels, loc=2, fontsize=max(font_size - 4, 6))
     y0, y1 = axes[0][0].get_ylim()
     axes[0][0].text(
-        shock_time, y1 - 0.05 * (y1 - y0), " IP shock",
-        rotation=90, va="top", ha="left", color="r", fontsize=max(font_size - 4, 6),
+        shock_time,
+        y1 - 0.05 * (y1 - y0),
+        " IP shock",
+        rotation=90,
+        va="top",
+        ha="left",
+        color="r",
+        fontsize=max(font_size - 4, 6),
     )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -373,7 +399,9 @@ def plot_station_skymaps(
     written: List[Path] = []
     for p in paths:
         try:
-            ext = SkyExtractor(str(p), extract_time_from_name=True, extract_stn_from_name=True)
+            ext = SkyExtractor(
+                str(p), extract_time_from_name=True, extract_stn_from_name=True
+            )
             ext.extract()
             sky_df = ext.to_pandas()
         except Exception as exc:
@@ -448,8 +476,11 @@ def run(
             out_path = out_dir / f"{station['ursi']}_{slug}_20260119_zoom_1821UT.png"
             try:
                 plot_zoom(
-                    df, station, out_path,
-                    baseline=baseline, n_baseline_days=n_baseline_days,
+                    df,
+                    station,
+                    out_path,
+                    baseline=baseline,
+                    n_baseline_days=n_baseline_days,
                 )
             except Exception as exc:
                 logger.warning(f"[{station['ursi']}] zoom plotting failed: {exc}")

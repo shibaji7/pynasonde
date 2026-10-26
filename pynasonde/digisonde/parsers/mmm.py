@@ -142,11 +142,15 @@ class ModMaxExtractor(object):
                     # Walrus operators capture raw ints for CIT computation below
                     # while still storing hex strings in the header.
                     # PREFACE(28-32) → block bytes 30-34 (PREFACE(N) = block[N+2])
-                    mmm_opt=hex(_b30 := ub()),          # PREFACE(28): phase code → NCOMP
-                    print_clean_ctrl=hex(_b31 := ub()), # PREFACE(29): pol. count → NPOL
-                    print_gain_lev=hex(_b32 := ub()),   # PREFACE(30): FFT size exp → NFFT
-                    ctrl_intm_tx=hex(_b33 := ub()),     # PREFACE(31): PRF high byte
-                    drft_use=hex(_b34 := ub()),         # PREFACE(32): PRF low byte
+                    mmm_opt=hex(_b30 := ub()),  # PREFACE(28): phase code → NCOMP
+                    print_clean_ctrl=hex(
+                        _b31 := ub()
+                    ),  # PREFACE(29): pol. count → NPOL
+                    print_gain_lev=hex(
+                        _b32 := ub()
+                    ),  # PREFACE(30): FFT size exp → NFFT
+                    ctrl_intm_tx=hex(_b33 := ub()),  # PREFACE(31): PRF high byte
+                    drft_use=hex(_b34 := ub()),  # PREFACE(32): PRF low byte
                     start_frequency=(ub() * 1e1 + ub()),
                     freq_step=ub(),
                     stop_frequency=(ub() * 1e1 + ub()),
@@ -174,7 +178,7 @@ class ModMaxExtractor(object):
                 # ── Select block type from range_inc (preface field H index) ──
                 # range_inc is an index 0-15 (field H in D256 preface), NOT km.
                 # IH >= 8 → 256 bins; IH < 8 → 128 bins  (from rg_d256.f)
-                ih = low_nibble(h.range_inc)   # lower nibble = index H
+                ih = low_nibble(h.range_inc)  # lower nibble = index H
                 ie = low_nibble(h.range_start)  # lower nibble = index E
                 cfg = MMM_IONOGRAM_SETTINGS[
                     "block_type_1" if ih < 8 else "block_type_2"
@@ -192,8 +196,24 @@ class ModMaxExtractor(object):
                 # ── Height range gate table (rg_d256.f) ───────────────────────
                 # HTBL: km spacing per range-inc index H (0-15)
                 # ETBL: start height km per range-start index E (1-5)
-                _HTBL = [2.5, 5.0, 10.0, 2.5, 0.0, 0.0, 0.0, 0.0,
-                         2.5, 5.0, 10.0,  2.5,  5.0, 0.0, 0.0, 0.0]
+                _HTBL = [
+                    2.5,
+                    5.0,
+                    10.0,
+                    2.5,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    2.5,
+                    5.0,
+                    10.0,
+                    2.5,
+                    5.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]
                 _ETBL = [0.0, 10.0, 60.0, 160.0, 380.0, 760.0]  # 1-indexed; [0] unused
 
                 dh = _HTBL[ih] if ih < len(_HTBL) else 5.0
@@ -226,8 +246,8 @@ class ModMaxExtractor(object):
                 # CIT = NFFT * NPOL * NCOMP / PRF  (coherent integration time, s)
                 _bcd2 = lambda b: unpack_bcd_byte(b)
                 _ncomp = 2 if _bcd2(_b30) == 1 else 1
-                _npol  = 1 if _bcd2(_b31) > 7  else 2
-                _nfft  = 1 << _bcd2(_b32)
+                _npol = 1 if _bcd2(_b31) > 7 else 2
+                _nfft = 1 << _bcd2(_b32)
                 _prf_raw = 100 * _bcd2(_b33) + _bcd2(_b34)
                 if _prf_raw == 0:
                     # Newer DPS-4D firmware leaves PRF bytes zero.
@@ -237,8 +257,8 @@ class ModMaxExtractor(object):
                         "  PRF bytes (PREFACE 31-32) = 0; DPS-4D firmware "
                         "may not populate these. doppler_hz uses PRF=1 Hz fallback."
                     )
-                _prf   = max(1.0, float(_prf_raw))
-                _cit   = (_nfft * _npol * _ncomp) / _prf
+                _prf = max(1.0, float(_prf_raw))
+                _cit = (_nfft * _npol * _ncomp) / _prf
                 logger.debug(
                     f"  CIT: NFFT={_nfft} NPOL={_npol} NCOMP={_ncomp} "
                     f"PRF={_prf:.1f} Hz → CIT={_cit:.4f} s"
@@ -270,13 +290,29 @@ class ModMaxExtractor(object):
                     #   (4-5)=+3, (6-7)=+4, (8-9)=-1, (10-11)=-2, (12-13)=-3, (14-15)=-4
                     raw = np.frombuffer(file.read(n_bins), dtype=np.uint8)
                     # DPS: remove first 6 and last 12 bins (unpack_dpsmmm.f: MAXRBIN-=18)
-                    raw = raw[6: n_bins - 12]
-                    heights_trim = heights[6: n_bins - 12]
-                    amps    = (raw >> amp_shift).astype(float) * db_per_level  # → dB
-                    channel = (raw & status_mask).astype(int)                  # 0-15
+                    raw = raw[6 : n_bins - 12]
+                    heights_trim = heights[6 : n_bins - 12]
+                    amps = (raw >> amp_shift).astype(float) * db_per_level  # → dB
+                    channel = (raw & status_mask).astype(int)  # 0-15
                     pol_arr = np.where((channel % 2) == 0, "X", "O")
-                    _IDD = {0:+1,1:+1, 2:+2,3:+2, 4:+3,5:+3, 6:+4,7:+4,
-                            8:-1,9:-1, 10:-2,11:-2, 12:-3,13:-3, 14:-4,15:-4}
+                    _IDD = {
+                        0: +1,
+                        1: +1,
+                        2: +2,
+                        3: +2,
+                        4: +3,
+                        5: +3,
+                        6: +4,
+                        7: +4,
+                        8: -1,
+                        9: -1,
+                        10: -2,
+                        11: -2,
+                        12: -3,
+                        13: -3,
+                        14: -4,
+                        15: -4,
+                    }
                     dop_arr = np.vectorize(lambda c: _IDD[c])(channel)
 
                     # ── Doppler Hz (dop_dps.f) ────────────────────────────────

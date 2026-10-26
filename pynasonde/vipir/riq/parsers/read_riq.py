@@ -15,15 +15,6 @@ import numpy as np
 from loguru import logger
 
 from pynasonde.vipir.ngi.utils import load_toml
-from pynasonde.vipir.riq.datatypes.default_factory import (
-    Exciter_default_factory,
-    Frequency_default_factory,
-    Monitor_default_factory,
-    Reciever_default_factory,
-    SCT_default_factory,
-    Station_default_factory,
-    Timing_default_factory,
-)
 from pynasonde.vipir.riq.datatypes.pct import Ionogram, PctType
 from pynasonde.vipir.riq.datatypes.sct import SctType
 

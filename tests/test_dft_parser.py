@@ -3,8 +3,6 @@
 import struct
 from pathlib import Path
 
-import numpy as np
-
 from pynasonde.digisonde.parsers.dft import DftExtractor
 
 
