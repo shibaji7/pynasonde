@@ -45,14 +45,16 @@ L(f) = ∫₀^{h_r(f)} κ(z) dz   [dB]
 ### Constructor
 
 ```python
-AbsorptionAnalyzer(
-    freq_col: str = "frequency_khz",   # auto-detects kHz vs MHz from median
-    height_col: str = "height_km",
-    snr_col: str = "snr_db",
-    mode_col: str = "mode",            # "O" / "X" labels from PolarizationClassifier
-    freq_bin_mhz: float = 0.1,         # grouping bin for Methods 2 & 3
-    f_ref_mhz: float = 1.0,            # quiet-day reference for LOF index
-)
+class AbsorptionAnalyzer:
+    def __init__(
+        self,
+        freq_col: str = "frequency_khz",   # auto-detects kHz vs MHz from median
+        height_col: str = "height_km",
+        snr_col: str = "snr_db",
+        mode_col: str = "mode",            # "O" / "X" labels from PolarizationClassifier
+        freq_bin_mhz: float = 0.1,         # grouping bin for Methods 2 & 3
+        f_ref_mhz: float = 1.0,            # quiet-day reference for LOF index
+    ) -> None: ...
 ```
 
 ### Methods

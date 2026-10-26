@@ -16,15 +16,21 @@
 
 ## Upgrading from 1.x
 
-`pip install pynasonde` now installs a **lean core**. To get everything that
-1.x installed, use the `all` extra:
+**1.x did not declare its dependencies.** The published 1.x packages list no runtime
+requirements (a packaging bug), so `pip install pynasonde` installed only pynasonde
+itself and you had to install numpy, pandas, matplotlib and the rest yourself; a conda
+environment that already had them hid the problem. 2.0 declares them.
+
+`pip install pynasonde` now installs a **lean core** (numpy, pandas, matplotlib, loguru,
+toml, tqdm). Add the extras for the modules you use, or install everything:
 
 ```bash
 pip install --upgrade "pynasonde[all]"
 ```
 
-Or install just what you use, for example `pip install "pynasonde[digisonde]"`
-or `pip install "pynasonde[vipir]"`. See [Choose What to Install](install.md#choose-what-to-install).
+For example `pip install "pynasonde[digisonde]"` or `pip install "pynasonde[vipir]"`.
+See [Choose What to Install](install.md#choose-what-to-install) and
+[Which extra do I need?](install.md#which-extra-do-i-need).
 
 Your code does not need to change:
 
@@ -39,7 +45,7 @@ Your code does not need to change:
 
 | Area | 2.0 |
 |------|-----|
-| Install | Lean core plus per-module extras; dependency pins are now minimum versions |
+| Install | Dependencies are now declared (1.x declared none); lean core plus per-module extras; pins are now minimum versions |
 | Imports | Lazy: `import pynasonde` no longer imports every subpackage |
 | Versioning | Single-sourced from the git tag (`pynasonde.__version__`) |
 | Digisonde | New autoscaler (`pynasonde.digisonde.scaler`); `GrmSplitter.load_dataframes(frame_slice=...)` |

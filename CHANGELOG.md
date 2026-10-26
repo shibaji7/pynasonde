@@ -22,6 +22,7 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
 - Docs: examples for `PolarizationClassifier` and `IonogramScaler`; the VIPIR ionogram
   filter example also saves the decoded RIQ power figure, and its page now matches
   the current output.
+- `make check-docs` (`tools/check_docs.py`, also run in CI): verifies the docs against the code.
 - Version selector in the docs header (lists the versions active on Read the Docs and
   opens the same page in the chosen version; `docs/javascripts/version-selector.js`).
 - `CONTRIBUTING.md` and `ROADMAP.md`, linked from the README.
@@ -31,9 +32,9 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
   `format`, `docs`, ...) running in the `pynasonde` conda environment.
 
 ### Changed
-- **Lean core install.** `pip install pynasonde` now installs only numpy,
-  pandas, matplotlib, loguru, toml and tqdm. Use `pip install "pynasonde[all]"`
-  for the full set that 1.x installed. Dependency pins are now lower bounds.
+- **Lean core install.** `pip install pynasonde` now installs only numpy, pandas,
+  matplotlib, loguru, toml and tqdm. Use `pip install "pynasonde[all]"` for every module.
+  Dependency pins are now lower bounds.
 - Public names resolve lazily (PEP 562): `import pynasonde` no longer imports
   every subpackage or its optional dependencies. Existing imports such as
   `from pynasonde import SaoExtractor` are unchanged.
@@ -49,6 +50,10 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
 - One-time isort/black formatting of the code base.
 
 ### Fixed
+- **Packaging:** the published 1.x packages declared no runtime dependencies (the
+  `[project]` table in `pyproject.toml` hid `install_requires` from `setup.py`), so
+  `pip install pynasonde` installed only pynasonde itself. 2.0 declares the core
+  dependencies and the per-module extras.
 - `SaoSummaryPlots` isodensity plots failed to save with Matplotlib 3.11
   (out-of-range contour labels).
 - `vipir.ngi.utils.setsize` required `scienceplots`; it is now optional.

@@ -84,6 +84,7 @@ Run `make` (or `make help`) for the full, colourful list.
 | `make format` | `autoflake`, then `isort`, then `black`, in place |
 | `make format-check` | Verify formatting without changing files (what CI runs) |
 | `make typecheck` | `mypy` (informational, see [Type hints](#type-hints)) |
+| `make check-docs` | Check that doc code blocks parse, API directives resolve and imports in docs and examples exist |
 | `make docs` | Strict MkDocs build into `site/` |
 | `make docs-serve` | Serve the docs locally with live reload |
 | `make build-dist` | Clean, then build sdist and wheel |
@@ -174,7 +175,9 @@ is in `mkdocs.yml`. For a new module:
    it in `mkdocs.yml` and `docs/dev/api_index.md`.
 2. For a new example, add a page under `docs/examples/` that explains the call
    flow, shows the figure, and says which extra to install and how to run it.
-3. `make docs` must pass (it builds with `--strict`).
+3. `make docs` must pass (it builds with `--strict`), and so must `make check-docs`, which
+   verifies that every `:::` API directive and `members:` entry resolves, every Python code
+   block parses, and every `pynasonde` import in the docs and `examples/` exists. CI runs it too.
 
 Documentation is published per release on Read the Docs: each tag builds from its
 own copy of `.readthedocs.yaml`, so older versions keep their original docs.
@@ -192,7 +195,7 @@ Before opening a pull request:
 - [ ] Branch is up to date with `main` (rebase).
 - [ ] `make format-check` passes.
 - [ ] `make test` passes (and `make test-live` if you touched a live integration).
-- [ ] `make docs` passes if you touched docs or docstrings.
+- [ ] `make docs` and `make check-docs` pass if you touched docs, examples or docstrings.
 - [ ] New public names are in `_LAZY` and `__all__`; no heavy import in an `__init__`.
 - [ ] Tests guard optional dependencies; new test files are in the right CI family.
 - [ ] No secrets or personal paths; no large data files (keep sample data small).

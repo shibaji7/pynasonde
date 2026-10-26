@@ -14,6 +14,11 @@ Plotting helpers for raw digisonde data.
 ## Example
 
 ```python
-from pynasonde.digisonde.raw.raw_plots import plot_raw_iq
-# plot_raw_iq(records)
+from pynasonde.digisonde.raw.raw_plots import RawPlots
+
+rp = RawPlots(fig_title="Raw IQ", nrows=2, ncols=1, figsize=(6, 6))
+ax = rp.axes[0]
+# ... draw on ax (the add_pcolor and add_colorbar helpers are available) ...
+rp.save("ionogram_raw.png")
+rp.close()
 ```

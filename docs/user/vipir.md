@@ -41,12 +41,15 @@ consists of a fixed header block followed by one record per transmitted pulse:
 ### Python usage
 
 ```python
-from pynasonde.vipir.riq.parsers.read_riq import RiqReader
+from pynasonde.vipir.riq.parsers.read_riq import VIPIR_VERSION_MAP, RiqDataset
 
-reader = RiqReader("station_20230101.riq")
-reader.read()
-sct = reader.sct      # SoundingControlTable dataclass
-pcts = reader.pcts    # list of PulseConfigTable records
+riq = RiqDataset.create_from_file(
+    "WI937_2022233235902.RIQ",
+    unicode="latin-1",
+    vipir_config=VIPIR_VERSION_MAP.configs[1],
+)
+sct = riq.sct          # sounder configuration table (station, timing, frequency, ...)
+pulsets = riq.pulsets  # one entry per frequency step, holding its pulse records
 ```
 
 ---
@@ -165,11 +168,11 @@ power_db = 20 * np.log10(np.abs(signal) + 1e-12)   # shape: (gates, channels)
 ## Ionogram Analysis Workflow
 
 ```
-RiqReader.read()
+RiqDataset.create_from_file()
     │
-    ├─ sct  →  station geometry, timing, frequency sweep
+    ├─ sct     →  station geometry, timing, frequency sweep
     │
-    └─ pcts →  per-pulse IQ  →  coherent integration
+    └─ pulsets →  per-pulse IQ  →  coherent integration
                                     │
                                     ├─ ionogram power(f, h')
                                     ├─ Doppler analysis
@@ -179,15 +182,18 @@ RiqReader.read()
 ### Example: load and inspect
 
 ```python
-from pynasonde.vipir.riq.parsers.read_riq import RiqReader
+from pynasonde.vipir.riq.parsers.read_riq import VIPIR_VERSION_MAP, RiqDataset
 
-reader = RiqReader("station_20230101.riq")
-reader.read()
+riq = RiqDataset.create_from_file(
+    "WI937_2022233235902.RIQ",
+    unicode="latin-1",
+    vipir_config=VIPIR_VERSION_MAP.configs[1],
+)
 
-print(f"Station: {reader.sct.station.rx_name}")
-print(f"Frequencies: {reader.sct.frequency.base_steps}")
-print(f"Gate count:  {reader.sct.timing.gate_count}")
-print(f"Pulses read: {len(reader.pcts)}")
+print(f"Station: {riq.sct.station.rx_name}")
+print(f"Frequency steps: {riq.sct.frequency.base_steps}")
+print(f"Gate count:  {riq.sct.timing.gate_count}")
+print(f"Pulsets read: {len(riq.pulsets)}")
 ```
 
 ---

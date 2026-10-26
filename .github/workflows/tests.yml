@@ -49,6 +49,10 @@ jobs:
         run: pytest
         shell: bash
 
+      - name: Check the docs against the code
+        run: python tools/check_docs.py
+        shell: bash
+
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4

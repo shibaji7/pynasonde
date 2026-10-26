@@ -11,7 +11,7 @@
 SHELL         := /bin/bash
 .DEFAULT_GOAL := help
 .ONESHELL:
-.PHONY: help env install-dev test test-fast test-live format format-check typecheck docs docs-serve \
+.PHONY: help env install-dev test test-fast test-live format format-check typecheck check-docs docs docs-serve \
         build-dist clean check release
 
 ENV      ?= pynasonde
@@ -108,6 +108,12 @@ typecheck: ## Run mypy (informational; typing is partial, see [tool.mypy])
 # --------------------------------------------------------------------------- #
 #  docs
 # --------------------------------------------------------------------------- #
+check-docs: ## Check docs code blocks, API directives and example imports against the code
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ checking the docs against the code ...$(RESET)\n\n"
+	$(RUN) python tools/check_docs.py
+	printf "\n$(GREEN)  ✔  Docs match the code.$(RESET)\n\n"
+
 docs: ## Build the MkDocs site (strict) into site/
 	@set -euo pipefail
 	printf "\n$(CYAN)  ▶ mkdocs build ...$(RESET)\n\n"

@@ -26,7 +26,7 @@ Designed as a comprehensive toolbox, Pynasonde empowers researchers to process r
 pip install pynasonde              # lean core
 pip install "pynasonde[digisonde]" # Digisonde parsers and plots
 pip install "pynasonde[vipir]"     # VIPIR NGI/RIQ tools
-pip install "pynasonde[all]"       # everything (what 1.x installed)
+pip install "pynasonde[all]"       # everything
 ```
 
 See the [install guide](https://pynasonde.readthedocs.io/en/latest/user/install/) for all extras,

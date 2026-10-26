@@ -141,7 +141,8 @@ echo extraction and filtering.
 python examples/vipir/ionogram_filter_wi937.py
 ```
 
-The script reads the bundled `examples/data/WI937_2022233235902.RIQ` and writes
+The script reads `examples/data/WI937_2022233235902.RIQ` (a 161 MB raw file that is not
+stored in the repository; place your copy there) and writes
 `docs/examples/figures/ionogram_filter_wi937.png` and
 `docs/examples/figures/ionogram_filter_wi937_riq_power.png`.
 

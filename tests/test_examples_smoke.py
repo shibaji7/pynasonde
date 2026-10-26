@@ -66,7 +66,10 @@ def test_rsf_direction_ionogram_example_runs(monkeypatch, tmp_path):
     reason="Sample WI937 RIQ file not available",
 )
 def test_ionogram_filter_wi937_example_runs(monkeypatch, tmp_path):
-    """Run examples/vipir/ionogram_filter_wi937.py on the bundled WI937 RIQ file."""
+    """Run examples/vipir/ionogram_filter_wi937.py when the local WI937 RIQ file is present.
+
+    The file is 161 MB and git-ignored, so this test is skipped on CI and on clean clones.
+    """
     pytest.importorskip("lxml", reason="example also imports the Digisonde helpers")
     pytest.importorskip("sklearn", reason="needs pynasonde[vipir]")
     pytest.importorskip("matplotlib")

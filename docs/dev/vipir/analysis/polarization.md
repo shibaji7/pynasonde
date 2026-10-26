@@ -37,11 +37,13 @@ The sign convention is station-specific:
 ### Constructor
 
 ```python
-PolarizationClassifier(
-    o_mode_sign: int = -1,                     # -1 (NH default) or +1 (SH)
-    pp_ambiguous_threshold_deg: float = 20.0,  # |PP| below this → "ambiguous"
-    pp_col: str = "polarization_deg",
-)
+class PolarizationClassifier:
+    def __init__(
+        self,
+        o_mode_sign: int = -1,                     # -1 (NH default) or +1 (SH)
+        pp_ambiguous_threshold_deg: float = 20.0,  # |PP| below this → "ambiguous"
+        pp_col: str = "polarization_deg",
+    ) -> None: ...
 ```
 
 ### Methods

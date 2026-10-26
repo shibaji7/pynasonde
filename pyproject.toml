@@ -90,7 +90,7 @@ time = ["pytz", "timezonefinder>=6.5"]
 web = ["requests", "beautifulsoup4", "lxml>=5"]       # pynasonde.webhook
 plots = ["SciencePlots>=2.1"]
 matlab = []                                           # needs MathWorks matlab.engine (not on PyPI)
-# --- everything the 1.x `pip install pynasonde` used to give you ---------
+# --- everything -----------------------------------------------------------
 all = [
   "pynasonde[digisonde,digisonde-scaler,digisonde-db,ocr,vipir,vipir-analysis,web,plots]",
 ]

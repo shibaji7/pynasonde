@@ -92,6 +92,16 @@ shipped releases; later milestones are driven by scope, not by the calendar.
 
 These are documented, not yet fixed (fixing them changes behaviour):
 
+- **The published 1.x packages (1.0.0 to 1.3.0) declare no runtime dependencies**, so
+  `pip install pynasonde==1.x` installs only pynasonde itself. This is fixed in 2.0, which
+  declares the core dependencies and the extras. Releases on PyPI cannot be changed.
+- **The frozen documentation of older versions has errors that cannot be fixed without
+  moving tags.** From 1.1.0 on, `docs/user/vipir.md` imports `RiqReader` and the raw-plots
+  page imports `plot_raw_iq`; neither exists (the class is `RiqDataset`). v1.0.0 and v1.1.0
+  also document a few modules that are not in those releases (`parsers.edp`, `raw.parse`,
+  `raw.iqstream_afrl`, `parsers.image_parser`). Their API pages for releases from 1.2.0
+  on all resolve. The 2.0 docs are checked by `make check-docs`.
+
 - `vipir/ngi/scale.py::median_filter_fos_hms` is unused and raises `NameError`
   (it uses undefined names); `vipir.ngi.utils.smooth` is the working helper.
 - `webhook.Webhook` checks the status of the directory-listing response, not of the

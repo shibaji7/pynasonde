@@ -215,7 +215,7 @@ def _process_file(src):
     blk   = _blank(cube, max(0, int((BLANK_MIN_KM - g0) / r0)))
     r50   = _run_capon(blk, Z=50,  K=10, gate_start_km=g0, gate_spacing_km=r0)
     r100  = _run_capon(blk, Z=100, K=10, gate_start_km=g0, gate_spacing_km=r0)
-    return dict(conv=..., cap50=r50.pseudospectrum_db, cap100=r100.pseudospectrum_db, ...)
+    return dict(conv=..., cap50=r50.pseudospectrum_db, cap100=r100.pseudospectrum_db)  # plus the other panel arrays
 
 with ThreadPoolExecutor() as executor:
     futures = {executor.submit(_process_file, src): i

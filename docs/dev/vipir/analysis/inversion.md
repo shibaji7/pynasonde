@@ -43,16 +43,18 @@ Electron density follows from N = fp² × 1.2399×10⁴ cm⁻³.
 ### Constructor
 
 ```python
-TrueHeightInversion(
-    method: str = "lamination",         # only option currently
-    min_freq_mhz: float = 1.0,          # low-frequency cutoff
-    max_freq_mhz: float | None = None,  # optional upper cutoff
-    monotone_enforce: bool = True,       # remove non-monotone h_true points
-    freq_col: str = "frequency_mhz",    # column name for fit_from_df
-    height_col: str = "height_km",
-    mode_col: str = "mode",             # O-mode filter for fit_from_df
-    bin_width_mhz: float = 0.05,        # binning step for fit_from_df stability
-)
+class TrueHeightInversion:
+    def __init__(
+        self,
+        method: str = "lamination",         # only option currently
+        min_freq_mhz: float = 1.0,          # low-frequency cutoff
+        max_freq_mhz: float | None = None,  # optional upper cutoff
+        monotone_enforce: bool = True,       # remove non-monotone h_true points
+        freq_col: str = "frequency_mhz",    # column name for fit_from_df
+        height_col: str = "height_km",
+        mode_col: str = "mode",             # O-mode filter for fit_from_df
+        bin_width_mhz: float = 0.05,        # binning step for fit_from_df stability
+    ) -> None: ...
 ```
 
 ### Methods

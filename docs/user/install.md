@@ -22,7 +22,7 @@ Disclaimer:
 
 ```bash
 pip install pynasonde            # lean core
-pip install "pynasonde[all]"     # everything (what 1.x used to install)
+pip install "pynasonde[all]"     # everything
 ```
 
 Verify the install:
@@ -38,7 +38,9 @@ print(pynasonde.__version__)
 
 !!! tip "Pick another version of the docs"
     This page documents the version selected in the version menu. Installing an
-    older release: `pip install "pynasonde==1.3.0"` (1.x installs all dependencies).
+    older release: `pip install "pynasonde==1.3.0"`. Note that the published 1.x packages
+    declare no dependencies, so install numpy, pandas, matplotlib and the rest yourself
+    (or use a conda environment that already has them).
 
 ## Choose What to Install
 
@@ -56,7 +58,7 @@ The core install has only `numpy`, `pandas`, `matplotlib`, `loguru`, `toml` and
 | `time` | `pytz`, `timezonefinder` | Local-time conversion (`TimeZoneConversion`) |
 | `web` | `requests`, `beautifulsoup4`, `lxml` | `Webhook` NGI/RIQ downloads |
 | `plots` | `SciencePlots` | Optional publication plot styles |
-| `all` | all of the above except `matlab` | Full 1.x-equivalent install |
+| `all` | every module extra above (not `matlab`) | Everything at once |
 | `dev` / `docs` | test, format and docs tooling | Contributors |
 
 Combine extras with commas, for example:
@@ -65,8 +67,59 @@ Combine extras with commas, for example:
 pip install "pynasonde[digisonde,vipir]"
 ```
 
-If you use a class without its extra installed, Python raises a
-`ModuleNotFoundError` naming the missing package; install the matching extra.
+## How lazy installs behave
+
+pynasonde imports its modules **lazily**. `import pynasonde` is fast and loads none of the
+optional packages; a module is imported the first time you use one of its names. So:
+
+- Installing only some extras is fine. Everything that does not need a missing package keeps working.
+- If you use something whose extra is not installed, Python raises a
+  `ModuleNotFoundError` that names the missing package, for example
+  `No module named 'lxml'` when you use `SaoExtractor` on a core-only install. The tables
+  below turn that package name into the extra to install.
+- Existing 1.x imports such as `from pynasonde import SaoExtractor` still work; they just
+  need the extra their module belongs to.
+
+Check what you have:
+
+```bash
+python -c "import pynasonde; print(pynasonde.__version__)"
+python -c "from pynasonde.digisonde import SaoExtractor"   # needs the digisonde extra
+python -c "from pynasonde.vipir import RiqDataset"         # needs the vipir extra
+```
+
+## Which extra do I need?
+
+Measured by importing each name on an install that has only that extra:
+
+| You want to use | Install |
+|-----------------|---------|
+| `PolarizationClassifier`, `IonogramScaler` (`pynasonde.vipir.analysis`) | core only |
+| Scaler utilities: `normalize_echo_dataframe`, `detect_echo_schema`, `classify_solar_regime`, `solar_zenith_angle`, `get_viterbi_preset`, `ScaleHmF2`, `despike_scaled_parameters` (`pynasonde.digisonde.scaler`) | core only |
+| `IonogramAutoScaler`, `ViterbiTracer`, the RFI filters, `scale_dataframe`, `scale_dataframes`, `scale_dataframe_with_preset` | `digisonde-scaler` |
+| `SaoExtractor`, `RsfExtractor`, `SbfExtractor`, `DftExtractor`, `DvlExtractor`, `ModMaxExtractor`, `SkyExtractor`, `EdpExtractor`, `CadiReader`, `CadiExtractor`, and the plot classes (`SaoSummaryPlots`, `SkySummaryPlots`, `RsfIonogram`, `CadiIonogram`, `DigiPlots`) | `digisonde` |
+| `IonogramImageExtractor` | `ocr` |
+| `DidBaseConnector` (`pynasonde.digisonde.didbase`; importing is light, connecting needs `fdb`) | `digisonde-db` |
+| `DataSource`, `Dataset`, `Trace`, `AutoScaler`, `Ionogram`, `NoiseProfile`, `RiqDataset`, `Echo`, `EchoExtractor`, `IonogramFilter` | `vipir` |
+| `Webhook` | `web` |
+| `TimeZoneConversion` (importing it is light; creating an instance needs `pytz` and `timezonefinder`) | `time` |
+
+## Missing module? Install this
+
+| Error says `No module named ...` | Install |
+|----------------------------------|---------|
+| `lxml`, `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder`, `joblib` | `digisonde` (or `vipir` for the VIPIR tools) |
+| `sklearn` (scikit-learn) | `digisonde-scaler` or `vipir` |
+| `cv2` (OpenCV), `pytesseract` | `ocr` (`cv2` is also part of `vipir`) |
+| `skimage`, `pysolar` | `vipir` |
+| `requests`, `bs4` (BeautifulSoup) | `web` |
+| `fdb` | `digisonde-db` |
+| `scienceplots` | `plots` |
+| `matlab` | the MATLAB Engine API for Python (not on PyPI) |
+
+!!! note "pytesseract needs a system program"
+    `pytesseract` calls the `tesseract` program, which pip cannot install. On Ubuntu:
+    `sudo apt-get install tesseract-ocr`; with conda: `conda install -c conda-forge tesseract`.
 
 ## Recommended Workflows
 
