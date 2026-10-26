@@ -1,4 +1,4 @@
-"""RSF direction ionogram and daily directogram for KR835.
+"""RSF direction ionogram and daily directogram.
 
 Produces two figures:
 1. Direction-coded ionogram  – single ionogram, frequency vs height,
@@ -6,9 +6,17 @@ Produces two figures:
 2. Daily directogram         – a memory-safe subset of RSF files stacked by time,
    X = ground distance D_i (km), Y = UT time (mimics Figure 3-12).
 
-Set ``RSF_EXAMPLE_MAX_FILES=0`` to process the full day, and tune
-``RSF_EXAMPLE_N_PROCS`` for local hardware. The default is intentionally
-small so the example runs in documentation and CI environments.
+By default the example runs on the bundled WS833 files in ``examples/data``.
+The figures in the documentation were made from a full KR835 day:
+
+    RSF_EXAMPLE_STN=KR835 RSF_EXAMPLE_DIR=/path/to/2023-10-14 \\
+        RSF_EXAMPLE_MAX_FILES=0 python examples/digisonde/rsf_direction_ionogram.py
+
+Environment variables: ``RSF_EXAMPLE_STN`` (station prefix), ``RSF_EXAMPLE_DIR``
+(directory with the ``.RSF`` files), ``RSF_EXAMPLE_MAX_FILES`` (``0`` = every
+file; default 6) and ``RSF_EXAMPLE_N_PROCS`` (parallel workers; default 1).
+The defaults are intentionally small so the example runs in documentation and
+CI environments.
 """
 
 import glob
@@ -21,15 +29,16 @@ from loguru import logger
 from pynasonde.digisonde.digi_plots import RsfIonogram
 from pynasonde.digisonde.parsers.rsf import RsfExtractor
 
-STN = "WS833"
-RSF_DIR = (
-    "/tmp/chakras4/Crucial X9/APEP/AFRL_Digisondes/"
-    "Digisonde Files/WSMR_DPS4D_2023_10_14/"
-)
-all_files = sorted(glob.glob(f"{RSF_DIR}/{STN}_*.RSF"))
-all_files.sort()
+STN = os.environ.get("RSF_EXAMPLE_STN", "WS833")
+RSF_DIR = os.environ.get("RSF_EXAMPLE_DIR", "examples/data")
+all_files = sorted(glob.glob(os.path.join(RSF_DIR, f"{STN}_*.RSF")))
 if not all_files:
-    raise FileNotFoundError(f"No RSF files found under {RSF_DIR!r}")
+    raise FileNotFoundError(
+        f"No {STN}_*.RSF files found under {RSF_DIR!r}; "
+        "set RSF_EXAMPLE_DIR and RSF_EXAMPLE_STN"
+    )
+os.makedirs("tmp", exist_ok=True)
+os.makedirs("docs/examples/figures", exist_ok=True)
 RSF_ONE = all_files[0]
 
 # ── 1. Single ionogram: direction-coded plot ─────────────────────────────────
@@ -52,8 +61,8 @@ r.add_direction_ionogram(
     lower_plimit=5,
     ms=1.0,
 )
-r.save("tmp/rsf_direction_ionogram_KR835.png")
-r.save("docs/examples/figures/rsf_direction_ionogram_KR835.png")
+r.save(f"tmp/rsf_direction_ionogram_{STN}.png")
+r.save(f"docs/examples/figures/rsf_direction_ionogram_{STN}.png")
 r.close()
 
 # ── 2. Daily directogram: all RSF files for the day ─────────────────────────
@@ -92,8 +101,8 @@ r.add_directogram(
     dlim=[-800, 800],
     lower_plimit=10,
     ms=0.5,
-    text=f"{STN}  2023-10-14",
+    text=f"{STN}  {h.date.strftime('%Y-%m-%d')}",
 )
-r.save("tmp/rsf_directogram_KR835_daily.png")
-r.save("docs/examples/figures/rsf_directogram_KR835_daily.png")
+r.save(f"tmp/rsf_directogram_{STN}_daily.png")
+r.save(f"docs/examples/figures/rsf_directogram_{STN}_daily.png")
 r.close()

@@ -47,8 +47,8 @@ The core install has only `numpy`, `pandas`, `matplotlib`, `loguru`, `toml` and
 
 | Extra | Adds | Use it for |
 |-------|------|------------|
-| `digisonde` | `lxml`, `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder` | SAO, RSF, SBF, MMM, DFT, DVL, SKY, EDP, CADI and raw IQ parsers and plots |
-| `digisonde-scaler` | `digisonde` + `scikit-learn`, `joblib` | Digisonde autoscaler (`pynasonde.digisonde.scaler`) |
+| `digisonde` | `lxml`, `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder`, `joblib` | SAO, RSF, SBF, MMM, DFT, DVL, SKY, EDP, CADI and raw IQ parsers and plots |
+| `digisonde-scaler` | `digisonde` + `scikit-learn` | Digisonde autoscaler (`pynasonde.digisonde.scaler`) |
 | `digisonde-db` | `digisonde` + `fdb` | DIDBase (Firebird) connector |
 | `ocr` | `opencv-python-headless`, `pytesseract` | Ionogram image parser (also needs the `tesseract` system package) |
 | `vipir` | `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder`, `pysolar`, `joblib`, `scikit-learn`, `scikit-image`, `opencv-python-headless` | VIPIR NGI and RIQ readers and tools |

@@ -74,8 +74,8 @@ output = "coverage.xml"
 
 [project.optional-dependencies]
 # --- per-module installs -------------------------------------------------
-digisonde = ["lxml>=5", "scipy>=1.14", "xarray>=2024.9", "netCDF4", "pytz", "timezonefinder>=6.5"]
-digisonde-scaler = ["pynasonde[digisonde]", "scikit-learn>=1.5", "joblib"]   # autoscaler (Viterbi/RANSAC/DBSCAN)
+digisonde = ["lxml>=5", "scipy>=1.14", "xarray>=2024.9", "netCDF4", "pytz", "timezonefinder>=6.5", "joblib"]
+digisonde-scaler = ["pynasonde[digisonde]", "scikit-learn>=1.5"]   # autoscaler (Viterbi/RANSAC/DBSCAN)
 digisonde-db = ["pynasonde[digisonde]", "fdb"]        # Firebird DIDBase access
 ocr = ["opencv-python-headless", "pytesseract>=0.3.13"]  # ionogram image parser
 vipir = [

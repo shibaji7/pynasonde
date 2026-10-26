@@ -12,7 +12,32 @@
 
 This page explains `examples/digisonde/rsf_direction_ionogram.py`.
 
-Data used: KR835 (Kirtland AFB), 14 October 2023, 480 RSF files.
+Data used: the figures on this page were made from KR835 (Kirtland AFB),
+14 October 2023, 480 RSF files. The repository bundles two small WS833 RSF
+files in `examples/data`, so the script also runs out of the box (it writes
+`rsf_direction_ionogram_WS833.png` and `rsf_directogram_WS833_daily.png`).
+
+!!! note "Install"
+    `pip install "pynasonde[digisonde]"` (includes `joblib` for parallel loading).
+
+## Run
+
+```bash
+# bundled WS833 files (quick)
+python examples/digisonde/rsf_direction_ionogram.py
+
+# reproduce the KR835 figures from a full day of RSF files
+RSF_EXAMPLE_STN=KR835 RSF_EXAMPLE_DIR=/path/to/2023-10-14 \
+    RSF_EXAMPLE_MAX_FILES=0 RSF_EXAMPLE_N_PROCS=8 \
+    python examples/digisonde/rsf_direction_ionogram.py
+```
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `RSF_EXAMPLE_STN` | `WS833` | Station prefix of the `.RSF` files |
+| `RSF_EXAMPLE_DIR` | `examples/data` | Directory containing the files |
+| `RSF_EXAMPLE_MAX_FILES` | `6` | Files used for the directogram (`0` = all, every 4th file) |
+| `RSF_EXAMPLE_N_PROCS` | `1` | Parallel workers |
 
 ## Call Flow
 
@@ -29,12 +54,12 @@ Data used: KR835 (Kirtland AFB), 14 October 2023, 480 RSF files.
 
 ### Daily directogram
 
-1. `glob.glob("KR835_*.RSF")` collects all RSF files for the day.
+1. `glob.glob("<STN>_*.RSF")` collects the RSF files for the day (every 4th file, up to `RSF_EXAMPLE_MAX_FILES`).
 2. A module-level `_load_rsf` worker parses each file with `RsfExtractor`; failed
    files are skipped with a warning rather than aborting the run.
-3. `multiprocessing.Pool.map` fans the worker across all files in parallel
-   (`N_PROCS = 8`), then failed results (`None`) are filtered out before
-   `pd.concat`.
+3. `joblib.Parallel(..., backend="loky")` fans the worker across the files
+   (`RSF_EXAMPLE_N_PROCS` workers), then failed results (`None`) are filtered out
+   before `pd.concat`.
 4. `RsfIonogram.add_directogram(...)` groups echoes by ionogram timestamp, computes
    the vertical reference height H_v from peak vertical echoes, and derives
    ground distance D_i = √(H_i² − H_v²) with sign negative for westward arrivals.
