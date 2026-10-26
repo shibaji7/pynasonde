@@ -211,72 +211,105 @@
 {\scriptsize Adapted from Fig.~2, Chakraborty et al.\ (2026), \textit{SoftwareX} 34, 102617.}
 \end{frame}
 
-%% ---- Post-v1.0 extensions ----
-\begin{frame}{Post-v1.0 Extensions — Analysis Layer}
+%% ---- Post-v1.0 extensions: Digisonde I/O (delivered) ----
+\begin{frame}{Post-v1.0 Extensions — Digisonde I/O \& Scaling}
 \vspace{-0.1cm}
 \begin{center}
 \begin{tikzpicture}[
   >=Stealth,
   every node/.style={font=\scriptsize},
   ioD/.style={draw,fill=blue!12,rounded corners=2pt,
-              minimum width=2.6cm,minimum height=0.44cm,align=center},
+              minimum width=2.8cm,minimum height=0.44cm,align=center},
+  newD/.style={draw,fill=orange!30,rounded corners=2pt,
+               minimum width=2.8cm,minimum height=0.44cm,align=center},
+  hdr/.style={font=\bfseries\small},
+  scale=0.9,transform shape
+]
+
+\node[hdr] at (0,2.2) {DIGISONDE — post-v1.0 additions {\footnotesize\color{orange!80!black}[new, delivered]}};
+
+\node[ioD]  (sao)  at (-4.2, 1.6) {\texttt{SaoExtractor}};
+\node[ioD,below=2pt of sao]  (rsf) {\texttt{RsfExtractor}};
+\node[ioD,below=2pt of rsf]  (dft) {\texttt{DftExtractor}};
+
+\node[newD] (grm) at (0.0, 1.6)  {\texttt{GrmSplitter}};
+\node[newD,below=2pt of grm]  (mmm) {MMM ionogram plotting};
+\node[newD,below=2pt of mmm]  (cadi) {\texttt{CadiExtractor}};
+
+\node[newD] (didb) at (4.2, 1.6) {\texttt{DidBaseConnector}};
+\node[newD,below=2pt of didb] (scl) {cross-format \texttt{scale\_dataframe()}};
+\node[ioD,below=2pt of scl]   (rout) {RSF / SBF / MMM / CADI};
+
+\draw[->] (rsf.east)  -- ++(0.4,0) |- (grm.west);
+\draw[->] (grm.south) -- (mmm.north);
+\draw[->] (mmm.south) -- (cadi.north);
+\draw[->] (cadi.east) -- ++(0.4,0) |- (didb.west);
+\draw[->] (didb.south) -- (scl.north);
+\draw[->] (scl.south)  -- (rout.north);
+
+\end{tikzpicture}
+\end{center}
+\vspace{0.1cm}
+{\scriptsize GRM auto-splits into RSF/SBF/MMM; MMM plotting, CADI echo
+extraction, DIDBase access, and cross-format scaling are new since v1.0
+and are delivered, tested features of this release.}
+\end{frame}
+
+%% ---- Post-v1.0 extensions: VIPIR analysis layer (in development) ----
+\begin{frame}{Post-v1.0 Extensions — VIPIR Analysis Layer \textcolor{orange!80!black}{(In Development)}}
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\scriptsize},
   ioV/.style={draw,fill=orange!15,rounded corners=2pt,
               minimum width=2.6cm,minimum height=0.44cm,align=center},
   newV/.style={draw,fill=orange!30,rounded corners=2pt,
                minimum width=2.6cm,minimum height=0.44cm,align=center},
-  an/.style={draw,fill=green!15,rounded corners=2pt,
+  an/.style={draw,fill=gray!20,rounded corners=2pt,
              minimum width=2.8cm,minimum height=0.44cm,align=center},
   hdr/.style={font=\bfseries\small},
   scale=0.82,transform shape
 ]
 
-\node[hdr] at (-4.2,2.4) {DIGISONDE I/O};
-\node[hdr] at ( 0.0,2.4) {VIPIR I/O};
-\node[hdr,text=orange!80!black] at ( 4.6,2.4) {Analysis Layer {\footnotesize[new]}};
-
-%% DIGISONDE I/O column
-\node[ioD] (sao)  at (-4.2, 1.8) {\texttt{SaoExtractor}};
-\node[ioD,below=2pt of sao]  (rsf) {\texttt{RsfExtractor}};
-\node[ioD,below=2pt of rsf]  (dft) {\texttt{DftExtractor}};
-\node[ioD,below=2pt of dft]  (dvl) {\texttt{DvlExtractor}};
-\node[ioD,below=2pt of dvl]  (sky) {\texttt{SkyExtractor}};
-\node[ioD,below=2pt of sky]  (edp) {\texttt{EdpExtractor}};
+\node[hdr] at (0.0,2.4) {VIPIR I/O {\footnotesize\color{orange!80!black}[delivered]}};
+\node[hdr,text=gray!50!black] at ( 4.6,2.4) {Analysis Layer {\footnotesize[in development]}};
 
 %% VIPIR I/O column
 \node[ioV] (riq)  at (0.0, 1.8)  {\texttt{RiqDataset}};
 \node[newV,below=2pt of riq]  (echo) {\texttt{EchoExtractor}};
 \node[newV,below=2pt of echo] (filt) {\texttt{IonogramFilter}};
-\node[ioV,below=2pt of filt]  (ngi)  {\texttt{DataSource (NGI)}};
-\node[newV,below=2pt of ngi]  (pipe) {\texttt{FullPipeline}};
+\node[newV,below=2pt of filt] (scl2) {\texttt{IonogramScaler}};
+\node[newV,below=2pt of scl2] (pol)  {\texttt{PolarizationClassifier}};
 
-%% Analysis layer — sub-column A
-\node[an] (pol)  at (3.4, 1.8)  {\texttt{PolarizationClassifier}};
-\node[an,below=2pt of pol]  (inv)  {\texttt{TrueHeightInversion}};
+%% Analysis layer — sub-column A (in development)
+\node[an] (inv)  at (4.6, 1.8)  {\texttt{TrueHeightInversion}};
 \node[an,below=2pt of inv]  (abs)  {\texttt{AbsorptionAnalyzer}};
 \node[an,below=2pt of abs]  (sf)   {\texttt{SpreadFAnalyzer}};
 \node[an,below=2pt of sf]   (irr)  {\texttt{IrregularityAnalyzer}};
 
-%% Analysis layer — sub-column B
-\node[an] (scl) at (7.2, 1.8)  {\texttt{IonogramScaler}};
-\node[an,below=2pt of scl]  (es)   {\texttt{EsCaponImager}};
+%% Analysis layer — sub-column B (in development)
+\node[an] (es) at (7.6, 1.8)  {\texttt{EsCaponImager}};
 \node[an,below=2pt of es]   (agg)  {\texttt{RiqAggregator}};
-\node[an,below=2pt of agg]  (nxt)  {\texttt{NeXtYZInverter}};
 
 %% Arrows
 \draw[->] (riq.south)  -- (echo.north);
 \draw[->] (echo.south) -- (filt.north);
-\draw[->] (filt.east)  -- ++(0.5,0) |- (pol.west);
+\draw[->] (filt.south) -- (scl2.north);
+\draw[->] (scl2.south) -- (pol.north);
+\draw[->] (pol.east)   -- ++(0.5,0) |- (inv.west);
 \draw[->] (filt.east)  -- ++(0.5,0) |- (sf.west);
 \draw[->] (filt.east)  -- ++(0.5,0) |- (irr.west);
-\draw[->] (pol.south)  -- (inv.north);
 \draw[->] (inv.south)  -- (abs.north);
 \draw[->] (riq.east)   -- ++(0.6,0) |- (es.west);
-\draw[->] (ngi.east)   -- ++(0.6,0) |- (scl.west);
 
 \end{tikzpicture}
 \end{center}
 \vspace{0.1cm}
-{\scriptsize Orange = new since v1.0 publication.\ \ Green = analysis layer (entirely post-v1.0).}
+{\scriptsize Orange = new, delivered VIPIR I/O (echo extraction, filtering,
+scaling, polarization). Gray = analysis-layer modules that exist in the
+codebase but are \textbf{not yet validated/released} — shown here as a
+preview of ongoing work, not a claim of a stable API.}
 \end{frame}
 
 % ----------------------------------------------------------------
@@ -403,6 +436,103 @@ dvl.plot_stack()   # 3-panel Vx, Vy, Vz vs. time + virtual height overlay
   \end{center}
 \end{frame}
 
+\begin{frame}[fragile]{GRM, RSF \& MMM Ionogram Plotting}
+  A GRM archive from GIRO DIDBase is a raw concatenation of RSF/SBF/MMM
+  blocks; \texttt{GrmSplitter} auto-detects and routes each to the right parser:
+  \begin{lstlisting}
+from pynasonde.digisonde.parsers.grm import GrmSplitter
+from pynasonde.digisonde.digi_plots import RsfIonogram
+
+spl = GrmSplitter("AU930_20171470000.GRM")
+print(spl.fmt)              # auto-detected: "RSF" | "SBF" | "MMM"
+df = spl.load_dataframes()  # parallel-safe
+
+r = RsfIonogram(figsize=(6, 5))
+r.add_direction_ionogram(df)   # same plotting path as native RSF files
+  \end{lstlisting}
+  \begin{itemize}\small
+    \item MMM ionograms render as pcolormesh (combined O+X, and side-by-side O/X)
+    \item GRM record type (RSF=7, SBF=3, MMM=9) is read directly from the archive
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Special Analysis — Long-Term O-Mode Power Directogram (RSF/MMM)}
+  \vspace{-0.2cm}
+  {\footnotesize GRM archives let decades-old WP937 soundings (RSF- and
+  MMM-era DPS hardware alike) be binned onto a common, \texttt{d256}-compatible
+  virtual-height grid (5~km bins) and a regular time grid, then split by
+  frequency band to reveal diurnal E/Es persistence across a full day:}
+  \begin{center}
+    \includegraphics[width=0.62\linewidth]{WP937_19990705_grm_d256_compatible_power_bins.png}
+  \end{center}
+  \vspace{-0.1cm}
+  {\tiny WP937, 1999-07-05: O-mode power (dB) vs.\ virtual height and UT,
+   1.5--3.5 and 3--5~MHz bands, 5-min $\times$ 5-km bins.}
+\end{frame}
+
+\begin{frame}{Special Analysis — Cross-Era Comparison (1999 vs.\ 2001)}
+  \vspace{-0.1cm}
+  \begin{center}
+    \includegraphics[width=0.78\linewidth]{WP937_20010629_grm_d256_compatible_power_bins.png}
+  \end{center}
+  {\scriptsize WP937, 2001-06-29: same binning scheme, 12-min cadence
+   (lower duty cycle that day). The persistent 110--140~km E/Es layer and its
+   diurnal descent/ascent are directly comparable to the 1999 case despite the
+   different source hardware and time resolution --- the point of a
+   \texttt{d256}-compatible grid. Gray band = no receiver coverage below
+   $\sim$90~km that day.}
+\end{frame}
+
+\begin{frame}[fragile]{CADI Support \& Interferometric Echo Extraction}
+  \begin{columns}
+  \column{0.52\textwidth}
+    \begin{lstlisting}
+from pynasonde.digisonde.cadi \
+    import CadiExtractor
+
+df = CadiExtractor.load_CADI_files(
+    folders=["tmp/CADI/"],
+    product="echoes",   # AoA + O/X mode
+    n_procs=1,
+)
+# cols: dphi_12, dphi_13, dphi_23,
+#       coherence, mode
+    \end{lstlisting}
+  \column{0.44\textwidth}
+    \includegraphics[width=\linewidth]{cadi_ox_mode_scatter.png}
+  \end{columns}
+  {\small CADI MD2/MD4 reader + \texttt{CadiExtractor}: amplitude, phase,
+   cross-receiver baseline phase differences, and coherence per echo.}
+\end{frame}
+
+\begin{frame}[fragile]{DIDBase Access \& Cross-Format Autoscaling}
+  \begin{columns}
+  \column{0.52\textwidth}
+    \begin{lstlisting}
+from pynasonde.digisonde.didbase \
+    import DidBaseConnector
+from pynasonde.digisonde.scaler \
+    import scale_dataframe
+
+with DidBaseConnector(url, user,
+        pwd, role) as db:
+    raw = db.fetch_dataframe(
+        station="AU930",
+        start="2017-05-27",
+        end="2017-05-27",
+        fmt="MMM")
+
+# same call for RSF, SBF, MMM, CADI
+scaled, _ = scale_dataframe(
+    raw, mode="O", method="viterbi")
+    \end{lstlisting}
+  \column{0.44\textwidth}
+    \includegraphics[width=\linewidth]{rsf_scaler_viterbi.png}
+  \end{columns}
+  {\small One autoscaling code path (schema auto-detection + Viterbi
+   trace tracking) covers RSF, SBF, MMM, and CADI echo tables.}
+\end{frame}
+
 % ----------------------------------------------------------------
 \section{VIPIR Data}
 % ----------------------------------------------------------------
@@ -506,7 +636,7 @@ o_df = pol.o_mode_df()
   \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{True Height Inversion → N(h)}
+\begin{frame}[fragile]{True Height Inversion → N(h) \textcolor{orange!80!black}{\scriptsize[In Development]}}
   \begin{columns}
   \column{0.50\textwidth}
     \begin{lstlisting}
@@ -526,9 +656,11 @@ edp.plot()
   \column{0.46\textwidth}
     \includegraphics[width=\linewidth]{analysis_inversion.png}
   \end{columns}
+  {\scriptsize\color{orange!80!black} In development — implemented in the
+   codebase but not yet validated/released.}
 \end{frame}
 
-\begin{frame}[fragile]{HF Absorption}
+\begin{frame}[fragile]{HF Absorption \textcolor{orange!80!black}{\scriptsize[In Development]}}
   \begin{columns}
   \column{0.52\textwidth}
     {\lstset{basicstyle=\ttfamily\scriptsize}
@@ -551,13 +683,17 @@ prof = aa.absorption_profile(
   \column{0.44\textwidth}
     \includegraphics[width=\linewidth,height=4.0cm,keepaspectratio]{analysis_absorption.png}
   \end{columns}
+  {\scriptsize\color{orange!80!black} In development — implemented in the
+   codebase but not yet validated/released.}
 \end{frame}
 
 % ----------------------------------------------------------------
-\section{Es Layer Imaging}
+\section{Es Layer Imaging (In Development)}
 % ----------------------------------------------------------------
 
-\begin{frame}{Sporadic-E — Why Higher Resolution?}
+\begin{frame}{Sporadic-E — Why Higher Resolution? \textcolor{orange!80!black}{\scriptsize[In Development]}}
+  {\scriptsize\color{orange!80!black} This entire section (Capon imaging) is
+   implemented in the codebase but not yet a validated/released feature.}
   \begin{columns}
   \column{0.55\textwidth}
     \begin{itemize}
@@ -660,17 +796,21 @@ result.plot()
       \item Build a daily isodensity contour from multiple SAO files.
       \item Load a \texttt{.DVL} file and plot the Vz time series.
       \item Load a \texttt{.DFT} file and produce a Doppler waterfall.
+      \item Split a \texttt{.GRM} archive and plot the resulting MMM ionogram.
+      \item Load CADI files with \texttt{product="echoes"}. What fraction is O-mode?
+      \item Run \texttt{scale\_dataframe(..., method="viterbi")} on an RSF file,
+            then on an MMM file. Compare foF2.
     \end{enumerate}
   \column{0.48\textwidth}
     \textbf{VIPIR}
     \begin{enumerate}\small
-      \setcounter{enumi}{4}
+      \setcounter{enumi}{7}
       \item Load a WI937 RIQ file; print gate count and frequency range.
       \item Run \texttt{IonogramFilter}. How many echoes survive?
-      \item Separate O/X modes. What fraction is O-mode?
-      \item Run \texttt{TrueHeightInversion}. What is foF2?
-      \item Run \texttt{EsCaponImager} with $Z=100$, $K=10$. Is there a thin Es layer?
-      \item Compute the LOF absorption index.
+      \item Separate O/X modes with \texttt{PolarizationClassifier}. What fraction is O-mode?
+      \item Run \texttt{IonogramScaler} on the filtered O-mode trace. What is foF2?
+      \item[$\ast$] \textit{(In development)} Try \texttt{TrueHeightInversion} or
+            \texttt{EsCaponImager} and compare against the scaled foF2.
     \end{enumerate}
   \end{columns}
 \end{frame}
@@ -679,10 +819,10 @@ result.plot()
 \section{Summary}
 % ----------------------------------------------------------------
 
-\begin{frame}{Summary — I/O Layer (1/2)}
-  \begin{columns}
+\begin{frame}{Summary — DIGISONDE I/O (1/3)}
+  \textbf{DIGISONDE I/O — 9 file formats}
+  \begin{columns}[T]
   \column{0.48\textwidth}
-    \textbf{DIGISONDE I/O — 8 file formats}
     \begin{itemize}\small
       \item \texttt{SaoExtractor} — SAO 4.3/5.0: N(h) + scaled params
       \item \texttt{RsfExtractor} — direction-coded ionogram + directogram
@@ -691,27 +831,36 @@ result.plot()
       \item \texttt{DvlExtractor} — drift velocities Vx, Vy, Vz
       \item \texttt{SkyExtractor} — polar sky maps (az/zen)
       \item \texttt{EdpExtractor} — electron density profiles
-      \item \texttt{SaoSummaryPlots}, \texttt{SkySummaryPlots}
     \end{itemize}
   \column{0.48\textwidth}
-    \textbf{VIPIR I/O — 3 file formats}
     \begin{itemize}\small
-      \item \texttt{RiqDataset} — SCT + PCT loader, \texttt{VIPIR\_VERSION\_MAP}
-      \item \texttt{EchoExtractor} — 7-param echoes (h, A, V*, EP, PP, XL, YL)
-      \item \texttt{IonogramFilter} — 6-stage: RFI, EP, multi-hop, DBSCAN, RANSAC, temporal
-      \item \texttt{DataSource} — NGI/SDR NetCDF loader + data cube
-      \item \texttt{AutoScaler} — noise profile, segment, binary trace
-      \item \texttt{FullPipeline} — end-to-end RIQ $\to$ N(h) automation
+      \item \texttt{GrmSplitter} \textbf{[new]} — auto-splits RSF/SBF/MMM archives
+      \item \texttt{CadiExtractor} \textbf{[new]} — MD2/MD4, interferometric echoes
+      \item \texttt{DidBaseConnector} \textbf{[new]} — GIRO DIDBase remote access
+      \item \texttt{scale\_dataframe()} \textbf{[new]} — Viterbi scaling across
+            RSF/SBF/MMM/CADI
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Summary — Analysis Layer (2/2)}
+\begin{frame}{Summary — VIPIR I/O (2/3)}
+  \textbf{VIPIR I/O — 3 file formats}
+  \begin{itemize}\small
+    \item \texttt{RiqDataset} — SCT + PCT loader, \texttt{VIPIR\_VERSION\_MAP}
+    \item \texttt{EchoExtractor} \textbf{[new]} — 7-param echoes (h, A, V*, EP, PP, XL, YL)
+    \item \texttt{IonogramFilter} \textbf{[new]} — 6-stage: RFI, EP, multi-hop, DBSCAN, RANSAC, temporal
+    \item \texttt{IonogramScaler} \textbf{[new]} — foE, foF2, $h'$F, MUF(3000)
+    \item \texttt{PolarizationClassifier} \textbf{[new]} — O/X via PP chirality
+    \item \texttt{DataSource} — NGI/SDR NetCDF loader + data cube
+    \item \texttt{FullPipeline} — end-to-end RIQ $\to$ N(h) automation
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Summary — Analysis Layer (3/3) \textcolor{orange!80!black}{(In Development)}}
   \begin{columns}
   \column{0.50\textwidth}
-    \textbf{Analysis layer — 9 classes (all post-v1.0)}
+    \textbf{Not yet validated/released}
     \begin{itemize}\small
-      \item \texttt{PolarizationClassifier} — O/X via PP chirality
       \item \texttt{TrueHeightInversion} — Titheridge/POLAN $\to$ N(h)
       \item \texttt{AbsorptionAnalyzer} — LOF / O-X diff / $\kappa(z)$ profile
       \item \texttt{SpreadFAnalyzer} — range / freq / mixed classification
@@ -720,10 +869,8 @@ result.plot()
   \column{0.46\textwidth}
     \vspace{0.15cm}
     \begin{itemize}\small
-      \item \texttt{IonogramScaler} — foF2, foE, $h'$F, MUF
       \item \texttt{EsCaponImager} — Capon imaging ($\Delta r = 150$~m)
       \item \texttt{RiqAggregator} — A+B+C multi-file ($\sim$24~dB SNR)
-      \item \texttt{NeXtYZInverter} — 3-D WSI + Hamiltonian ray-tracing
     \end{itemize}
     \vspace{0.3cm}
     \begin{block}{}
@@ -742,8 +889,10 @@ result.plot()
           observation. \textit{Space Weather}, 21, e2022SW003195.
     \item Titheridge, J.\ E. (1967). A new method for the analysis of ionospheric
           $h'(f)$ records. \textit{JATP}, 29, 763--778.
-    \item Zabotin, N.\ A., Wright, J.\ W., \& Zhbankov, G.\ A. (2006). NeXtYZ.
-          \textit{Radio Science}, 41, RS6S32.
+    \item Capon, J. (1969). High-resolution frequency-wavenumber spectrum analysis.
+          \textit{Proceedings of the IEEE}, 57(8), 1408--1418.
+    \item Reinisch, B.\ W., \& Galkin, I.\ A. (2011). Global Ionospheric Radio
+          Observatory (GIRO). \textit{Earth, Planets and Space}, 63, 377--381.
     \item Grubb, R.\ N., et al.\ (2011). New science with the new VIPIR ionosonde.
           \textit{Radio Science}.
     \item Reinisch, B.\ W., et al.\ (1997). The Digisonde 4D. \textit{JASTP}, 59, 2181--2204.

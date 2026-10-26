@@ -116,11 +116,11 @@
 \column{0.41\textwidth}
   \begin{block}{Installed capabilities}
     \scriptsize
-    \textbf{9 file formats} read\\
-    \textbf{7 digisonde} parsers\\
-    \textbf{6 VIPIR} I/O classes\\
-    \textbf{9 analysis} modules\\
-    \textbf{20+} public API classes\\
+    \textbf{12 file formats} read (incl.\ CADI, GRM)\\
+    \textbf{10 digisonde} parsers + cross-format scaler\\
+    \textbf{8 VIPIR} I/O classes (echo, filter, scale, polarize)\\
+    \textbf{7 analysis} modules \textit{(in development)}\\
+    \textbf{25+} public API classes\\
     \textbf{Full pipeline} automation
   \end{block}
   \begin{alertblock}{Cite as}
@@ -217,72 +217,105 @@
 {\scriptsize Adapted from Fig.~2 of Chakraborty et al.\ (2026), \textit{SoftwareX} 34, 102617.}
 \end{frame}
 
-%% ---- Extended architecture (post-v1.0) ----
-\begin{frame}{Extended Architecture — Post-v1.0 Additions}
+%% ---- Extended architecture (post-v1.0): Digisonde I/O, delivered ----
+\begin{frame}{Extended Architecture — Digisonde I/O \& Scaling {\footnotesize\color{orange!80!black}[delivered]}}
 \vspace{-0.1cm}
 \begin{center}
 \begin{tikzpicture}[
   >=Stealth,
   every node/.style={font=\scriptsize},
   ioD/.style={draw,fill=blue!12,rounded corners=2pt,
-              minimum width=2.6cm,minimum height=0.44cm,align=center},
+              minimum width=2.8cm,minimum height=0.44cm,align=center},
+  newD/.style={draw,fill=orange!30,rounded corners=2pt,
+               minimum width=2.8cm,minimum height=0.44cm,align=center},
+  hdr/.style={font=\bfseries\small},
+  scale=0.9,transform shape
+]
+
+\node[hdr] at (0,2.2) {DIGISONDE — post-v1.0 additions {\footnotesize\color{orange!80!black}[new, delivered]}};
+
+\node[ioD]  (sao)  at (-4.2, 1.6) {\texttt{SaoExtractor}};
+\node[ioD,below=2pt of sao]  (rsf) {\texttt{RsfExtractor}};
+\node[ioD,below=2pt of rsf]  (dft) {\texttt{DftExtractor}};
+
+\node[newD] (grm) at (0.0, 1.6)  {\texttt{GrmSplitter}};
+\node[newD,below=2pt of grm]  (mmm) {MMM ionogram plotting};
+\node[newD,below=2pt of mmm]  (cadi) {\texttt{CadiExtractor}};
+
+\node[newD] (didb) at (4.2, 1.6) {\texttt{DidBaseConnector}};
+\node[newD,below=2pt of didb] (scl) {cross-format \texttt{scale\_dataframe()}};
+\node[ioD,below=2pt of scl]   (rout) {RSF / SBF / MMM / CADI};
+
+\draw[->] (rsf.east)  -- ++(0.4,0) |- (grm.west);
+\draw[->] (grm.south) -- (mmm.north);
+\draw[->] (mmm.south) -- (cadi.north);
+\draw[->] (cadi.east) -- ++(0.4,0) |- (didb.west);
+\draw[->] (didb.south) -- (scl.north);
+\draw[->] (scl.south)  -- (rout.north);
+
+\end{tikzpicture}
+\end{center}
+\vspace{0.1cm}
+{\scriptsize GRM auto-splits into RSF/SBF/MMM; MMM plotting, CADI echo
+extraction, DIDBase access, and cross-format scaling are new since v1.0
+and are delivered, tested features of this release.}
+\end{frame}
+
+%% ---- Extended architecture (post-v1.0): VIPIR + analysis layer ----
+\begin{frame}{Extended Architecture — VIPIR I/O {\footnotesize\color{orange!80!black}[delivered]} \& Analysis Layer \textcolor{gray!60!black}{[in development]}}
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\scriptsize},
   ioV/.style={draw,fill=orange!15,rounded corners=2pt,
               minimum width=2.6cm,minimum height=0.44cm,align=center},
   newV/.style={draw,fill=orange!30,rounded corners=2pt,
                minimum width=2.6cm,minimum height=0.44cm,align=center},
-  an/.style={draw,fill=green!15,rounded corners=2pt,
+  an/.style={draw,fill=gray!20,rounded corners=2pt,
              minimum width=2.8cm,minimum height=0.44cm,align=center},
   hdr/.style={font=\bfseries\small},
   scale=0.82,transform shape
 ]
 
 %% Row 0: headers
-\node[hdr] (hD) at (-4.2,2.4)  {DIGISONDE I/O};
-\node[hdr] (hV) at ( 0.0,2.4)  {VIPIR I/O};
-\node[hdr] (hA) at ( 4.6,2.4)  {Analysis Layer {\footnotesize\color{orange!80!black}[new]}};
-
-%% DIGISONDE I/O column
-\node[ioD] (sao)  at (-4.2, 1.8) {\texttt{SaoExtractor}};
-\node[ioD,below=2pt of sao]  (rsf) {\texttt{RsfExtractor}};
-\node[ioD,below=2pt of rsf]  (dft) {\texttt{DftExtractor}};
-\node[ioD,below=2pt of dft]  (dvl) {\texttt{DvlExtractor}};
-\node[ioD,below=2pt of dvl]  (sky) {\texttt{SkyExtractor}};
-\node[ioD,below=2pt of sky]  (edp) {\texttt{EdpExtractor}};
+\node[hdr] (hV) at ( 0.0,2.4)  {VIPIR I/O {\footnotesize\color{orange!80!black}[new, delivered]}};
+\node[hdr,text=gray!50!black] (hA) at ( 4.6,2.4)  {Analysis Layer {\footnotesize[in development]}};
 
 %% VIPIR I/O column
 \node[ioV] (riq)  at (0.0, 1.8)  {\texttt{RiqDataset}};
 \node[newV,below=2pt of riq]  (echo) {\texttt{EchoExtractor} \textbf{[new]}};
 \node[newV,below=2pt of echo] (filt) {\texttt{IonogramFilter} \textbf{[new]}};
-\node[ioV,below=2pt of filt]  (ngi)  {\texttt{DataSource (NGI)}};
-\node[newV,below=2pt of ngi]  (pipe) {\texttt{FullPipeline} \textbf{[new]}};
+\node[newV,below=2pt of filt] (scl2) {\texttt{IonogramScaler} \textbf{[new]}};
+\node[newV,below=2pt of scl2] (pol)  {\texttt{PolarizationClassifier} \textbf{[new]}};
 
-%% Analysis layer — two sub-columns
-\node[an] (pol)  at (3.4, 1.8)  {\texttt{PolarizationClassifier}};
-\node[an,below=2pt of pol]  (inv)  {\texttt{TrueHeightInversion}};
+%% Analysis layer — two sub-columns (in development)
+\node[an] (inv)  at (4.6, 1.8)  {\texttt{TrueHeightInversion}};
 \node[an,below=2pt of inv]  (abs)  {\texttt{AbsorptionAnalyzer}};
 \node[an,below=2pt of abs]  (sf)   {\texttt{SpreadFAnalyzer}};
 \node[an,below=2pt of sf]   (irr)  {\texttt{IrregularityAnalyzer}};
 
-\node[an] (scl) at (7.2, 1.8)  {\texttt{IonogramScaler}};
-\node[an,below=2pt of scl]  (es)   {\texttt{EsCaponImager}};
+\node[an] (es) at (7.6, 1.8)  {\texttt{EsCaponImager}};
 \node[an,below=2pt of es]   (agg)  {\texttt{RiqAggregator}};
-\node[an,below=2pt of agg]  (nxt)  {\texttt{NeXtYZInverter}};
 
 %% Arrows: VIPIR processing chain
 \draw[->] (riq.south)  -- (echo.north);
 \draw[->] (echo.south) -- (filt.north);
-\draw[->] (filt.east)  -- ++(0.5,0) |- (pol.west);
+\draw[->] (filt.south) -- (scl2.north);
+\draw[->] (scl2.south) -- (pol.north);
+\draw[->] (pol.east)   -- ++(0.5,0) |- (inv.west);
 \draw[->] (filt.east)  -- ++(0.5,0) |- (sf.west);
 \draw[->] (filt.east)  -- ++(0.5,0) |- (irr.west);
-\draw[->] (pol.south)  -- (inv.north);
 \draw[->] (inv.south)  -- (abs.north);
 \draw[->] (riq.east)   -- ++(0.6,0) |- (es.west);
-\draw[->] (ngi.east)   -- ++(0.6,0) |- (scl.west);
 
 \end{tikzpicture}
 \end{center}
 \vspace{0.1cm}
-{\scriptsize Orange = new since publication.\ \ Green = analysis layer (entirely new post-v1.0).}
+{\scriptsize Orange = new, delivered VIPIR I/O (echo extraction, filtering,
+scaling, polarization). Gray = analysis-layer modules present in the
+codebase but \textbf{not yet validated/released} — shown as a preview of
+ongoing work, not a claim of a stable API.}
 \end{frame}
 
 % ================================================================
@@ -305,6 +338,9 @@
   \texttt{.DVL}     & ASCII  & \texttt{DvlExtractor}  & \texttt{load\_DVL\_files()}, \texttt{plot\_dvl\_drift\_velocities()} \\
   \texttt{.SKY}     & ASCII  & \texttt{SkyExtractor}  & \texttt{extract()}, \texttt{to\_pandas()}, \texttt{plot\_skymap()} \\
   \texttt{.EDP}     & ASCII  & \texttt{EdpExtractor}  & \texttt{extract()}, electron density profile \\
+  \texttt{.GRM}     & Binary & \texttt{GrmSplitter} \textbf{[new]} & auto-detects \& splits RSF/SBF/MMM archives from GIRO DIDBase \\
+  \texttt{.MMM}     & Binary & \texttt{ModMaxExtractor} & O/X pcolormesh ionogram plotting \textbf{[new]} \\
+  \texttt{MD2/MD4}  & Binary & \texttt{CadiExtractor} \textbf{[new]} & \texttt{product=} \texttt{"products"|"echoes"}: amplitude, phase, $\Delta\phi_{ij}$, coherence \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -320,7 +356,9 @@
   \begin{alertblock}{\small New post-v1.0}
     \scriptsize
     DFT waterfall, RSF direction-coded ionogram + directogram,
-    multi-panel SKY sequence
+    multi-panel SKY sequence, GRM/MMM plotting, CADI support,
+    \texttt{DidBaseConnector} remote access, cross-format
+    \texttt{scale\_dataframe()} (RSF/SBF/MMM/CADI)
   \end{alertblock}
 \end{columns}
 \end{frame}
@@ -428,6 +466,92 @@ SkySummaryPlots(sky.to_pandas())\
 \end{columns}
 \end{frame}
 
+\begin{frame}[fragile]{DIGISONDE — GRM/RSF/MMM Plotting \& CADI Echo Extraction}
+\begin{columns}
+\column{0.52\textwidth}
+  \begin{lstlisting}[title={GRM auto-split}]
+from pynasonde.digisonde.parsers.grm \
+    import GrmSplitter
+
+spl = GrmSplitter("AU930.GRM")
+print(spl.fmt)  # "RSF"|"SBF"|"MMM"
+df = spl.load_dataframes()
+  \end{lstlisting}
+  \vspace{2pt}
+  \begin{lstlisting}[title={CADI interferometric echoes}]
+from pynasonde.digisonde.cadi \
+    import CadiExtractor
+
+df = CadiExtractor.load_CADI_files(
+    folders=["tmp/CADI/"],
+    product="echoes", n_procs=1)
+# cols: dphi_12, dphi_13, dphi_23,
+#       coherence, mode
+  \end{lstlisting}
+\column{0.44\textwidth}
+  \begin{center}
+    \figlw{0.95}{cadi_ox_mode_scatter.png}
+  \end{center}
+  {\scriptsize CADI O/X mode separation from cross-receiver baseline phase.
+   MMM ionograms render as O/X pcolormesh (see \texttt{docs/examples/mmm.md}).}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Special Analysis — Long-Term O-Mode Power Directogram (RSF/MMM)}
+\vspace{-0.15cm}
+{\small GRM archives let decades-old WP937 soundings (RSF- and MMM-era DPS
+hardware alike) be binned onto a common, \texttt{d256}-compatible
+virtual-height grid (5~km bins --- the classic 256-bin DPS height-gate table)
+and a regular time grid, then split by frequency band to reveal diurnal E/Es
+persistence across a full day:}
+\begin{center}
+  \figlw{0.68}{WP937_19990705_grm_d256_compatible_power_bins.png}
+\end{center}
+{\scriptsize WP937, 1999-07-05: O-mode power (dB) vs.\ virtual height and UT,
+1.5--3.5 and 3--5~MHz bands, 5-min $\times$ 5-km bins.}
+\end{frame}
+
+\begin{frame}{Special Analysis — Cross-Era Comparison (1999 vs.\ 2001)}
+\begin{center}
+  \figlw{0.85}{WP937_20010629_grm_d256_compatible_power_bins.png}
+\end{center}
+{\scriptsize WP937, 2001-06-29: same binning scheme, 12-min cadence (lower
+duty cycle that day). The persistent 110--140~km E/Es layer and its diurnal
+descent/ascent are directly comparable to the 1999 case despite the different
+source hardware and time resolution --- the point of a \texttt{d256}-compatible
+grid. Gray band = no receiver coverage below $\sim$90~km that day.}
+\end{frame}
+
+\begin{frame}[fragile]{DIGISONDE — DIDBase Access \& Cross-Format Scaling}
+\begin{columns}
+\column{0.52\textwidth}
+  \begin{lstlisting}
+from pynasonde.digisonde.didbase \
+    import DidBaseConnector
+from pynasonde.digisonde.scaler \
+    import scale_dataframe
+
+with DidBaseConnector(
+        url, user, pwd, role) as db:
+    raw = db.fetch_dataframe(
+        station="AU930",
+        start="2017-05-27",
+        end="2017-05-27", fmt="MMM")
+
+# same call for RSF, SBF, MMM, CADI
+scaled, _ = scale_dataframe(
+    raw, mode="O", method="viterbi")
+  \end{lstlisting}
+\column{0.44\textwidth}
+  \begin{center}
+    \figlw{0.95}{rsf_scaler_viterbi.png}
+  \end{center}
+  {\scriptsize One schema-detecting autoscaler (RANSAC/DBSCAN-regularised
+   Viterbi trace tracking) covers the full RSF/SBF/MMM/CADI echo-table
+   family.}
+\end{columns}
+\end{frame}
+
 % ================================================================
 \section{VIPIR Module}
 % ================================================================
@@ -450,6 +574,10 @@ SkySummaryPlots(sky.to_pandas())\
     \texttt{load()}, multi-SDR data cube aggregation \\
   \texttt{.NGI} & — & \texttt{AutoScaler} &
     noise profile, segmentation, binary trace extraction \\
+  \texttt{.RIQ} & — & \texttt{IonogramScaler} \textbf{[new]} &
+    automated URSI/CCIR: foE, foF2, $h'$F, MUF(3000), M(3000)F2 \\
+  \texttt{.RIQ} & — & \texttt{PolarizationClassifier} \textbf{[new]} &
+    O/X wave-mode labelling via PP chirality, hemisphere-aware \\
   \texttt{.RIQ} & — & \texttt{FullPipeline} \textbf{[new]} &
     end-to-end: RIQ $\to$ echoes $\to$ filter $\to$ O/X $\to$ N(h) \\
   \bottomrule
@@ -467,7 +595,8 @@ SkySummaryPlots(sky.to_pandas())\
 \column{0.47\textwidth}
   \begin{alertblock}{\small New since v1.0}
     \scriptsize
-    EchoExtractor + IonogramFilter + FullPipeline —
+    EchoExtractor + IonogramFilter + IonogramScaler +
+    PolarizationClassifier + FullPipeline —
     the complete signal-processing chain from raw I/Q
     to geophysical parameters
   \end{alertblock}
@@ -553,23 +682,24 @@ params = scaler.scaled_parameters
 \section{Analysis Layer}
 % ================================================================
 
-\begin{frame}{Analysis Layer — Nine Modules (All New Post-v1.0)}
-\vspace{-0.1cm}
+\begin{frame}{Analysis Layer — Seven Modules \textcolor{orange!80!black}{(In Development)}}
+{\scriptsize\color{orange!80!black} Implemented in the codebase but not yet
+validated/released — shown as a preview of ongoing work.
+\texttt{PolarizationClassifier} and \texttt{IonogramScaler} have already
+graduated to the delivered VIPIR module (previous section).}
+\vspace{0.1cm}
 \begin{center}
 \scriptsize
 \begin{tabular}{ll>{\raggedright\arraybackslash}p{6.0cm}}
   \toprule
   \textbf{Class} & \textbf{Module} & \textbf{What it does} \\
   \midrule
-  \texttt{PolarizationClassifier} & \texttt{polarization}    & Separates O/X modes via PP chirality; hemisphere-aware \\
   \texttt{TrueHeightInversion}    & \texttt{inversion}       & Virtual $\to$ true height via Titheridge lamination (POLAN) \\
   \texttt{AbsorptionAnalyzer}     & \texttt{absorption}      & LOF, differential O/X, calibrated total, height-resolved $\kappa(z)$ \\
   \texttt{SpreadFAnalyzer}        & \texttt{spread\_f}       & Range / frequency / mixed spread-F detection \& classification \\
   \texttt{IrregularityAnalyzer}   & \texttt{irregularities}  & EP structure function $\to$ spectral index $\alpha(h)$, outer scale \\
-  \texttt{IonogramScaler}         & \texttt{scaler}          & foF2, foE, $h'$F, MUF from O-mode trace \\
   \texttt{EsCaponImager}          & \texttt{es\_imaging}     & Capon cross-spectrum: $10\times$ range resolution, single file \\
   \texttt{RiqAggregator}          & \texttt{es\_imaging}     & Multi-file A+B+C combining: $\sim$24~dB SNR, slow RTI \\
-  \texttt{NeXtYZInverter}         & \texttt{nextyz}          & 3-D WSI model + Hamiltonian ray-tracing $\to$ N(h,x,y) + tilts \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -580,7 +710,7 @@ params = scaler.scaled_parameters
 \end{center}
 \end{frame}
 
-\begin{frame}[fragile]{O/X Polarization Separation}
+\begin{frame}[fragile]{O/X Polarization Separation \textcolor{orange!80!black}{\scriptsize[Delivered — VIPIR Module]}}
 \begin{columns}
 \column{0.52\textwidth}
   \begin{lstlisting}
@@ -617,7 +747,7 @@ o_df = pol.o_mode_df()
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{True Height Inversion — N(h) Profile}
+\begin{frame}[fragile]{True Height Inversion — N(h) Profile \textcolor{orange!80!black}{\scriptsize[In Development]}}
 \begin{columns}
 \column{0.52\textwidth}
   \begin{lstlisting}
@@ -654,7 +784,7 @@ edp.plot()
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{HF Absorption — Four Estimators}
+\begin{frame}[fragile]{HF Absorption — Four Estimators \textcolor{orange!80!black}{\scriptsize[In Development]}}
 \begin{columns}
 \column{0.52\textwidth}
   \begin{lstlisting}
@@ -690,7 +820,7 @@ prof = aa.absorption_profile(
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{Spread-F \& Irregularity Analysis}
+\begin{frame}[fragile]{Spread-F \& Irregularity Analysis \textcolor{orange!80!black}{\scriptsize[In Development]}}
 \begin{columns}
 \column{0.52\textwidth}
   \begin{lstlisting}[title={Spread-F — type classification}]
@@ -729,10 +859,12 @@ irr.plot_structure_function(
 \end{frame}
 
 % ================================================================
-\section{Es Layer Imaging}
+\section{Es Layer Imaging (In Development)}
 % ================================================================
 
-\begin{frame}{Sporadic-E Imaging — Capon Cross-Spectrum (Liu et al.\ 2023)}
+\begin{frame}{Sporadic-E Imaging — Capon Cross-Spectrum (Liu et al.\ 2023) \textcolor{orange!80!black}{\scriptsize[In Development]}}
+{\scriptsize\color{orange!80!black} This entire section is implemented in the
+codebase but not yet a validated/released feature.}
 \begin{columns}
 \column{0.50\textwidth}
   \textbf{Physical motivation}
@@ -852,46 +984,6 @@ results = [ordered[i]
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{NeXtYZ 3-D Electron Density Inversion}
-\begin{columns}
-\column{0.52\textwidth}
-  \textbf{Algorithm}: Wedge-Stratified Ionosphere (WSI) model (Zabotin et al.\ 2006)
-  \begin{itemize}\small
-    \item Ionosphere = stack of plasma-frequency wedges
-    \item Each boundary: height + tilt $(n_x, n_y)$
-    \item Hamiltonian eikonal ray-tracing through WSI
-    \item \textbf{Lite}: constant tilts, $6\times$ faster
-    \item \textbf{Full}: $(h,n_x,n_y)$ per wedge
-  \end{itemize}
-  \vspace{0.15cm}
-  \begin{lstlisting}
-from pynasonde.vipir.analysis import (
-    NeXtYZInverter,
-)
-
-inv3d = NeXtYZInverter(
-    mode="lite",     # or "full"
-    n_wedge_max=30,
-)
-result = inv3d.fit(filtered_df)
-# .fp_profile: plasma freq vs true h
-# .tilt_x, .tilt_y: per wedge (deg)
-# .height_error_km: uncertainty
-result.plot_wedge_planes()
-  \end{lstlisting}
-\column{0.44\textwidth}
-  \begin{center}
-    \figlw{0.88}{analysis_inversion.png}
-  \end{center}
-  \begin{alertblock}{\small 3-D vs 1-D}
-    \scriptsize
-    Standard inversion assumes horizontal stratification.
-    NeXtYZ recovers tilts and produces full 3-D $N(h,x,y)$
-    from a single vertical sounder.
-  \end{alertblock}
-\end{columns}
-\end{frame}
-
 % ================================================================
 \section{New Capabilities vs.\ Roadmap}
 % ================================================================
@@ -899,30 +991,29 @@ result.plot_wedge_planes()
 \begin{frame}{What Has Been Added Since v1.0 Publication}
 \begin{columns}
 \column{0.50\textwidth}
-  \textbf{VIPIR signal-processing chain (new)}
+  \textbf{Digisonde I/O \& scaling \textcolor{green!50!black}{(delivered)}}
+  \begin{itemize}\scriptsize\setlength{\itemsep}{1pt}
+    \item \texttt{GrmSplitter} — GRM $\to$ RSF/SBF/MMM auto-split
+    \item MMM ionogram plotting (O/X pcolormesh)
+    \item \texttt{CadiExtractor} — CADI MD2/MD4, interferometric echoes
+    \item \texttt{DidBaseConnector} — GIRO DIDBase remote access
+    \item \texttt{scale\_dataframe()} — one autoscaler across RSF/SBF/MMM/CADI
+  \end{itemize}
+  \smallskip
+  \textbf{VIPIR signal-processing chain \textcolor{green!50!black}{(delivered)}}
   \begin{itemize}\scriptsize\setlength{\itemsep}{1pt}
     \item \texttt{EchoExtractor} — 7-param Dynasonde echoes
     \item \texttt{IonogramFilter} — 6-stage pipeline
+    \item \texttt{IonogramScaler} — foE, foF2, $h'$F, MUF(3000)
+    \item \texttt{PolarizationClassifier} — O/X separation
     \item \texttt{FullPipeline} — end-to-end automation
   \end{itemize}
   \smallskip
-  \textbf{Analysis layer (entirely new)}
+  \textbf{Analysis layer \textcolor{orange!80!black}{(in development)}}
   \begin{itemize}\scriptsize\setlength{\itemsep}{1pt}
-    \item \texttt{PolarizationClassifier} — O/X separation
-    \item \texttt{TrueHeightInversion} — Titheridge/POLAN
-    \item \texttt{AbsorptionAnalyzer} — 4 estimators
-    \item \texttt{SpreadFAnalyzer} — range/freq/mixed
-    \item \texttt{IrregularityAnalyzer} — $\alpha(h)$ profile
-    \item \texttt{IonogramScaler} — foF2, MUF
-  \end{itemize}
-  \smallskip
-  \textbf{Es super-resolution (new, not on roadmap)}
-  \begin{itemize}\scriptsize\setlength{\itemsep}{1pt}
-    \item \texttt{EsCaponImager} — 150~m resolution, gate blanking
-    \item \texttt{RiqAggregator} — multi-snapshot Capon, \texttt{blank\_min\_km}
-    \item Rx-averaging per pulse $\Rightarrow$ $(n_\text{pulse},V)$ cube
-    \item 20-file parallel time-series: 80 columns via \texttt{ThreadPoolExecutor}
-    \item Fixed double-FFT bug: \texttt{\_covariance} vs \texttt{\_covariance\_multi}
+    \item \texttt{TrueHeightInversion}, \texttt{AbsorptionAnalyzer}
+    \item \texttt{SpreadFAnalyzer}, \texttt{IrregularityAnalyzer}
+    \item \texttt{EsCaponImager}, \texttt{RiqAggregator}
   \end{itemize}
 \column{0.47\textwidth}
   \textbf{Versioning roadmap status}\\[4pt]
@@ -931,23 +1022,27 @@ result.plot_wedge_planes()
     \toprule
     Ver. & Planned item & Status \\
     \midrule
-    v2.0 & Modified POLAN & \textcolor{green!60!black}{Done} \\
+    v2.0 & CADI support & \textcolor{green!60!black}{Done} \\
+    v2.0 & GRM/MMM plotting & \textcolor{green!60!black}{Done} \\
+    v2.0 & DIDBase access & \textcolor{green!60!black}{Done} \\
+    v2.0 & Cross-format scaler & \textcolor{green!60!black}{Done} \\
     v2.0 & Oblique ionograms & \textcolor{orange!80!black}{Partial} \\
     v3.0 & Directional info & \textcolor{green!60!black}{Done} \\
     v3.0 & Polarization info & \textcolor{green!60!black}{Done} \\
-    v4.0 & 3-D ray tracing & \textcolor{green!60!black}{Done} \\
     v4.0 & Cisium plotting & \textcolor{gray!60}{Planned} \\
     \midrule
-    Extra & Es Capon imaging & \textcolor{green!60!black}{Done} \\
-    Extra & Absorption analysis & \textcolor{green!60!black}{Done} \\
-    Extra & Irregularities & \textcolor{green!60!black}{Done} \\
+    Extra & Modified POLAN & \textcolor{orange!80!black}{In dev.} \\
+    Extra & Es Capon imaging & \textcolor{orange!80!black}{In dev.} \\
+    Extra & Absorption analysis & \textcolor{orange!80!black}{In dev.} \\
+    Extra & Irregularities & \textcolor{orange!80!black}{In dev.} \\
     \bottomrule
   \end{tabular}
   \vspace{0.3cm}
   \begin{alertblock}{}
     \scriptsize
-    \textbf{v2.0 release is overdue.}\\
-    Core v3.0 + v4.0 features are already done.
+    \textbf{v2.0 is ready to release} on the strength of the delivered
+    Digisonde and VIPIR items above. The analysis layer continues toward
+    validation as a subsequent release.
   \end{alertblock}
 \end{columns}
 \end{frame}
@@ -959,7 +1054,7 @@ result.plot_wedge_planes()
 \begin{frame}{Complete Public API — All Classes}
 \begin{columns}
 \column{0.47\textwidth}
-  \small\textbf{DIGISONDE I/O}\\[2pt]
+  \small\textbf{DIGISONDE I/O \& Scaling}\\[2pt]
   \scriptsize
   \begin{tabular}{ll}
     \texttt{SaoExtractor}    & SAO profiles + params \\
@@ -971,23 +1066,28 @@ result.plot_wedge_planes()
     \texttt{SkyExtractor}    & SKY polar maps \\
     \texttt{SkySummaryPlots} & Multi-panel skymap \\
     \texttt{EdpExtractor}    & Electron density profile \\
+    \texttt{GrmSplitter}     & \textbf{[new]} RSF/SBF/MMM auto-split \\
+    \texttt{ModMaxExtractor} & MMM O/X ionogram \\
+    \texttt{CadiExtractor}   & \textbf{[new]} CADI MD2/MD4, echoes \\
+    \texttt{DidBaseConnector} & \textbf{[new]} GIRO remote access \\
+    \texttt{scale\_dataframe()} & \textbf{[new]} RSF/SBF/MMM/CADI scaling \\
   \end{tabular}\\[5pt]
   \small\textbf{VIPIR I/O}\\[2pt]
   \scriptsize
   \begin{tabular}{ll}
     \texttt{RiqDataset}     & Load .RIQ + SCT/PCT \\
-    \texttt{EchoExtractor}  & 7-param echoes \\
-    \texttt{IonogramFilter} & 6-stage filter \\
+    \texttt{EchoExtractor}  & \textbf{[new]} 7-param echoes \\
+    \texttt{IonogramFilter} & \textbf{[new]} 6-stage filter \\
+    \texttt{IonogramScaler} & \textbf{[new]} foE, foF2, $h'$F, MUF \\
+    \texttt{PolarizationClassifier} & \textbf{[new]} O/X via PP \\
     \texttt{DataSource}     & NGI/SDR data cube \\
     \texttt{AutoScaler}     & Segment + scale \\
-    \texttt{FullPipeline}   & End-to-end \\
+    \texttt{FullPipeline}   & \textbf{[new]} End-to-end \\
   \end{tabular}
 \column{0.50\textwidth}
-  \small\textbf{Analysis}\\[2pt]
+  \small\textbf{Analysis Layer \textcolor{orange!80!black}{(in development)}}\\[2pt]
   \scriptsize
   \begin{tabular}{ll}
-    \texttt{PolarizationClassifier} & O/X via PP \\
-    \texttt{PolarizationResult}     & annotated df, counts \\
     \texttt{TrueHeightInversion}    & N(h), foF2, hmF2 \\
     \texttt{EDPResult}              & profile dataclass \\
     \texttt{AbsorptionAnalyzer}     & 4 estimators \\
@@ -995,13 +1095,11 @@ result.plot_wedge_planes()
     \texttt{SpreadFAnalyzer}        & Type + metrics \\
     \texttt{SpreadFResult}          & classification \\
     \texttt{IrregularityAnalyzer}   & $\alpha(h)$, $L_{\rm outer}$ \\
-    \texttt{IonogramScaler}         & foF2, foE, MUF \\
     \texttt{EsCaponImager}          & Capon 1-file \\
     \texttt{EsImagingResult}        & pseudospectrum \\
     \texttt{RiqAggregator}          & Multi-file RTI \\
-    \texttt{NeXtYZInverter}         & 3-D N(h,x,y) \\
-    \texttt{NeXtYZResult}           & wedge planes \\
   \end{tabular}\\[4pt]
+  {\scriptsize\color{orange!80!black} Implemented, not yet validated/released.}\\[6pt]
   \href{https://pynasonde.readthedocs.io}{\small pynasonde.readthedocs.io}
 \end{columns}
 \end{frame}
@@ -1009,15 +1107,18 @@ result.plot_wedge_planes()
 \begin{frame}{Summary}
 \begin{columns}
 \column{0.52\textwidth}
-  \textbf{pynasonde provides a complete end-to-end workflow:}
+  \textbf{pynasonde v2 delivers an end-to-end Digisonde + VIPIR workflow:}
   \begin{enumerate}\small\setlength{\itemsep}{2pt}
-    \item Read \textbf{9 file formats} across two instrument families
-    \item \textbf{7-parameter echo extraction} + \textbf{6-stage filtering}
-    \item \textbf{9 analysis modules}: O/X, inversion, absorption,
-          spread-F, irregularities, scaler, Es imaging, NeXtYZ
-    \item \textbf{Es Capon imaging}: 150~m from 1.499~km gates
-    \item \textbf{NeXtYZ}: 3-D $N(h,x,y)$ + tilts from single sounder
-    \item \textbf{FullPipeline}: raw I/Q $\to$ geophysical parameters
+    \item Read \textbf{12 file formats} across three instrument families
+          (DIGISONDE, VIPIR, CADI)
+    \item \textbf{GRM/RSF/MMM ionogram plotting}, corrected \textbf{DFT}
+          reader, \textbf{DIDBase} remote access
+    \item \textbf{CADI support} with interferometric echo extraction
+    \item One \textbf{cross-format autoscaler} spanning RSF/SBF/MMM/CADI
+    \item \textbf{VIPIR}: 7-parameter echo extraction, automated
+          URSI/CCIR scaling, O/X polarization classification
+    \item \textbf{In development}: true-height inversion, spread-F/irregularity
+          characterisation, Capon Es imaging
   \end{enumerate}
 \column{0.44\textwidth}
   \begin{block}{\small Quick start}
@@ -1030,9 +1131,9 @@ result.plot_wedge_planes()
     \textit{SoftwareX} 34, 102617.\\
     DOI: 10.1016/j.softx.2026.102617
   \end{alertblock}
-  \begin{exampleblock}{\small Next: v2.0}
-    \scriptsize Full oblique ionogram parsing,
-    POLAN-v2 solver, multi-instrument fusion
+  \begin{exampleblock}{\small Next}
+    \scriptsize Validate and release the analysis layer
+    (true-height inversion, Es Capon imaging)
   \end{exampleblock}
 \end{columns}
 \end{frame}
@@ -1045,9 +1146,11 @@ result.plot_wedge_planes()
           \textit{SoftwareX} 34, 102617.
     \item Liu, T., Yang, G., \& Jiang, C.\ (2023). High-resolution sporadic E
           via Capon cross-spectrum. \textit{Space Weather} 21, e2022SW003195.
-    \item Zabotin, N.\,A., Wright, J.\,W., \& Zhbankov, G.\,A.\ (2006). NeXtYZ.
-          \textit{Radio Science} 41, RS6S32.
+    \item Capon, J.\ (1969). High-resolution frequency-wavenumber spectrum
+          analysis. \textit{Proceedings of the IEEE} 57(8), 1408--1418.
     \item Titheridge, J.\,E.\ (1967). \textit{JATP} 29, 763--778.
+    \item Reinisch, B.\,W., \& Galkin, I.\,A.\ (2011). Global Ionospheric Radio
+          Observatory (GIRO). \textit{Earth, Planets and Space} 63, 377--381.
     \item Grubb, R.\,N.\ et al.\ (2008). VIPIR. \textit{URSI General Assembly}.
     \item Reinisch, B.\,W.\ et al.\ (2009). New Digisonde. \textit{Radio Science} 44.
     \item Chakraborty S., Qian L., Mrak S.\ et al.\ (2025). G-condition 2017 GAE.

@@ -149,7 +149,6 @@ cross-instrument analysis layer added after publication.
     —  & — & \texttt{IonogramScaler}         & foF2, foE, $h'$F, MUF from O-mode trace \\
     —  & — & \texttt{EsCaponImager}          & Capon cross-spectrum, $\Delta r = r_0/K$ \\
     —  & — & \texttt{RiqAggregator}          & Multi-file A+B+C, $\sim$24~dB SNR gain \\
-    —  & — & \texttt{NeXtYZInverter}         & WSI model + Hamiltonian ray-tracing, 3-D $N(h,x,y)$ \\
     —  & — & \texttt{FullPipeline}           & End-to-end RIQ $\to$ N(h) automation \\
     \bottomrule
   \end{tabular}
@@ -564,68 +563,6 @@ result.plot_structure_function(height_km=200.0)  # D_EP vs lag at one height
 \end{lstlisting}
 
 %% ==================================================================
-\section{NeXtYZ 3-D Electron Density Inversion}
-\label{sec:nextyz}
-%% ==================================================================
-
-\subsection{Wedge-Stratified Ionosphere model}
-
-The NeXtYZ algorithm (Zabotin et al.\ 2006) represents the local electron density
-as a stack of plasma-frequency wedges bounded above by \emph{frame planes}.  Each
-wedge boundary is characterised by:
-\begin{equation}
-  (h_{i+1},\; n_{x,i+1},\; n_{y,i+1}),
-  \label{eq:wedge}
-\end{equation}
-where $h_{i+1}$ is the reflection height and $(n_x, n_y)$ are the horizontal
-components of the outward normal — i.e., the ionospheric tilt.
-
-\marginnotetext{NeXtYZ Lite solves only $h_{i+1}$ per wedge using constant tilts
-derived from mean angles of arrival.  It is $\approx 6\times$ faster than Full mode
-and sufficient for moderate tilt events.}
-
-\subsection{Hamiltonian eikonal ray tracing}
-
-Signal propagation through the WSI model is computed via the eikonal (method of
-characteristics) equations:
-\begin{align}
-  \dot{\mathbf{r}} &= \partial H / \partial \mathbf{k}, \\
-  \dot{\mathbf{k}} &= -\partial H / \partial \mathbf{r},
-\end{align}
-with Hamiltonian $H = |\mathbf{k}|^2 - n^2(\mathbf{r},f)$ and the full
-Appleton-Lassen refractive index $n$.
-
-\subsection{Inversion loop}
-
-Wedge parameters are solved bottom-up by alternately minimising:
-\begin{enumerate}
-  \item \textbf{Group-range residual}:
-    $\Delta R'_{i+1} = \sqrt{\sum_j (\rho'_{i+1,j} - R'_{i+1,j})^2}$
-  \item \textbf{Ground-return distance} of the mean-direction ray (tilt constraint).
-\end{enumerate}
-
-\begin{lstlisting}[caption={NeXtYZInverter API}]
-from pynasonde.vipir.analysis import NeXtYZInverter, NeXtYZResult
-
-inv3d = NeXtYZInverter(
-    mode="lite",          # "lite" (fast, const tilts) or "full" (per-wedge tilts)
-    n_wedge_max=30,       # maximum number of WSI wedge layers
-    ray_step_km=0.5,      # Hamiltonian integrator step size
-    tilt_regularisation=0.01,  # weight of tilt constraint vs group-range fit
-)
-result: NeXtYZResult = inv3d.fit(filtered_df)
-
-# Key output attributes
-print(result.fp_profile)    # plasma frequency vs true height
-print(result.tilt_x)        # E-W tilt per wedge (degrees)
-print(result.tilt_y)        # N-S tilt per wedge (degrees)
-print(result.height_error_km)  # estimated layer height uncertainty
-
-result.plot_wedge_planes()  # 3-D visualisation of WSI frame planes
-result.plot_fp_profile()    # fp(h) vs true height
-\end{lstlisting}
-
-%% ==================================================================
 \section{API Quick-Reference}
 \label{sec:api}
 %% ==================================================================
@@ -659,7 +596,6 @@ from pynasonde.vipir.analysis import (
     IrregularityAnalyzer, IrregularityProfile,
     IonogramScaler, ScaledParameters,
     EsCaponImager, RiqAggregator, EsImagingResult,
-    NeXtYZInverter, NeXtYZResult, WedgePlane,
 )
 \end{lstlisting}
 
@@ -699,12 +635,6 @@ from pynasonde.vipir.analysis import (
       & \texttt{height\_bin\_km}    & 10.0    & virtual height bin width \\
       & \texttt{min\_echoes\_per\_bin} & 5   & minimum for valid power-law fit \\
       & \texttt{lag\_max}           & 2.0~MHz & max frequency lag for $D_{EP}$ \\
-    \midrule
-    \multirow{4}{*}{\texttt{NeXtYZInverter}}
-      & \texttt{mode}               & \texttt{lite}  & \texttt{lite} (fast) or \texttt{full} (per-wedge tilts) \\
-      & \texttt{n\_wedge\_max}      & 30      & maximum WSI wedge layers \\
-      & \texttt{ray\_step\_km}      & 0.5     & Hamiltonian integrator step size \\
-      & \texttt{tilt\_regularisation} & 0.01 & tilt constraint weight \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -749,8 +679,6 @@ from pynasonde.vipir.analysis import (
         \url{https://doi.org/10.1029/2022SW003195}
   \item Titheridge, J.\ E. (1967). \textit{JATP}, 29, 763--778.
   \item Paul, A.\ K. (1975). POLAN. \textit{NOAA Technical Report ERL 324-SEL 31}.
-  \item Zabotin, N.\ A., Wright, J.\ W., \& Zhbankov, G.\ A. (2006). NeXtYZ.
-        \textit{Radio Science}, 41, RS6S32.
   \item Davies, K. (1990). \textit{Ionospheric Radio}. Peter Peregrinus.
   \item Budden, K.\ G. (1985). \textit{The Propagation of Radio Waves}. Cambridge.
   \item Grubb, R.\ N., et al.\ (2011). New science with VIPIR. \textit{Radio Science}.
