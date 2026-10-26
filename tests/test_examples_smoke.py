@@ -59,3 +59,28 @@ def test_rsf_direction_ionogram_example_runs(monkeypatch, tmp_path):
     figs = tmp_path / "docs" / "examples" / "figures"
     for name in ("rsf_direction_ionogram_WS833.png", "rsf_directogram_WS833_daily.png"):
         assert (figs / name).stat().st_size > 0
+
+
+@pytest.mark.skipif(
+    not (DATA_DIR / "WI937_2022233235902.RIQ").exists(),
+    reason="Sample WI937 RIQ file not available",
+)
+def test_ionogram_filter_wi937_example_runs(monkeypatch, tmp_path):
+    """Run examples/vipir/ionogram_filter_wi937.py on the bundled WI937 RIQ file."""
+    pytest.importorskip("lxml", reason="example also imports the Digisonde helpers")
+    pytest.importorskip("sklearn", reason="needs pynasonde[vipir]")
+    pytest.importorskip("matplotlib")
+
+    (tmp_path / "examples").mkdir()
+    (tmp_path / "examples" / "data").symlink_to(DATA_DIR, target_is_directory=True)
+    (tmp_path / "docs" / "examples" / "figures").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    runpy.run_path(
+        str(PROJECT_ROOT / "examples/vipir/ionogram_filter_wi937.py"),
+        run_name="__main__",
+    )
+
+    figs = tmp_path / "docs" / "examples" / "figures"
+    for name in ("ionogram_filter_wi937.png", "ionogram_filter_wi937_riq_power.png"):
+        assert (figs / name).stat().st_size > 0

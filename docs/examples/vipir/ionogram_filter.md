@@ -109,23 +109,41 @@ Total          3206       559  2647     82.6 %
 | Panel | Contents |
 |-------|----------|
 | **(A)** Raw ionogram | Echo cloud before filtering |
-| **(B)** Filtered ionogram | Echo cloud after all 4 stages |
+| **(B)** Filtered ionogram | Echo cloud after stages 1–5 |
 | **(C)** EP vs height | Each echo coloured by which stage rejected it |
 | **(D)** Rejection bar chart | Count of echoes removed per stage |
 
 <figure markdown>
 ![Single-sounding filter](../figures/ionogram_filter_wi937.png)
 <figcaption>
-WI937 2022-08-21 23:59 UT.  3206 raw echoes → 2647 after filtering (83 % retained).
+WI937 2022-08-21 23:59 UT.  3206 raw echoes → 1184 after filtering (37 % retained;
+rejected per stage: RFI 619, EP 762, multi-hop 16, DBSCAN 527, RANSAC 98).
+</figcaption>
+</figure>
+
+### Raw RIQ power (before filtering)
+
+Before extracting echoes, the example also saves the decoded RIQ power as an
+ionogram, which makes it easy to compare the source data against the echo cloud
+in panel (A).
+
+<figure markdown>
+![RIQ power ionogram](../figures/ionogram_filter_wi937_riq_power.png)
+<figcaption>
+WI937 2022-08-21 23:59 UT: decoded RIQ power (dB) of the O/X ionogram, before
+echo extraction and filtering.
 </figcaption>
 </figure>
 
 ### Run
 
 ```bash
-cd /home/chakras4/Research/CodeBase/pynasonde
 python examples/vipir/ionogram_filter_wi937.py
 ```
+
+The script reads the bundled `examples/data/WI937_2022233235902.RIQ` and writes
+`docs/examples/figures/ionogram_filter_wi937.png` and
+`docs/examples/figures/ionogram_filter_wi937_riq_power.png`.
 
 ---
 

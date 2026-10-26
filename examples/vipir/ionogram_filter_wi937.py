@@ -31,6 +31,9 @@ A 2×2 comparison figure saved to
     (C) EP vs height — raw (grey) vs kept (coloured by stage)
     (D) Per-stage rejection bar chart
 
+Before extraction the decoded RIQ power is also saved as an ionogram to
+``docs/examples/figures/ionogram_filter_wi937_riq_power.png``.
+
 Update ``fname`` to point to your local copy of the file.
 """
 
@@ -38,6 +41,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pynasonde.digisonde.digi_utils import setsize
+from pynasonde.vipir.ngi.plotlib import Ionogram
 from pynasonde.vipir.riq.echo import EchoExtractor
 from pynasonde.vipir.riq.parsers.filter import IonogramFilter
 from pynasonde.vipir.riq.parsers.read_riq import VIPIR_VERSION_MAP, RiqDataset
@@ -59,6 +63,30 @@ riq = RiqDataset.create_from_file(
     unicode="latin-1",
     vipir_config=VIPIR_VERSION_MAP.configs[1],
 )
+
+# Save the decoded RIQ power before echo extraction/filtering.  This is useful
+# for visually comparing the source ionogram against the extracted echo cloud.
+raw_ion = riq.get_ionogram(threshold=-np.inf, remove_baseline_noise=False)
+raw_ion.powerdB = np.nan_to_num(raw_ion.powerdB, nan=0.0, neginf=0.0, posinf=0.0)
+raw_power_plot = Ionogram(ncols=1, nrows=1, font_size=font_size, figsize=(5, 3))
+raw_power_plot.add_ionogram(
+    frequency=raw_ion.frequency,
+    height=raw_ion.height,
+    value=raw_ion.powerdB,
+    mode="O/X",
+    xlabel="Frequency (MHz)",
+    ylabel="Virtual Height (km)",
+    ylim=[50, 500],
+    xlim=[1.8, 22],
+    add_cbar=True,
+    cbar_label="Power (dB)",
+    prange=[0, 40],
+    del_ticks=False,
+)
+raw_power_out = "docs/examples/figures/ionogram_filter_wi937_riq_power.png"
+raw_power_plot.save(raw_power_out)
+raw_power_plot.close()
+print(f"RIQ power figure saved → {raw_power_out}")
 
 extractor = EchoExtractor(
     sct=riq.sct,
