@@ -60,6 +60,7 @@ profile = "black"
 minversion = "6.0"
 addopts = "--cov=pynasonde --cov-report=xml --cov-report=term-missing"
 testpaths = ["tests"]
+markers = ["live: talks to a real external service; opt in with RUN_LIVE_TESTS=1 (make test-live)"]
 
 [tool.coverage.run]
 branch = true

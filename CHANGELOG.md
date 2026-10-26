@@ -20,6 +20,8 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
 - `GrmSplitter.load_dataframes(frame_slice=...)` to load a subset of ionograms.
 - `pynasonde.timeutils.TimeZoneConversion` (shared by Digisonde and VIPIR).
 - Docs: examples for `PolarizationClassifier` and `IonogramScaler`.
+- Credentials via a git-ignored `.env` (template: `.env.example`) and an opt-in live
+  DIDBase login test (`make test-live`).
 - Developer tooling: colourful `make` targets (`env`, `install-dev`, `test`,
   `format`, `docs`, ...) running in the `pynasonde` conda environment.
 

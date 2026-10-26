@@ -11,7 +11,7 @@
 SHELL         := /bin/bash
 .DEFAULT_GOAL := help
 .ONESHELL:
-.PHONY: help env install-dev test test-fast format format-check typecheck docs docs-serve \
+.PHONY: help env install-dev test test-fast test-live format format-check typecheck docs docs-serve \
         build-dist clean check release
 
 ENV      ?= pynasonde
@@ -78,6 +78,12 @@ test-fast: ## Run tests without coverage, stop at first failure
 	@set -euo pipefail
 	mkdir -p /tmp/mplconfig
 	NUMBA_DISABLE_JIT=1 MPLCONFIGDIR=/tmp/mplconfig $(RUN) python -m pytest -x -q -o addopts=""
+
+test-live: ## Run live tests that need credentials from .env (network, ~1 min)
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ live tests (credentials from .env) ...$(RESET)\n\n"
+	RUN_LIVE_TESTS=1 $(RUN) python -m pytest -m live -o addopts="" -rs
+	printf "\n$(GREEN)  ✔  Live tests finished.$(RESET)\n\n"
 
 format: ## Format in place: autoflake -> isort -> black
 	@set -euo pipefail
