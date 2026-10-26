@@ -177,6 +177,12 @@ is in `mkdocs.yml`. For a new module:
 Documentation is published per release on Read the Docs: each tag builds from its
 own copy of `.readthedocs.yaml`, so older versions keep their original docs.
 
+The version dropdown in the header comes from `docs/javascripts/version-selector.js`,
+which reads the active versions from Read the Docs. Only versions that are **active
+in the Read the Docs dashboard** are listed, and releases built before the script
+existed (1.x) rely on Read the Docs' own floating flyout instead. Its logic has a
+Node test: `node tests/js/version_selector.test.js` (also run in CI).
+
 ## Pull request checklist
 
 Before opening a pull request:

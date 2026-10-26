@@ -124,3 +124,29 @@ tr:nth-child(even) {
   display: block;
   margin-bottom: 4px;
 }
+
+/* ── Version selector in the header (docs/javascripts/version-selector.js) ── */
+.md-header .pn-version-select {
+  align-self: center;
+  margin: 0 0.6rem;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--md-primary-bg-color);
+  background: transparent;
+  border: 1px solid var(--md-primary-bg-color--light, rgba(255, 255, 255, 0.5));
+  border-radius: 0.2rem;
+  cursor: pointer;
+}
+
+.md-header .pn-version-select:hover,
+.md-header .pn-version-select:focus {
+  border-color: var(--md-primary-bg-color);
+  outline: none;
+}
+
+/* The list itself is drawn by the browser: keep it readable on any theme. */
+.md-header .pn-version-select option {
+  color: #000;
+  background: #fff;
+}

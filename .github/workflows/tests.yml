@@ -181,3 +181,7 @@ jobs:
       - name: Build documentation (strict)
         run: mkdocs build --strict
         shell: bash
+
+      - name: Test the version-selector script
+        run: node tests/js/version_selector.test.js
+        shell: bash
