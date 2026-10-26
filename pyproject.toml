@@ -3,6 +3,7 @@ requires = ["setuptools>=61.0", "setuptools-scm[toml]>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+include-package-data = true
 # Prevent setuptools >=68 from emitting License-File in wheel METADATA.
 # That field belongs to Metadata-Version 2.4 which PyPI does not yet accept.
 license-files = []
@@ -13,8 +14,32 @@ dynamic = ["version"]
 description = "Precision ionospheric radio sounding tools"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{name = "Shibaji Chakraborty"}]
+authors = [{name = "Shibaji Chakraborty", email = "chakras4@erau.edu"}]
+maintainers = [{name = "Shibaji Chakraborty", email = "chakras4@erau.edu"}]
 license = {text = "MIT"}
+keywords = ["python", "ionosonde"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Education",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License",
+]
+# Lean core: only what every parser needs.  Everything else is an extra.
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "matplotlib>=3.9,<3.11",  # 3.11 breaks SaoSummaryPlots isodensity (FT_Render_Glyph overflow); revisit
+  "loguru",
+  "toml",
+  "tqdm",
+]
+
+[project.urls]
+Homepage = "https://github.com/shibaji7/pynasonde"
+Documentation = "https://pynasonde.readthedocs.io"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -33,34 +58,43 @@ skip_covered = true
 output = "coverage.xml"
 
 [project.optional-dependencies]
-dev = [
-  "pytest",
-  "pytest-cov",
-  "coverage",
-  "numpy",
-  "pandas",
-  "matplotlib",
+# --- per-module installs -------------------------------------------------
+digisonde = ["lxml>=5", "scipy>=1.14", "xarray>=2024.9", "netCDF4", "pytz", "timezonefinder>=6.5"]
+digisonde-db = ["pynasonde[digisonde]", "fdb"]        # Firebird DIDBase access
+ocr = ["opencv-python-headless", "pytesseract>=0.3.13"]  # ionogram image parser
+vipir = [
+  "scipy>=1.14", "xarray>=2024.9", "netCDF4", "pytz", "timezonefinder>=6.5",
+  "pysolar>=0.11", "joblib", "scikit-learn>=1.5", "scikit-image>=0.24",
   "opencv-python-headless",
-  "pytesseract",
-  "loguru",
-  "requests",
-  "beautifulsoup4",
-  "tqdm",
-  "lxml",
-  "toml",
-  "pytz",
-  "timezonefinder",
-  "SciencePlots",
-  "scipy",
-  "xarray",
-  "joblib",
-  "pysolar",
-  "netCDF4",
 ]
-training = [
-  "torch>=2.0",
-  "PyIRI",
-  "pyomnidata",
-  "tqdm",
-  "tensorboard",
+# 2.0 analysis scope (polarization, scaler) needs only the core dependencies.
+vipir-analysis = []
+time = ["pytz", "timezonefinder>=6.5"]
+web = ["requests", "beautifulsoup4", "lxml>=5"]       # pynasonde.webhook
+plots = ["SciencePlots>=2.1"]
+matlab = []                                           # needs MathWorks matlab.engine (not on PyPI)
+# --- everything the 1.x `pip install pynasonde` used to give you ---------
+all = [
+  "pynasonde[digisonde,digisonde-db,ocr,vipir-analysis,web,plots]",
 ]
+docs = [
+  "mkdocs>=1.5", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.24",
+  "mkdocs-glightbox", "mkdocs-awesome-pages-plugin",
+]
+dev = [
+  "pynasonde[digisonde,ocr,vipir-analysis,web,plots]",
+  "pytest", "pytest-cov", "coverage",
+]
+# kept from 1.x; no code in the package uses these yet
+training = ["torch>=2.0", "PyIRI", "pyomnidata", "tensorboard"]
+
+[tool.setuptools.packages.find]
+include = ["pynasonde*"]
+
+[tool.setuptools.package-data]
+pynasonde = ["config.toml", "digisonde_station_codes.csv", "saoxml.dtd", "matlab_lib/*.m"]
+
+[tool.setuptools_scm]
+# Version comes from the git tag (vX.Y.Z); the generated file is gitignored.
+version_file = "pynasonde/_version.py"
+fallback_version = "0.0.0+unknown"  # only for builds without git metadata

@@ -12,7 +12,7 @@ from pynasonde.digisonde.digi_utils import (
     load_files_to_dataframe,
     to_namespace,
 )
-from pynasonde.vipir.ngi.utils import TimeZoneConversion
+from pynasonde.timeutils import TimeZoneConversion
 
 
 def set_timestamp(df: pd.DataFrame, extractor: "EdpExtractor") -> pd.DataFrame:

@@ -382,7 +382,7 @@ def apply_filename_metadata(
             and "LAT" in target.stn_info
             and "LONG" in target.stn_info
         ):
-            from pynasonde.vipir.ngi.utils import TimeZoneConversion
+            from pynasonde.timeutils import TimeZoneConversion
 
             target.local_timezone_converter = TimeZoneConversion(
                 lat=target.stn_info["LAT"], long=target.stn_info["LONG"]

@@ -25,7 +25,7 @@ from pynasonde.digisonde.digi_utils import (
     parse_digisonde_datetime_token,
     to_namespace,
 )
-from pynasonde.vipir.ngi.utils import TimeZoneConversion
+from pynasonde.timeutils import TimeZoneConversion
 
 
 class SaoExtractor(object):

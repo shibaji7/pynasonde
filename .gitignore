@@ -175,3 +175,6 @@ cython_debug/
 #.idea/
 
 pynasonde/nn_inversion/
+
+# setuptools-scm generated
+pynasonde/_version.py

@@ -44,53 +44,58 @@ es_imaging
     :class:`EsCaponImager` → :class:`EsImagingResult` (single-cube imager)
     :class:`RiqAggregator` → :class:`EsImagingResult` (multi-file A+B+C combining:
     coherent Rx beamforming + incoherent pulse averaging + incoherent file stacking)
+
+pynasonde 2.0 scope
+-------------------
+Only :mod:`polarization` and :mod:`scaler` are part of the 2.0 stable API
+(``__all__``).  The remaining modules are unchanged and their 1.x imports
+(``from pynasonde.vipir.analysis import AbsorptionAnalyzer`` etc.) keep
+working, but they are not yet covered by 2.0 docs, examples or extras.
 """
 
-from pynasonde.vipir.analysis.absorption import (
-    AbsorptionAnalyzer,
-    AbsorptionProfileResult,
-    DifferentialResult,
-    LOFResult,
-    TotalAbsorptionResult,
-)
-from pynasonde.vipir.analysis.es_imaging import (
-    EsCaponImager,
-    EsImagingResult,
-    RiqAggregator,
-)
-from pynasonde.vipir.analysis.inversion import EDPResult, TrueHeightInversion
-from pynasonde.vipir.analysis.irregularities import (
-    IrregularityAnalyzer,
-    IrregularityProfile,
-)
-from pynasonde.vipir.analysis.nextyz import NeXtYZInverter, NeXtYZResult, WedgePlane
-from pynasonde.vipir.analysis.polarization import (
-    PolarizationClassifier,
-    PolarizationResult,
-)
-from pynasonde.vipir.analysis.scaler import IonogramScaler, ScaledParameters
-from pynasonde.vipir.analysis.spread_f import SpreadFAnalyzer, SpreadFResult
+_LAZY = {
+    # 2.0 stable
+    "PolarizationClassifier": "pynasonde.vipir.analysis.polarization",
+    "PolarizationResult": "pynasonde.vipir.analysis.polarization",
+    "IonogramScaler": "pynasonde.vipir.analysis.scaler",
+    "ScaledParameters": "pynasonde.vipir.analysis.scaler",
+    # kept for 1.x compatibility, outside the 2.0 scope
+    "EsCaponImager": "pynasonde.vipir.analysis.es_imaging",
+    "EsImagingResult": "pynasonde.vipir.analysis.es_imaging",
+    "RiqAggregator": "pynasonde.vipir.analysis.es_imaging",
+    "AbsorptionAnalyzer": "pynasonde.vipir.analysis.absorption",
+    "LOFResult": "pynasonde.vipir.analysis.absorption",
+    "DifferentialResult": "pynasonde.vipir.analysis.absorption",
+    "TotalAbsorptionResult": "pynasonde.vipir.analysis.absorption",
+    "AbsorptionProfileResult": "pynasonde.vipir.analysis.absorption",
+    "TrueHeightInversion": "pynasonde.vipir.analysis.inversion",
+    "EDPResult": "pynasonde.vipir.analysis.inversion",
+    "IrregularityAnalyzer": "pynasonde.vipir.analysis.irregularities",
+    "IrregularityProfile": "pynasonde.vipir.analysis.irregularities",
+    "NeXtYZInverter": "pynasonde.vipir.analysis.nextyz",
+    "NeXtYZResult": "pynasonde.vipir.analysis.nextyz",
+    "WedgePlane": "pynasonde.vipir.analysis.nextyz",
+    "SpreadFAnalyzer": "pynasonde.vipir.analysis.spread_f",
+    "SpreadFResult": "pynasonde.vipir.analysis.spread_f",
+}
 
 __all__ = [
-    "EsCaponImager",
-    "EsImagingResult",
-    "RiqAggregator",
-    "AbsorptionAnalyzer",
-    "LOFResult",
-    "DifferentialResult",
-    "TotalAbsorptionResult",
-    "AbsorptionProfileResult",
     "PolarizationClassifier",
     "PolarizationResult",
-    "SpreadFAnalyzer",
-    "SpreadFResult",
-    "TrueHeightInversion",
-    "EDPResult",
     "IonogramScaler",
     "ScaledParameters",
-    "IrregularityAnalyzer",
-    "IrregularityProfile",
-    "NeXtYZInverter",
-    "NeXtYZResult",
-    "WedgePlane",
 ]
+
+
+def __getattr__(name):
+    if name in _LAZY:
+        import importlib
+
+        value = getattr(importlib.import_module(_LAZY[name]), name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_LAZY))

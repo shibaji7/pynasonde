@@ -46,37 +46,36 @@ Utilities:
     ``flatten_dict``
 """
 
-from pynasonde.digisonde.digi_plots import (
-    CadiIonogram,
-    DigiPlots,
-    RsfIonogram,
-    SaoSummaryPlots,
-    SkySummaryPlots,
-)
-from pynasonde.digisonde.cadi import CadiExtractor, CadiReader
-from pynasonde.digisonde.digi_utils import (
-    apply_filename_metadata,
-    extract_datetime_token_from_filename,
-    extract_station_code_from_filename,
-    flatten_dict,
-    get_digisonde_info,
-    get_gridded_parameters,
-    load_station_csv,
-    merge_dicts_selected_keys,
-    parse_digisonde_datetime_token,
-    to_namespace,
-)
-from pynasonde.digisonde.parsers import (
-    DftExtractor,
-    DvlExtractor,
-    EdpExtractor,
-    IonogramImageExtractor,
-    ModMaxExtractor,
-    RsfExtractor,
-    SaoExtractor,
-    SbfExtractor,
-    SkyExtractor,
-)
+# Names resolve lazily (PEP 562) so importing one parser does not load the
+# plotting stack (and vice versa).  ``from pynasonde.digisonde import X`` is unchanged.
+_LAZY = {
+    "CadiIonogram": "pynasonde.digisonde.digi_plots",
+    "DigiPlots": "pynasonde.digisonde.digi_plots",
+    "RsfIonogram": "pynasonde.digisonde.digi_plots",
+    "SaoSummaryPlots": "pynasonde.digisonde.digi_plots",
+    "SkySummaryPlots": "pynasonde.digisonde.digi_plots",
+    "CadiExtractor": "pynasonde.digisonde.cadi",
+    "CadiReader": "pynasonde.digisonde.cadi",
+    "apply_filename_metadata": "pynasonde.digisonde.digi_utils",
+    "extract_datetime_token_from_filename": "pynasonde.digisonde.digi_utils",
+    "extract_station_code_from_filename": "pynasonde.digisonde.digi_utils",
+    "flatten_dict": "pynasonde.digisonde.digi_utils",
+    "get_digisonde_info": "pynasonde.digisonde.digi_utils",
+    "get_gridded_parameters": "pynasonde.digisonde.digi_utils",
+    "load_station_csv": "pynasonde.digisonde.digi_utils",
+    "merge_dicts_selected_keys": "pynasonde.digisonde.digi_utils",
+    "parse_digisonde_datetime_token": "pynasonde.digisonde.digi_utils",
+    "to_namespace": "pynasonde.digisonde.digi_utils",
+    "DftExtractor": "pynasonde.digisonde.parsers",
+    "DvlExtractor": "pynasonde.digisonde.parsers",
+    "EdpExtractor": "pynasonde.digisonde.parsers",
+    "IonogramImageExtractor": "pynasonde.digisonde.parsers",
+    "ModMaxExtractor": "pynasonde.digisonde.parsers",
+    "RsfExtractor": "pynasonde.digisonde.parsers",
+    "SaoExtractor": "pynasonde.digisonde.parsers",
+    "SbfExtractor": "pynasonde.digisonde.parsers",
+    "SkyExtractor": "pynasonde.digisonde.parsers",
+}
 
 __all__ = [
     # Parsers
@@ -109,3 +108,17 @@ __all__ = [
     "merge_dicts_selected_keys",
     "parse_digisonde_datetime_token",
 ]
+
+
+def __getattr__(name):
+    if name in _LAZY:
+        import importlib
+
+        value = getattr(importlib.import_module(_LAZY[name]), name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_LAZY))

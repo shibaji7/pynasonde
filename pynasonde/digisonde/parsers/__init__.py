@@ -24,15 +24,19 @@ Exported names
     IonogramImageExtractor
 """
 
-from pynasonde.digisonde.parsers.dft import DftExtractor
-from pynasonde.digisonde.parsers.dvl import DvlExtractor
-from pynasonde.digisonde.parsers.edp import EdpExtractor
-from pynasonde.digisonde.parsers.image_parser import IonogramImageExtractor
-from pynasonde.digisonde.parsers.mmm import ModMaxExtractor
-from pynasonde.digisonde.parsers.rsf import RsfExtractor
-from pynasonde.digisonde.parsers.sao import SaoExtractor
-from pynasonde.digisonde.parsers.sbf import SbfExtractor
-from pynasonde.digisonde.parsers.sky import SkyExtractor
+# Names resolve lazily (PEP 562): ``IonogramImageExtractor`` needs the optional
+# ``ocr`` extra (OpenCV, pytesseract) and must not be imported for other parsers.
+_LAZY = {
+    "DftExtractor": "pynasonde.digisonde.parsers.dft",
+    "DvlExtractor": "pynasonde.digisonde.parsers.dvl",
+    "EdpExtractor": "pynasonde.digisonde.parsers.edp",
+    "IonogramImageExtractor": "pynasonde.digisonde.parsers.image_parser",
+    "ModMaxExtractor": "pynasonde.digisonde.parsers.mmm",
+    "RsfExtractor": "pynasonde.digisonde.parsers.rsf",
+    "SaoExtractor": "pynasonde.digisonde.parsers.sao",
+    "SbfExtractor": "pynasonde.digisonde.parsers.sbf",
+    "SkyExtractor": "pynasonde.digisonde.parsers.sky",
+}
 
 __all__ = [
     "SaoExtractor",
@@ -45,3 +49,17 @@ __all__ = [
     "EdpExtractor",
     "IonogramImageExtractor",
 ]
+
+
+def __getattr__(name):
+    if name in _LAZY:
+        import importlib
+
+        value = getattr(importlib.import_module(_LAZY[name]), name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_LAZY))

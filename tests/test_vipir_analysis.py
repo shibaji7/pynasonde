@@ -88,16 +88,29 @@ import pytest
 from pynasonde.vipir.analysis import (
     IonogramScaler,
     IrregularityAnalyzer,
-    NeXtYZInverter,
     PolarizationClassifier,
     SpreadFAnalyzer,
     TrueHeightInversion,
 )
-from pynasonde.vipir.analysis.nextyz import (
-    WedgePlane,
-    _appleton_lassen_n2,
-    _nz,
-    _wedge_rho,
+
+# The 2.0 scope (PolarizationClassifier, IonogramScaler) needs only core
+# dependencies.  Other analysis modules need scipy, so their tests are skipped
+# on a core-only install while the polarization/scaler tests still run.
+try:
+    from pynasonde.vipir.analysis import NeXtYZInverter
+    from pynasonde.vipir.analysis.nextyz import (
+        WedgePlane,
+        _appleton_lassen_n2,
+        _nz,
+        _wedge_rho,
+    )
+
+    _HAVE_SCIPY = True
+except ModuleNotFoundError:
+    _HAVE_SCIPY = False
+
+needs_scipy = pytest.mark.skipif(
+    not _HAVE_SCIPY, reason="needs scipy (install pynasonde[vipir])"
 )
 
 # ===========================================================================
@@ -561,6 +574,7 @@ class TestIrregularityAnalyzer:
 # ===========================================================================
 
 
+@needs_scipy
 class TestAppletonLassen:
     """Test the Appleton-Lassen n² formula directly."""
 
@@ -594,6 +608,7 @@ class TestAppletonLassen:
         assert n2_O == pytest.approx(n2_X, rel=1e-6)
 
 
+@needs_scipy
 class TestWSIGeometry:
     """Test WSI frame-plane geometry helpers."""
 
@@ -640,6 +655,7 @@ class TestWSIGeometry:
 # ===========================================================================
 
 
+@needs_scipy
 class TestNeXtYZInverter:
     def _inv(self, **kw) -> NeXtYZInverter:
         defaults = dict(
@@ -1481,6 +1497,7 @@ class TestRiqAggregator:
 # ===========================================================================
 
 
+@needs_scipy
 class TestImports:
     def test_all_classes_importable(self):
         from pynasonde.vipir.analysis import (

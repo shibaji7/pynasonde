@@ -6,54 +6,11 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
-import pytz
 import toml
 from loguru import logger
-from timezonefinder import TimezoneFinder
 
 
-class TimeZoneConversion:
-    """Convert timestamps between UTC and a station's local timezone."""
-
-    def __init__(
-        self,
-        local_tz: str = None,
-        lat: float = 37.8815,
-        long: float = -75.4374,
-    ):
-        """Initialize the converter with either a timezone name or coordinates.
-
-        Args:
-            local_tz: Explicit timezone name; inferred from lat/lon when None.
-            lat: Station latitude used when deriving the timezone.
-            long: Station longitude used when deriving the timezone.
-        """
-        self.local_tz = local_tz
-        tf = TimezoneFinder()
-        if (long is not None) and (lat is not None):
-            self.local_tz = tf.timezone_at(lng=long, lat=lat)
-        logger.info(f"Local Time: {self.local_tz}")
-        self.utc_zone, self.local_zone = pytz.timezone("UTC"), pytz.timezone(
-            self.local_tz
-        )
-        return
-
-    def utc_to_local_time(self, dates):
-        """Translate an iterable of UTC datetimes to the configured local zone.
-
-        Args:
-            dates: Iterable of naive or timezone-aware datetime objects.
-
-        Returns:
-            List of localized datetimes adjusted to `self.local_zone`.
-        """
-        date = pd.to_datetime(dates[0])
-        tdiff_hr = (
-            self.local_zone.localize(date)
-            - self.utc_zone.localize(date).astimezone(self.local_zone)
-        ).seconds / 3600
-        dates = [d - dt.timedelta(hours=tdiff_hr) for d in dates]
-        return dates
+from pynasonde.timeutils import TimeZoneConversion  # noqa: F401  (re-export, 1.x compat)
 
 
 def to_local_time(dates: list, tz1, tz2):
@@ -136,7 +93,10 @@ def smooth(x, window_len=11, window="hanning"):
 
 
 def setsize(size=8):
-    """Configure matplotlib/scienceplots defaults for a consistent style.
+    """Configure matplotlib defaults for a consistent style.
+
+    The ``scienceplots`` styles are applied when the package is installed
+    (``pynasonde[plots]``) and skipped otherwise.
 
     Args:
         size: Base font size applied to the plot configuration.
@@ -145,7 +105,12 @@ def setsize(size=8):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-    plt.style.use(["science", "ieee"])
+    try:
+        import scienceplots  # noqa: F401  (registers the "science"/"ieee" styles)
+
+        plt.style.use(["science", "ieee"])
+    except (ImportError, OSError):
+        logger.debug("scienceplots not installed; using default Matplotlib style.")
     plt.rcParams.update(
         {
             "text.usetex": False,
@@ -194,9 +159,9 @@ def load_toml(fpath: str = None) -> SimpleNamespace:
         logger.info(f"Loading from {fpath}")
         cfg = to_namespace(toml.load(fpath))
     else:
-        with importlib.resources.path("pynasonde", "config.toml") as config_path:
-            logger.info(f"Loading from {config_path}")
-            cfg = to_namespace(toml.load(config_path))
+        config_path = importlib.resources.files("pynasonde").joinpath("config.toml")
+        logger.info(f"Loading from {config_path}")
+        cfg = to_namespace(toml.loads(config_path.read_text()))
     return cfg
 
 

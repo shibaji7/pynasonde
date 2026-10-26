@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from pynasonde.webhook import Webhook
+pytest.importorskip("requests", reason="needs pynasonde[web]")
+pytest.importorskip("bs4", reason="needs pynasonde[web]")
+
+from pynasonde.webhook import Webhook  # noqa: E402
 
 
 def _mock_resp(status=200, hrefs=None, content=b"data"):
