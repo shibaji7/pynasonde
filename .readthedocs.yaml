@@ -1,23 +1,28 @@
 # .readthedocs.yaml
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+#
+# Every release tag (v1.0.0 ... v1.3.0, v2.0.0, ...) carries its own copy of this
+# file, so each version of the docs is built from the code it documents.
 
-# Required
 version: 2
 
-# # Set the version of Python and other tools you might need
 build:
   os: ubuntu-24.04
   tools:
     python: "3.11"
+  jobs:
+    post_checkout:
+      # setuptools-scm derives the version from git tags; make sure they are present.
+      - git fetch --unshallow || true
+      - git fetch --tags || true
 
 mkdocs:
   configuration: mkdocs.yml
 
-# Optionally declare the Python requirements required to build your docs
 python:
   install:
-    - requirements: docs/requirements.txt
     - method: pip
       path: .
-
+      extra_requirements:
+        - docs

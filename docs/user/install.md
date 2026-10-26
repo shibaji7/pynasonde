@@ -21,7 +21,8 @@ Disclaimer:
 ## Quick Start
 
 ```bash
-pip install pynasonde
+pip install pynasonde            # lean core
+pip install "pynasonde[all]"     # everything (what 1.x used to install)
 ```
 
 Verify the install:
@@ -32,7 +33,40 @@ print(pynasonde.__version__)
 ```
 
 !!! note "Upgrade"
-    Already installed? Run `pip install --upgrade pynasonde` to get the latest release.
+    Already installed? Run `pip install --upgrade pynasonde`. Coming from 1.x?
+    The 2.0 core install is lean, so read [What's new in 2.0](whats_new_2_0.md).
+
+!!! tip "Pick another version of the docs"
+    This page documents the version selected in the version menu. Installing an
+    older release: `pip install "pynasonde==1.3.0"` (1.x installs all dependencies).
+
+## Choose What to Install
+
+The core install has only `numpy`, `pandas`, `matplotlib`, `loguru`, `toml` and
+`tqdm`. Add extras for the modules you use:
+
+| Extra | Adds | Use it for |
+|-------|------|------------|
+| `digisonde` | `lxml`, `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder` | SAO, RSF, SBF, MMM, DFT, DVL, SKY, EDP, CADI and raw IQ parsers and plots |
+| `digisonde-scaler` | `digisonde` + `scikit-learn`, `joblib` | Digisonde autoscaler (`pynasonde.digisonde.scaler`) |
+| `digisonde-db` | `digisonde` + `fdb` | DIDBase (Firebird) connector |
+| `ocr` | `opencv-python-headless`, `pytesseract` | Ionogram image parser (also needs the `tesseract` system package) |
+| `vipir` | `scipy`, `xarray`, `netCDF4`, `pytz`, `timezonefinder`, `pysolar`, `joblib`, `scikit-learn`, `scikit-image`, `opencv-python-headless` | VIPIR NGI and RIQ readers and tools |
+| `vipir-analysis` | nothing extra | `PolarizationClassifier` and `IonogramScaler` (core only; reading RIQ files needs `vipir`) |
+| `time` | `pytz`, `timezonefinder` | Local-time conversion (`TimeZoneConversion`) |
+| `web` | `requests`, `beautifulsoup4`, `lxml` | `Webhook` NGI/RIQ downloads |
+| `plots` | `SciencePlots` | Optional publication plot styles |
+| `all` | all of the above except `matlab` | Full 1.x-equivalent install |
+| `dev` / `docs` | test, format and docs tooling | Contributors |
+
+Combine extras with commas, for example:
+
+```bash
+pip install "pynasonde[digisonde,vipir]"
+```
+
+If you use a class without its extra installed, Python raises a
+`ModuleNotFoundError` naming the missing package; install the matching extra.
 
 ## Recommended Workflows
 
@@ -62,8 +96,19 @@ cd pynasonde
 pip install -e ".[dev]"
 ```
 
-The `[dev]` extra pulls in `pytest`, `pytest-cov`, `coverage`, and the full
-scientific stack (`numpy`, `pandas`, `matplotlib`, `scipy`, …).
+The `[dev]` extra pulls in `pytest`, `pytest-cov`, `coverage`, `black`, `isort`,
+`autoflake`, `build` and every module extra, so the whole test suite can run.
+
+The repository's `Makefile` wraps the common tasks and runs them in a conda
+environment named `pynasonde` (`make env` creates it from `env.yml`):
+
+```bash
+make env          # create/update the conda dev environment
+make install-dev  # editable install with dev extras
+make test         # full test suite with coverage
+make format       # autoflake + isort + black
+make docs         # build the documentation site
+```
 
 !!! warning "Cartopy (optional)"
     Coastline and geographic projection plots require `cartopy >= 0.19`.
@@ -72,18 +117,16 @@ scientific stack (`numpy`, `pandas`, `matplotlib`, `scipy`, …).
 
 ## Core Dependencies
 
-Pynasonde's `setup.py` installs these automatically:
+Installed automatically with `pip install pynasonde` (minimum versions, taken from `pyproject.toml`):
 
-| Package | Version | Purpose |
+| Package | Minimum | Purpose |
 |---------|---------|---------|
-| `numpy` | 1.26.4 | Array operations, bit-level unpacking |
-| `pandas` | 2.2.3 | Tidy DataFrames for all parsed outputs |
-| `matplotlib` | 3.9.2 | Publication-quality plotting |
-| `scipy` | 1.14.1 | Signal processing utilities |
-| `xarray` | 2024.9.0 | Gridded data structures |
-| `loguru` | latest | Structured logging |
-| `timezonefinder` | 6.5.5 | Station local-time lookup |
-| `SciencePlots` | 2.1.1 | Clean scientific plot styles |
+| `numpy` | 1.26 | Array operations, bit-level unpacking |
+| `pandas` | 2.2 | Tidy DataFrames for all parsed outputs |
+| `matplotlib` | 3.9 | Plotting |
+| `loguru` | any | Structured logging |
+| `toml` | any | Configuration files |
+| `tqdm` | any | Progress bars |
 
 ## System Requirements
 

@@ -4,13 +4,12 @@ This module provides figure classes that visualise the output of the raw
 IQ processing pipeline in :mod:`pynasonde.digisonde.raw.raw_parse`.
 
 Classes:
-    :class:`RawPlots` — base figure/axes manager for stack plots derived
-    from ``.bin`` recordings.  Provides axis formatting, title handling,
-    and ``save`` / ``close`` helpers mirroring those in
-    :class:`pynasonde.digisonde.digi_plots.DigiPlots`.
-
-    :class:`AFRLPlots` — subclass of :class:`RawPlots` with additional
-    methods tailored to AFRL/VIPIR-style ionogram presentations.
+    RawPlots: Base figure/axes manager for stack plots derived from ``.bin``
+        recordings. Provides axis formatting, title handling, and ``save`` /
+        ``close`` helpers mirroring those in
+        :class:`pynasonde.digisonde.digi_plots.DigiPlots`.
+    AFRLPlots: Subclass of :class:`RawPlots` with additional methods tailored
+        to AFRL/VIPIR-style ionogram presentations.
 
 Typical usage::
 
