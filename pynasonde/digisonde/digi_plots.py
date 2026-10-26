@@ -878,7 +878,19 @@ class SaoSummaryPlots(DigiPlots):
                     linewidths=contour_lw,
                     zorder=zorder + 1,
                 )
-                ax.clabel(cs, fmt="%g", fontsize=self.font_size - 2, inline=True)
+                labels = ax.clabel(
+                    cs, fmt="%g", fontsize=self.font_size - 2, inline=True
+                )
+                # Matplotlib 3.11 can place inline labels far outside the data
+                # range on date axes (x ~ 0 vs ~2e4), which overflows the
+                # rasteriser on save.  Drop any label outside the data extent.
+                for lbl in labels:
+                    lx, ly = lbl.get_position()
+                    if not (
+                        t_num.min() <= lx <= t_num.max()
+                        and np.min(h_edges) <= ly <= np.max(h_edges)
+                    ):
+                        lbl.remove()
             except Exception:
                 pass
 

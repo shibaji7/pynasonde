@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
   "numpy>=1.26",
   "pandas>=2.2",
-  "matplotlib>=3.9,<3.11",  # 3.11 breaks SaoSummaryPlots isodensity (FT_Render_Glyph overflow); revisit
+  "matplotlib>=3.9",
   "loguru",
   "toml",
   "tqdm",

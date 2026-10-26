@@ -30,8 +30,8 @@ Baseline (verified): 904 tests pass, 19 skip (missing RIQ data), 0 fail. Docs = 
 2. ~~Single-source version via setuptools-scm: `version_file = pynasonde/_version.py` (gitignored), `__init__` imports it with `0.0.0+unknown` fallback; Makefile `check`/`release` step 1 updated to use the git tag~~ (verified: wheel, installed and source-tree versions all track the tag). Open: `CITATION.cff` / `codemeta.json` versions still manual.
 3. ~~Core deps with lower bounds; extras `digisonde`, `digisonde-db`, `ocr`, `vipir`, `vipir-analysis`, `time`, `web`, `plots`, `matlab`, `all`, `docs`, `dev`~~ (`training` kept)
    - ~~Verified in clean venvs: core (analysis polarization/scaler run), `digisonde` (389 passed), `vipir` (358 passed)~~
-   - Not yet verified: `ocr`, `web`, `digisonde-db`, `all`, `dev`.
-   - ~~Found + fixed: `matplotlib` capped `<3.11` (3.11 breaks SaoSummaryPlots isodensity; old hard pins hid it). Follow-up: fix the plot, then lift the cap.~~
+   - ~~Verified in clean venvs: `ocr`, `web`, `digisonde-db`, `dev` (full suite 936 passed). Fixed `dev`/`all` missing `vipir`.~~
+   - ~~Found + fixed: Matplotlib 3.11 placed `clabel` labels far outside the date axis (render overflow in `SaoSummaryPlots` isodensity). Out-of-range labels are now dropped; the temporary `<3.11` cap is lifted. Full suite passes on 3.11.2.~~
 4. ~~Lazy `pynasonde/__init__.py`, `vipir/__init__.py`, `vipir/analysis/__init__.py`, `digisonde/__init__.py`, `digisonde/parsers/__init__.py` (PEP 562; OCR parser no longer drags OpenCV into other parsers)~~ Still eager (deferred, low value): `vipir/ngi/__init__.py`, `vipir/riq/__init__.py`.
 5. ~~Move `TimeZoneConversion` to `pynasonde/timeutils.py`; re-export from `vipir/ngi/utils.py`~~ ~~`scienceplots` guard: `digi_utils` was already guarded; fixed the real hard dependency in `vipir/ngi/utils.setsize`~~
 6. ~~Replace deprecated `importlib.resources.path`~~
