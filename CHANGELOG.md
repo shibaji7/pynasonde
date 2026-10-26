@@ -23,8 +23,6 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
   filter example also saves the decoded RIQ power figure, and its page now matches
   the current output.
 - `make check-docs` (`tools/check_docs.py`, also run in CI): verifies the docs against the code.
-- Version selector in the docs header (lists the versions active on Read the Docs and
-  opens the same page in the chosen version; `docs/javascripts/version-selector.js`).
 - `CONTRIBUTING.md` and `ROADMAP.md`, linked from the README.
 - Credentials via a git-ignored `.env` (template: `.env.example`) and an opt-in live
   DIDBase login test (`make test-live`).
