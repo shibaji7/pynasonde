@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="466.267599pt" height="269.208pt" viewBox="0 0 466.267599 269.208" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-26T18:26:14.773001</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 269.208 
+L 466.267599 269.208 
+L 466.267599 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 72.502081 139.199908 
+L 187.290653 139.199908 
+Q 192.568288 139.199908 192.568288 134.404178 
+L 192.568288 46.082816 
+Q 192.568288 41.287086 187.290653 41.287086 
+L 72.502081 41.287086 
+Q 67.224446 41.287086 67.224446 46.082816 
+L 67.224446 134.404178 
+Q 67.224446 139.199908 72.502081 139.199908 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #dce8f8; stroke: #4a6fa5; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 72.502081 225.123405 
+L 187.290653 225.123405 
+Q 192.568288 225.123405 192.568288 220.327675 
+L 192.568288 151.988521 
+Q 192.568288 147.192791 187.290653 147.192791 
+L 72.502081 147.192791 
+Q 67.224446 147.192791 67.224446 151.988521 
+L 67.224446 220.327675 
+Q 67.224446 225.123405 72.502081 225.123405 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #d5f5d5; stroke: #2e8b3e; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 204.442968 139.199908 
+L 319.231539 139.199908 
+Q 324.509175 139.199908 324.509175 134.404178 
+L 324.509175 46.082816 
+Q 324.509175 41.287086 319.231539 41.287086 
+L 204.442968 41.287086 
+Q 199.165333 41.287086 199.165333 46.082816 
+L 199.165333 134.404178 
+Q 199.165333 139.199908 204.442968 139.199908 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #dce8f8; stroke: #4a6fa5; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 204.442968 225.123405 
+L 319.231539 225.123405 
+Q 324.509175 225.123405 324.509175 220.327675 
+L 324.509175 151.988521 
+Q 324.509175 147.192791 319.231539 147.192791 
+L 204.442968 147.192791 
+Q 199.165333 147.192791 199.165333 151.988521 
+L 199.165333 220.327675 
+Q 199.165333 225.123405 204.442968 225.123405 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #d5f5d5; stroke: #2e8b3e; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 336.383855 139.199908 
+L 451.172426 139.199908 
+Q 456.450062 139.199908 456.450062 134.404178 
+L 456.450062 46.082816 
+Q 456.450062 41.287086 451.172426 41.287086 
+L 336.383855 41.287086 
+Q 331.106219 41.287086 331.106219 46.082816 
+L 331.106219 134.404178 
+Q 331.106219 139.199908 336.383855 139.199908 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #dce8f8; stroke: #4a6fa5; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 336.383855 225.123405 
+L 451.172426 225.123405 
+Q 456.450062 225.123405 456.450062 220.327675 
+L 456.450062 151.988521 
+Q 456.450062 147.192791 451.172426 147.192791 
+L 336.383855 147.192791 
+Q 331.106219 147.192791 331.106219 151.988521 
+L 331.106219 220.327675 
+Q 331.106219 225.123405 336.383855 225.123405 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #d5f5d5; stroke: #2e8b3e; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 72.502081 261.09138 
+L 451.172426 261.09138 
+Q 456.450062 261.09138 456.450062 256.29565 
+L 456.450062 241.508816 
+Q 456.450062 236.713086 451.172426 236.713086 
+L 72.502081 236.713086 
+Q 67.224446 236.713086 67.224446 241.508816 
+L 67.224446 256.29565 
+Q 67.224446 261.09138 72.502081 261.09138 
+z
+" clip-path="url(#p4b07d59b15)" style="fill: #d5f5d5; stroke: #2e8b3e; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="129.896367" y="19.482606" transform="rotate(-0 129.896367 19.482606)">VIPIR</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="58.136786" transform="rotate(-0 74.481195 58.136786)">RIQ and NGI file readers</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="74.522197" transform="rotate(-0 74.481195 74.522197)">Echo extraction</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="90.907608" transform="rotate(-0 74.481195 90.907608)">Multi-stage ionogram filter</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="107.293019" transform="rotate(-0 74.481195 107.293019)">NGI trace auto-scaling</text>
+   </g>
+   <g id="text_6">
+    <text style="font-weight: 700; font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="164.097679" transform="rotate(-0 74.481195 164.097679)">Polarization + scaler</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="180.48309" transform="rotate(-0 74.481195 180.48309)">O/X mode separation</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="196.868501" transform="rotate(-0 74.481195 196.868501)">foF2 · h′F · MUF</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="74.481195" y="213.253912" transform="rotate(-0 74.481195 213.253912)">Documented and tested</text>
+   </g>
+   <g id="text_10">
+    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="261.837254" y="19.437685" transform="rotate(-0 261.837254 19.437685)">Digisonde</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="58.136786" transform="rotate(-0 206.422081 58.136786)">SAO · RSF · SBF · DFT · DVL</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="74.522197" transform="rotate(-0 206.422081 74.522197)">SKY · EDP · MMM · raw IQ</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="90.907608" transform="rotate(-0 206.422081 90.907608)">Directogram, skymap plots</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="107.293019" transform="rotate(-0 206.422081 107.293019)">+ multi-record SAO (1.2)</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="123.67843" transform="rotate(-0 206.422081 123.67843)">+ GRM and CADI (1.3)</text>
+   </g>
+   <g id="text_16">
+    <text style="font-weight: 700; font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="164.097679" transform="rotate(-0 206.422081 164.097679)">Autoscaler</text>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="180.48309" transform="rotate(-0 206.422081 180.48309)">RFI filters + Viterbi</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="196.868501" transform="rotate(-0 206.422081 196.868501)">foE · foF2 · hmF2</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="206.422081" y="213.253912" transform="rotate(-0 206.422081 213.253912)">for RSF, SBF and MMM</text>
+   </g>
+   <g id="text_20">
+    <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="393.77814" y="19.482606" transform="rotate(-0 393.77814 19.482606)">Remote databases</text>
+   </g>
+   <g id="text_21">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="58.136786" transform="rotate(-0 338.362968 58.136786)">DIDBase (GIRO) connector</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="74.522197" transform="rotate(-0 338.362968 74.522197)">SAO files, DataFrames,</text>
+   </g>
+   <g id="text_23">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="90.907608" transform="rotate(-0 338.362968 90.907608)">scaled parameters (1.3)</text>
+   </g>
+   <g id="text_24">
+    <text style="font-weight: 700; font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="164.097679" transform="rotate(-0 338.362968 164.097679)">DriftBase connector</text>
+   </g>
+   <g id="text_25">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="180.48309" transform="rotate(-0 338.362968 180.48309)">Drift and SKY files,</text>
+   </g>
+   <g id="text_26">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="196.868501" transform="rotate(-0 338.362968 196.868501)">velocities</text>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 8.4px; font-family: 'DejaVu Sans'; text-anchor: start" x="338.362968" y="213.253912" transform="rotate(-0 338.362968 213.253912)">Credentials via .env</text>
+   </g>
+   <g id="text_28">
+    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; fill: #4a6fa5" transform="translate(23.068438 87.403966)">Before</text>
+    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; fill: #4a6fa5" transform="translate(4.32 98.601778)">(v1.0–1.3)</text>
+   </g>
+   <g id="text_29">
+    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; fill: #2e8b3e" transform="translate(21.98875 183.318567)">New in</text>
+    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; fill: #2e8b3e" transform="translate(36.174688 194.516379)">v2.0</text>
+   </g>
+   <g id="text_30">
+    <text style="font-size: 8.2px; font-family: 'DejaVu Sans'; text-anchor: middle" x="261.837254" y="251.164921" transform="rotate(-0 261.837254 251.164921)">Also new: pip install "pynasonde[vipir]"  or  "[digisonde]"   ·   versioned docs per release</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p4b07d59b15">
+   <rect x="15.547599" y="4.32" width="446.4" height="260.568"/>
+  </clipPath>
+ </defs>
+</svg>
