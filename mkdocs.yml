@@ -113,6 +113,16 @@ nav:
                                 - GRM: dev/digisonde/parsers/grm.md
                                 - EDP: dev/digisonde/parsers/edp.md
                                 - DVL: dev/digisonde/parsers/dvl.md
+                        - Digisonde Autoscaler:
+                                - Overview: dev/digisonde/scaler/index.md
+                                - schema: dev/digisonde/scaler/schema.md
+                                - rfi_filter: dev/digisonde/scaler/rfi_filter.md
+                                - core: dev/digisonde/scaler/core.md
+                                - viterbi: dev/digisonde/scaler/viterbi.md
+                                - hmF2: dev/digisonde/scaler/hmF2.md
+                                - presets: dev/digisonde/scaler/presets.md
+                                - solar: dev/digisonde/scaler/solar.md
+                                - postprocess: dev/digisonde/scaler/postprocess.md
                         - Digisonde Datatypes:
                                 - SAO XML: dev/digisonde/datatypes/saoxmldatatypes.md
                                 - SBF:  dev/digisonde/datatypes/sbfdatatypes.md

@@ -319,19 +319,29 @@ class GrmSplitter:
         logger.info(f"load → {len(objs)} lazy {fmt} extractors")
         return objs
 
-    def load_dataframes(self, n_workers: int = 1) -> pd.DataFrame:
+    def load_dataframes(
+        self,
+        n_workers: int = 1,
+        frame_slice: slice | None = None,
+    ) -> pd.DataFrame:
         """Extract all ionograms and return a single concatenated DataFrame.
 
         Args:
             n_workers:  Number of processes for parallel extraction.
                         ``1`` (default) → sequential.
                         ``-1`` → use all CPU cores.
+            frame_slice: Optional slice applied to the ordered ionogram frame
+                         list before extraction, for example
+                         ``slice(10, 50)``, ``slice(None, 50)``,
+                         ``slice(10, None)``, or ``slice(None, None, 5)``.
 
         Returns:
             Combined :class:`~pandas.DataFrame`.  Empty if nothing extracted.
         """
         fmt = self.fmt
         slices = self._scan_offsets()
+        if frame_slice is not None:
+            slices = slices[frame_slice]
         n_workers = _resolve_workers(n_workers)
 
         # Pass cls as a string key so the tuple is always picklable

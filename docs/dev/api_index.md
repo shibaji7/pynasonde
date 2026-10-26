@@ -57,6 +57,7 @@ A class-level attribute, dataclass field, or `@property`.
 | [SBF Parser](digisonde/parsers/sbf.md) | Read binary SBF ionogram amplitude/phase blocks |
 | [MMM Parser](digisonde/parsers/mmm.md) | Read binary ModMax MMM ionogram blocks |
 | [Image Parser](digisonde/parsers/image.md) | Extract ionogram images (`IonogramImageExtractor`) |
+| [Autoscaler](digisonde/scaler/index.md) | `IonogramAutoScaler`, RFI filters, `ViterbiTracer`, presets, solar regime helpers |
 | [SAO XML Datatypes](digisonde/datatypes/saoxmldatatypes.md) | Dataclasses for SAO XML records |
 | [SBF Datatypes](digisonde/datatypes/sbfdatatypes.md) | Dataclasses for SBF binary format |
 | [MMM Datatypes](digisonde/datatypes/mmmdatatypes.md) | Dataclasses for MMM/ModMax binary format |

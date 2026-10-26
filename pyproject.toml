@@ -67,6 +67,7 @@ output = "coverage.xml"
 [project.optional-dependencies]
 # --- per-module installs -------------------------------------------------
 digisonde = ["lxml>=5", "scipy>=1.14", "xarray>=2024.9", "netCDF4", "pytz", "timezonefinder>=6.5"]
+digisonde-scaler = ["pynasonde[digisonde]", "scikit-learn>=1.5", "joblib"]   # autoscaler (Viterbi/RANSAC/DBSCAN)
 digisonde-db = ["pynasonde[digisonde]", "fdb"]        # Firebird DIDBase access
 ocr = ["opencv-python-headless", "pytesseract>=0.3.13"]  # ionogram image parser
 vipir = [
@@ -82,14 +83,14 @@ plots = ["SciencePlots>=2.1"]
 matlab = []                                           # needs MathWorks matlab.engine (not on PyPI)
 # --- everything the 1.x `pip install pynasonde` used to give you ---------
 all = [
-  "pynasonde[digisonde,digisonde-db,ocr,vipir,vipir-analysis,web,plots]",
+  "pynasonde[digisonde,digisonde-scaler,digisonde-db,ocr,vipir,vipir-analysis,web,plots]",
 ]
 docs = [
   "mkdocs>=1.5", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.24",
   "mkdocs-glightbox", "mkdocs-awesome-pages-plugin",
 ]
 dev = [
-  "pynasonde[digisonde,ocr,vipir,vipir-analysis,web,plots]",
+  "pynasonde[digisonde,digisonde-scaler,ocr,vipir,vipir-analysis,web,plots]",
   "pytest", "pytest-cov", "coverage",
   "black", "isort", "autoflake", "build",
 ]
