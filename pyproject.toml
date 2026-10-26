@@ -75,14 +75,14 @@ plots = ["SciencePlots>=2.1"]
 matlab = []                                           # needs MathWorks matlab.engine (not on PyPI)
 # --- everything the 1.x `pip install pynasonde` used to give you ---------
 all = [
-  "pynasonde[digisonde,digisonde-db,ocr,vipir-analysis,web,plots]",
+  "pynasonde[digisonde,digisonde-db,ocr,vipir,vipir-analysis,web,plots]",
 ]
 docs = [
   "mkdocs>=1.5", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.24",
   "mkdocs-glightbox", "mkdocs-awesome-pages-plugin",
 ]
 dev = [
-  "pynasonde[digisonde,ocr,vipir-analysis,web,plots]",
+  "pynasonde[digisonde,ocr,vipir,vipir-analysis,web,plots]",
   "pytest", "pytest-cov", "coverage",
 ]
 # kept from 1.x; no code in the package uses these yet
