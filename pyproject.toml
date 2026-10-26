@@ -41,6 +41,13 @@ dependencies = [
 Homepage = "https://github.com/shibaji7/pynasonde"
 Documentation = "https://pynasonde.readthedocs.io"
 
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--cov=pynasonde --cov-report=xml --cov-report=term-missing"
@@ -84,6 +91,7 @@ docs = [
 dev = [
   "pynasonde[digisonde,ocr,vipir,vipir-analysis,web,plots]",
   "pytest", "pytest-cov", "coverage",
+  "black", "isort", "autoflake", "build",
 ]
 # kept from 1.x; no code in the package uses these yet
 training = ["torch>=2.0", "PyIRI", "pyomnidata", "tensorboard"]

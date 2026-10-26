@@ -178,3 +178,6 @@ pynasonde/nn_inversion/
 
 # setuptools-scm generated
 pynasonde/_version.py
+
+# local planning notes
+PLAN_2_0.md

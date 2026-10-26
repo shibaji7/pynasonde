@@ -1,73 +1,141 @@
 # =============================================================================
 #  pynasonde — Project Makefile
 #
-#  Everyday targets:
-#    make clean                    Remove all build/cache/test artefacts
-#    make format                   Run isort + autoflake + black in-place
-#    make install-dev              pip install -e .[dev]
-#    make test                     Run pytest with coverage
-#    make build-dist               Format → clean → build sdist + wheel
-#    make sync [MSG="..."]         Commit + push (replaces sync.sh)
-#    make vega-sync                Copy NN-inversion module to VEGA HPC via scp
-#    make tutorials                Build both tutorial PDFs (keeps .tex + .pdf only)
-#    make tutorials-grad           Build only the graduate student tutorial
-#    make tutorials-researcher     Build only the researcher reference
-#    make tutorials-nn              Build only the NN Inversion whitepaper
-#    make tutorials-nn-ppt          Build only the NN Inversion show-and-tell PPT
-#    make tutorials-clean          Remove all LaTeX auxiliary files from tutorials/
-#
-#  Release targets:
-#    make check   VERSION=X.Y      Consistency check only (no changes)
-#    make release VERSION=X.Y      Full interactive release pipeline
-#
-#  Each release step describes what it will do and asks Y/N before running.
+#  Run `make` (or `make help`) for the list of targets.
+#  Dev tools run inside the conda env named by ENV (default: pynasonde):
+#      make env            create / update that env      make test
+#      make install-dev    editable install + dev extras  make format
+#  Override the env or disable colours:  make test ENV=myenv   NO_COLOR=1 make test
 # =============================================================================
 
-SHELL        := /bin/bash
+SHELL         := /bin/bash
 .DEFAULT_GOAL := help
 .ONESHELL:
-.PHONY: help clean format install-dev test build-dist sync check release vega-sync
+.PHONY: help env install-dev test test-fast format format-check docs docs-serve \
+        build-dist clean check release
 
-# VEGA HPC settings — override on the command line if needed
-VEGA_USER    ?= chakras4
-VEGA_HOST    ?= vegaln1.erau.edu
-VEGA_ROOT    ?= ~/Research/CodeBase/pynasonde
+ENV      ?= pynasonde
+# `conda run` keeps the env isolated without needing `conda activate` in a Makefile
+RUN      := conda run --no-capture-output -n $(ENV)
+VERSION  ?= __UNSET__
+FULL_VER := $(VERSION)
+TAG      := v$(FULL_VER)
+
+# --- colours (disabled when NO_COLOR is set) -------------------------------- #
+ifeq ($(NO_COLOR),)
+  ESC    := $(shell printf '\033')
+  RESET  := $(ESC)[0m
+  BOLD   := $(ESC)[1m
+  DIM    := $(ESC)[2m
+  RED    := $(ESC)[31m
+  GREEN  := $(ESC)[32m
+  YELLOW := $(ESC)[33m
+  BLUE   := $(ESC)[34m
+  MAGENTA:= $(ESC)[35m
+  CYAN   := $(ESC)[36m
+endif
 
 # --------------------------------------------------------------------------- #
-#  vega-sync — copy only the NN-inversion module + pyproject.toml to VEGA
-#
-#  Usage:  make vega-sync
-#          make vega-sync VEGA_USER=myuser VEGA_HOST=vega.example.edu
+#  help — generated from the `## description` after each target
 # --------------------------------------------------------------------------- #
-vega-sync:
+help: ## Show this help
+	@printf "\n$(BOLD)$(MAGENTA)  pynasonde$(RESET) $(DIM)— make targets (conda env: $(ENV))$(RESET)\n"
+	printf "$(DIM)  ───────────────────────────────────────────────────────────────$(RESET)\n"
+	awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	printf "$(DIM)  ───────────────────────────────────────────────────────────────$(RESET)\n"
+	printf "  $(YELLOW)Release$(RESET): make check VERSION=X.Y.Z  ·  make release VERSION=X.Y.Z\n\n"
+
+# --------------------------------------------------------------------------- #
+#  environment
+# --------------------------------------------------------------------------- #
+env: ## Create (or update) the conda dev env from env.yml
 	@set -euo pipefail
-	echo ""
-	echo "  Syncing NN-inversion module to $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)/"
-	echo ""
-	echo "  Files to transfer:"
-	echo "    pynasonde/vipir/analysis/nn_inversion/  (full module)"
-	echo "    OMNI/  (full OMNI dataset, if not already present on VEGA)"
-	echo ""
-	ssh $(VEGA_USER)@$(VEGA_HOST) "mkdir -p $(VEGA_ROOT)/pynasonde/vipir/analysis"
-	scp -r pynasonde/vipir/analysis/nn_inversion \
-	    $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)/pynasonde/vipir/analysis/
-	scp -r /home/chakras4/OMNI/ $(VEGA_USER)@$(VEGA_HOST):~/scratch/
-	echo ""
-	echo "  ✔  Sync complete."
-	echo "     Remote: $(VEGA_USER)@$(VEGA_HOST):$(VEGA_ROOT)"
+	printf "\n$(CYAN)  ▶ Setting up conda env '$(ENV)' from env.yml ...$(RESET)\n\n"
+	if conda env list | awk '{print $$1}' | grep -qx "$(ENV)"; then
+	  conda env update -n $(ENV) -f env.yml --prune
+	else
+	  conda env create -n $(ENV) -f env.yml
+	fi
+	printf "\n$(GREEN)  ✔  Env '$(ENV)' ready.$(RESET)  Next: make test\n\n"
+
+install-dev: ## Editable install with dev extras into the conda env
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ pip install -e .[dev] in env '$(ENV)' ...$(RESET)\n\n"
+	$(RUN) python -m pip install -e ".[dev]"
+	printf "\n$(GREEN)  ✔  Done.$(RESET)\n\n"
+
+# --------------------------------------------------------------------------- #
+#  quality
+# --------------------------------------------------------------------------- #
+test: ## Run the full test suite with coverage
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ pytest (env '$(ENV)') ...$(RESET)\n\n"
+	mkdir -p /tmp/mplconfig
+	NUMBA_DISABLE_JIT=1 MPLCONFIGDIR=/tmp/mplconfig $(RUN) python -m pytest
+	printf "\n$(GREEN)  ✔  Tests finished.$(RESET)\n\n"
+
+test-fast: ## Run tests without coverage, stop at first failure
+	@set -euo pipefail
+	mkdir -p /tmp/mplconfig
+	NUMBA_DISABLE_JIT=1 MPLCONFIGDIR=/tmp/mplconfig $(RUN) python -m pytest -x -q -o addopts=""
+
+format: ## Format in place: autoflake -> isort -> black
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ Formatting (autoflake → isort → black) ...$(RESET)\n\n"
+	$(RUN) autoflake --in-place --remove-all-unused-imports --exclude=__init__.py \
+	    --ignore-init-module-imports -r pynasonde tests examples
+	$(RUN) isort pynasonde tests examples
+	$(RUN) black pynasonde tests examples
+	printf "\n$(GREEN)  ✔  Format complete.$(RESET)\n\n"
+
+format-check: ## Check formatting without changing files
+	@set -euo pipefail
+	$(RUN) isort --check-only pynasonde tests examples
+	$(RUN) black --check pynasonde tests examples
+	printf "$(GREEN)  ✔  Formatting OK.$(RESET)\n"
+
+# --------------------------------------------------------------------------- #
+#  docs
+# --------------------------------------------------------------------------- #
+docs: ## Build the MkDocs site (strict) into site/
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ mkdocs build ...$(RESET)\n\n"
+	$(RUN) mkdocs build --strict
+	printf "\n$(GREEN)  ✔  Site built in site/$(RESET)\n\n"
+
+docs-serve: ## Serve the docs locally with live reload
+	@$(RUN) mkdocs serve
+
+# --------------------------------------------------------------------------- #
+#  build / clean
+# --------------------------------------------------------------------------- #
+build-dist: clean ## Clean, then build sdist + wheel into dist/
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ python -m build ...$(RESET)\n\n"
+	$(RUN) python -m build --sdist --wheel
+	printf "\n$(GREEN)  ✔  Build complete. Artifacts:$(RESET)\n"
+	ls -lh dist/ | sed 's/^/    /'
 	echo ""
 
-VERSION      ?= __UNSET__
-FULL_VER     := $(VERSION)
+clean: ## Remove build, cache and test artefacts
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ Cleaning build artefacts, caches, and test outputs ...$(RESET)\n"
+	rm -rf dist/ build/ site_build/ site/ .eggs/ pynasonde.egg-info/ *.egg-info/
+	rm -rf junit.xml .coverage coverage.xml .pytest_cache/
+	find . -type d -name '__pycache__'        -not -path './.git/*' -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name '.ipynb_checkpoints' -not -path './.git/*' -exec rm -rf {} + 2>/dev/null || true
+	find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -not -path './.git/*' -delete 2>/dev/null || true
+	printf "$(GREEN)  ✔  Clean complete.$(RESET)\n\n"
 
+# --------------------------------------------------------------------------- #
+#  tutorials (LaTeX → PDF) — unchanged apart from colours
+# --------------------------------------------------------------------------- #
 LATEX        := pdflatex -interaction=nonstopmode
 LATEX_AUXEXT := aux log out toc nav snm vrb bbl blg lof lot fls fdb_latexmk synctex.gz
 TUTORIAL_GRAD    := tutorials/grad_student
 TUTORIAL_RES     := tutorials/researcher
 TUTORIAL_METHODS := tutorials/methods_ppt
 TUTORIAL_NN	  := tutorials/nn_inv
-TAG       := v$(FULL_VER)
-MSG       ?=
 
 # Convenience phony aliases — only these are phony; the PDF targets are real files
 .PHONY: tutorials tutorials-grad tutorials-researcher tutorials-methods tutorials-nn tutorials-nn-ppt tutorials-clean
@@ -95,27 +163,27 @@ METHODS_NN_TEX := $(TUTORIAL_NN)/whitepaper_nn_inversion.tex
 NN_PPT_PDF     := $(TUTORIAL_NN)/nn_inversion_ppt.pdf
 NN_PPT_TEX     := $(TUTORIAL_NN)/nn_inversion_ppt.tex
 
-tutorials: $(WORKSHOP_PDF) $(METHODS_PDF) $(METHODS_PPT_PDF)
-	@echo "  Tutorials up to date: $(WORKSHOP_PDF)  $(METHODS_PDF)  $(METHODS_PPT_PDF)"
+tutorials: $(WORKSHOP_PDF) $(METHODS_PDF) $(METHODS_PPT_PDF) ## Build the tutorial PDFs (only if the .tex changed)
+	@echo -e "$(GREEN)  Tutorials up to date: $(WORKSHOP_PDF)  $(METHODS_PDF)  $(METHODS_PPT_PDF)$(RESET)"
 
-tutorials-grad: $(WORKSHOP_PDF)
-	@echo "  Tutorial up to date: $(WORKSHOP_PDF)"
+tutorials-grad: $(WORKSHOP_PDF) ## Build only the graduate student workshop
+	@echo -e "$(GREEN)  Tutorial up to date: $(WORKSHOP_PDF)$(RESET)"
 
-tutorials-researcher: $(METHODS_PDF)
-	@echo "  Tutorial up to date: $(METHODS_PDF)"
+tutorials-researcher: $(METHODS_PDF) ## Build only the researcher reference
+	@echo -e "$(GREEN)  Tutorial up to date: $(METHODS_PDF)$(RESET)"
 
-tutorials-methods: $(METHODS_PPT_PDF)
-	@echo "  Tutorial up to date: $(METHODS_PPT_PDF)"
+tutorials-methods: $(METHODS_PPT_PDF) ## Build only the methods overview slides
+	@echo -e "$(GREEN)  Tutorial up to date: $(METHODS_PPT_PDF)$(RESET)"
 
-tutorials-nn: $(METHODS_NN_PDF)
-	@echo "  Tutorial up to date: $(METHODS_NN_PDF)"
+tutorials-nn: $(METHODS_NN_PDF) ## Build only the NN inversion whitepaper
+	@echo -e "$(GREEN)  Tutorial up to date: $(METHODS_NN_PDF)$(RESET)"
 
-tutorials-nn-ppt: $(NN_PPT_PDF)
-	@echo "  Tutorial up to date: $(NN_PPT_PDF)"
+tutorials-nn-ppt: $(NN_PPT_PDF) ## Build only the NN inversion slides
+	@echo -e "$(GREEN)  Tutorial up to date: $(NN_PPT_PDF)$(RESET)"
 
 $(WORKSHOP_PDF): $(WORKSHOP_TEX)
 	@echo ""
-	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	@echo -e "$(CYAN)  [tutorials] $< is newer than $@ — rebuilding...$(RESET)"
 	cd $(TUTORIAL_GRAD) && $(LATEX) pynasonde_workshop.tex && $(LATEX) pynasonde_workshop.tex
 	cd $(CURDIR)/$(TUTORIAL_GRAD) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@echo "  Output : $@"
@@ -123,7 +191,7 @@ $(WORKSHOP_PDF): $(WORKSHOP_TEX)
 
 $(METHODS_PDF): $(METHODS_TEX)
 	@echo ""
-	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	@echo -e "$(CYAN)  [tutorials] $< is newer than $@ — rebuilding...$(RESET)"
 	cd $(TUTORIAL_RES) && $(LATEX) pynasonde_methods.tex && $(LATEX) pynasonde_methods.tex
 	cd $(CURDIR)/$(TUTORIAL_RES) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@echo "  Output : $@"
@@ -131,7 +199,7 @@ $(METHODS_PDF): $(METHODS_TEX)
 
 $(METHODS_PPT_PDF): $(METHODS_PPT_TEX)
 	@echo ""
-	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	@echo -e "$(CYAN)  [tutorials] $< is newer than $@ — rebuilding...$(RESET)"
 	cd $(TUTORIAL_METHODS) && $(LATEX) pynasonde_methods_ppt.tex && $(LATEX) pynasonde_methods_ppt.tex
 	cd $(CURDIR)/$(TUTORIAL_METHODS) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@echo "  Output : $@"
@@ -139,7 +207,7 @@ $(METHODS_PPT_PDF): $(METHODS_PPT_TEX)
 
 $(METHODS_NN_PDF): $(METHODS_NN_TEX)
 	@echo ""
-	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	@echo -e "$(CYAN)  [tutorials] $< is newer than $@ — rebuilding...$(RESET)"
 	cd $(TUTORIAL_NN) && $(LATEX) whitepaper_nn_inversion.tex && $(LATEX) whitepaper_nn_inversion.tex
 	cd $(CURDIR)/$(TUTORIAL_NN) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@echo "  Output : $@"
@@ -147,200 +215,32 @@ $(METHODS_NN_PDF): $(METHODS_NN_TEX)
 
 $(NN_PPT_PDF): $(NN_PPT_TEX)
 	@echo ""
-	@echo "  [tutorials] $< is newer than $@ — rebuilding..."
+	@echo -e "$(CYAN)  [tutorials] $< is newer than $@ — rebuilding...$(RESET)"
 	cd $(TUTORIAL_NN) && $(LATEX) nn_inversion_ppt.tex && $(LATEX) nn_inversion_ppt.tex
 	cd $(CURDIR)/$(TUTORIAL_NN) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@echo "  Output : $@"
 	@echo ""
 
-tutorials-clean:
+tutorials-clean: ## Remove LaTeX aux files (keep .tex + .pdf)
 	@cd $(CURDIR)/$(TUTORIAL_GRAD)    && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@cd $(CURDIR)/$(TUTORIAL_RES)     && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@cd $(CURDIR)/$(TUTORIAL_METHODS) && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
 	@cd $(CURDIR)/$(TUTORIAL_NN)      && ls | grep -vE "\.(tex|pdf)$$" | xargs -r rm -f
-	@echo "  LaTeX auxiliary files removed (kept .tex and .pdf)."
-
-# --------------------------------------------------------------------------- #
-help:
-	@echo ""
-	@echo "  pynasonde — available targets"
-	@echo "  ═══════════════════════════════════════════════════════════════"
-	@echo "  Everyday"
-	@echo "  ───────────────────────────────────────────────────────────────"
-	@echo "  make clean                  Remove build/cache/test artefacts"
-	@echo "  make format                 isort + autoflake + black (in-place)"
-	@echo "  make install-dev            pip install -e .[dev]"
-	@echo "  make test                   pytest with coverage"
-	@echo "  make build-dist             format → clean → sdist + wheel"
-	@echo "  make sync                   Commit all changes and push to GitHub"
-	@echo "  make sync MSG=\"my message\"  Commit with a custom message"
-	@echo "  make vega-sync              Copy NN-inversion module + pyproject.toml to VEGA"
-	@echo "  make tutorials              Build all three tutorial PDFs"
-	@echo "  make tutorials-grad         Build only the graduate student workshop"
-	@echo "  make tutorials-researcher   Build only the researcher reference"
-	@echo "  make tutorials-methods      Build only the methods overview PPT"
-	@echo "  make tutorials-nn           Build only the NN Inversion whitepaper"
-	@echo "  make tutorials-nn-ppt       Build only the NN Inversion show-and-tell PPT"
-	@echo "  make tutorials-clean        Remove LaTeX aux files (keep .tex + .pdf)"
-	@echo ""
-	@echo "  Release"
-	@echo "  ───────────────────────────────────────────────────────────────"
-	@echo "  make check   VERSION=X.Y.Z   Version consistency check (read-only)"
-	@echo "  make release VERSION=X.Y.Z   Full release pipeline (interactive)"
-	@echo "  ═══════════════════════════════════════════════════════════════"
-	@echo ""
-
-# --------------------------------------------------------------------------- #
-#  clean — remove all build, cache, and test artefacts
-# --------------------------------------------------------------------------- #
-clean:
-	@set -euo pipefail
-	echo ""
-	echo "  Cleaning build artefacts, caches, and test outputs..."
-	echo ""
-	rm -rf dist/ build/ site_build/ site/
-	rm -rf pynasonde.egg-info/ *.egg-info/
-	rm -rf .eggs/
-	rm -rf junit.xml .coverage coverage.xml .pytest_cache/
-	find . -type d -name '__pycache__'       -not -path './.git/*' -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name '.ipynb_checkpoints' -not -path './.git/*' -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name '*.pyc' -o -type f -name '*.pyo' | xargs rm -f 2>/dev/null || true
-	echo "  ✔  Clean complete."
-	echo ""
-
-# --------------------------------------------------------------------------- #
-#  format — isort → autoflake → black
-# --------------------------------------------------------------------------- #
-format:
-	@set -euo pipefail
-	echo ""
-	echo "  Running formatters (isort → autoflake → black)..."
-	echo ""
-	isort -rc -sl .
-	autoflake --in-place --imports=SDCarto,scienceplots -r .
-	isort -rc -m 3 .
-	black .
-	echo "  ✔  Format complete."
-	echo ""
-
-# --------------------------------------------------------------------------- #
-#  install-dev — editable install with dev extras
-# --------------------------------------------------------------------------- #
-install-dev:
-	@set -euo pipefail
-	echo ""
-	echo "  Installing pynasonde in editable mode with dev dependencies..."
-	pip install -e .[dev]
-	echo "  ✔  Done."
-	echo ""
-
-# --------------------------------------------------------------------------- #
-#  test — run the full test suite with coverage
-# --------------------------------------------------------------------------- #
-test:
-	@set -euo pipefail
-	echo ""
-	echo "  Running pytest in conda env: pynasonde"
-	echo ""
-	mkdir -p /tmp/mplconfig
-	NUMBA_DISABLE_JIT=1 MPLCONFIGDIR=/tmp/mplconfig conda run -n pynasonde python -m pytest
-	echo ""
-
-# --------------------------------------------------------------------------- #
-#  build-dist — format + clean artefacts + build sdist + wheel
-# --------------------------------------------------------------------------- #
-build-dist:
-	@set -euo pipefail
-	echo ""
-	echo "  Building source distribution and wheel..."
-	echo "  (runs format → clean artefacts → python -m build)"
-	echo ""
-	isort -rc -sl .
-	autoflake --in-place --imports=SDCarto,scienceplots -r .
-	isort -rc -m 3 .
-	black .
-	rm -rf dist/ build/ pynasonde.egg-info/ *.egg-info/
-	if ! python -m build --version &>/dev/null; then
-	  echo "  ⚠  python -m build not found — installing..."
-	  pip install build
-	fi
-	python -m build --sdist --wheel
-	echo ""
-	echo "  ✔  Build complete. Artifacts:"
-	ls -lh dist/ | sed 's/^/    /'
-	echo ""
-
-# --------------------------------------------------------------------------- #
-#  sync — stage all, commit (auto or custom message), push  [replaces sync.sh]
-#   Usage:  make sync
-#           make sync MSG="feat: add new parser"
-# --------------------------------------------------------------------------- #
-sync:
-	@set -euo pipefail
-
-	confirm() {
-	  local prompt="$$1"
-	  local reply
-	  printf "\n  $$prompt  [y/N] → "
-	  read -r reply
-	  [[ "$${reply,,}" == "y" ]]
-	}
-
-	# Check for any changes at all
-	if git diff --quiet && git diff --cached --quiet && \
-	   [ -z "$$(git ls-files --others --exclude-standard)" ]; then
-	  echo ""
-	  echo "  ✔  Nothing to sync — working tree is clean."
-	  echo ""
-	  exit 0
-	fi
-
-	# Build commit message
-	if [[ -n "$(MSG)" ]]; then
-	  COMMIT_MSG="$(MSG)"
-	else
-	  CHANGED=$$(git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard | head -6 | tr '\n' ',' | sed 's/,$$//')
-	  COUNT=$$(  git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard | wc -l | tr -d ' ')
-	  COMMIT_MSG="Update codebase: $${COUNT} file(s) changed — $${CHANGED}"
-	fi
-
-	CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)
-
-	echo ""
-	echo "  Modified / untracked files:"
-	git status --short | sed 's/^/    /'
-	echo ""
-	echo "  Will run:"
-	echo "    git add -A"
-	echo "    git commit -m \"$${COMMIT_MSG}\""
-	echo "    git push origin $${CURRENT_BRANCH}"
-	echo ""
-
-	if confirm "Commit and push to origin/$${CURRENT_BRANCH}?"; then
-	  git add -A
-	  git commit -m "$${COMMIT_MSG}"
-	  git push origin "$${CURRENT_BRANCH}"
-	  echo ""
-	  echo "  ✔  Done!  $$(git log --oneline -1)"
-	  echo "     https://github.com/shibaji7/pynasonde"
-	else
-	  echo "  ↳ Aborted."
-	fi
-	echo ""
+	@echo -e "$(GREEN)  ✔  LaTeX auxiliary files removed (kept .tex and .pdf).$(RESET)"
 
 # --------------------------------------------------------------------------- #
 #  check — read-only version consistency check
 # --------------------------------------------------------------------------- #
-check:
+check: ## Version/tag consistency check (VERSION=X.Y.Z, read-only)
 	@set -euo pipefail
 	if [[ "$(VERSION)" == "__UNSET__" ]]; then
 	  echo ""
-	  echo "  ERROR: No version provided.  Usage:  make check VERSION=1.1.0"
+	  echo -e "$(RED)  ERROR: No version provided.  Usage:  make check VERSION=1.1.0$(RESET)"
 	  echo ""
 	  exit 1
 	fi
 	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then
-	  echo "ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'"
+	  echo -e "$(RED)ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'$(RESET)"
 	  exit 1
 	fi
 	echo ""
@@ -353,37 +253,37 @@ check:
 	echo "  pyproject.toml          dynamic = [\"version\"] — single source is the git tag $(TAG)"
 	echo ""
 	if git rev-parse -q --verify "refs/tags/$(TAG)" >/dev/null; then
-	  echo "  ✔  Tag $(TAG) exists."
+	  echo -e "$(GREEN)  ✔  Tag $(TAG) exists.$(RESET)"
 	else
-	  echo "  ℹ  Tag $(TAG) does not exist yet — make release VERSION=$(VERSION) will create it."
+	  echo -e "$(YELLOW)  ℹ  Tag $(TAG) does not exist yet — make release VERSION=$(VERSION) will create it.$(RESET)"
 	fi
 	echo ""
 
 # --------------------------------------------------------------------------- #
 #  release — full interactive release pipeline
 # --------------------------------------------------------------------------- #
-release:
+release: ## Interactive release pipeline (VERSION=X.Y.Z)
 	@set -euo pipefail
 
 	# ── 0. Validate input ─────────────────────────────────────────────────
 	if [[ "$(VERSION)" == "__UNSET__" ]]; then
 	  echo ""
-	  echo "  ERROR: No version provided."
+	  echo -e "$(RED)  ERROR: No version provided.$(RESET)"
 	  echo "  Usage:  make release VERSION=X.Y.Z   (e.g.  make release VERSION=1.1.0)"
 	  echo ""
 	  exit 1
 	fi
 	if ! echo "$(VERSION)" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then
-	  echo "ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'"
+	  echo -e "$(RED)ERROR: VERSION must be MAJOR.MINOR.PATCH (e.g. 1.1.0), got '$(VERSION)'$(RESET)"
 	  exit 1
 	fi
 
 	echo ""
-	echo "╔══════════════════════════════════════════════════════════════╗"
-	echo "║           pynasonde  —  Release $(FULL_VER)                "
-	echo "║  Git tag  : $(TAG)                                          "
-	echo "║  Remote   : git@github.com:shibaji7/pynasonde.git           "
-	echo "╚══════════════════════════════════════════════════════════════╝"
+	echo -e "$(BOLD)$(BLUE)╔══════════════════════════════════════════════════════════════╗$(RESET)"
+	echo -e "$(BOLD)$(BLUE)║           pynasonde  —  Release $(FULL_VER)                $(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  Git tag  : $(TAG)                                          $(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  Remote   : git@github.com:shibaji7/pynasonde.git           $(RESET)"
+	echo -e "$(BOLD)$(BLUE)╚══════════════════════════════════════════════════════════════╝$(RESET)"
 	echo ""
 
 	confirm() {
@@ -396,9 +296,9 @@ release:
 	skip_step() { echo "  ↳ Skipped."; }
 
 	# ── 1. Version consistency check & update ─────────────────────────────
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 1 — Version (single-sourced from git tag)"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 1 — Version (single-sourced from git tag)$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	echo "  Version is single-sourced from the git tag by setuptools-scm."
@@ -407,14 +307,14 @@ release:
 
 	# ── 2. Commit working tree ─────────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 2 — Commit working tree changes"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 2 — Commit working tree changes$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	GIT_STATUS=$$(git status --short)
 	if [[ -z "$$GIT_STATUS" ]]; then
-	  echo "  ✔  Working tree is clean — nothing to commit."
+	  echo -e "$(GREEN)  ✔  Working tree is clean — nothing to commit.$(RESET)"
 	else
 	  echo "  Modified / untracked files:"
 	  git status --short | sed 's/^/    /'
@@ -426,7 +326,7 @@ release:
 	  if confirm "Commit all working-tree changes?"; then
 	    git add -A
 	    git commit -m "chore: bump version to $(FULL_VER)"
-	    echo "  ✔  Committed."
+	    echo -e "$(GREEN)  ✔  Committed.$(RESET)"
 	  else
 	    skip_step
 	  fi
@@ -434,19 +334,19 @@ release:
 
 	# ── 3. Create annotated git tag ────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 3 — Create annotated git tag"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 3 — Create annotated git tag$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	TAG_SKIPPED=false
 	if git tag | grep -q "^$(TAG)$$"; then
-	  echo "  ⚠  Tag $(TAG) already exists locally."
+	  echo -e "$(YELLOW)  ⚠  Tag $(TAG) already exists locally.$(RESET)"
 	  echo "  Will run:  git tag -d $(TAG)  then re-create it."
 	  echo ""
 	  if confirm "Delete and re-create tag $(TAG)?"; then
 	    git tag -d $(TAG)
-	    echo "  ✔  Old local tag deleted."
+	    echo -e "$(GREEN)  ✔  Old local tag deleted.$(RESET)"
 	  else
 	    echo "  ↳ Keeping existing tag."
 	    TAG_SKIPPED=true
@@ -461,7 +361,7 @@ release:
 	  echo ""
 	  if confirm "Create annotated tag $(TAG)?"; then
 	    git tag -a $(TAG) -m "$$DEFAULT_MSG"
-	    echo "  ✔  Tag $(TAG) created."
+	    echo -e "$(GREEN)  ✔  Tag $(TAG) created.$(RESET)"
 	  else
 	    skip_step
 	  fi
@@ -469,9 +369,9 @@ release:
 
 	# ── 4. Push commits to GitHub ──────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 4 — Push commits to GitHub"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 4 — Push commits to GitHub$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)
@@ -482,16 +382,16 @@ release:
 	echo ""
 	if confirm "Push commits to origin/$${CURRENT_BRANCH}?"; then
 	  git push origin "$${CURRENT_BRANCH}"
-	  echo "  ✔  Commits pushed."
+	  echo -e "$(GREEN)  ✔  Commits pushed.$(RESET)"
 	else
 	  skip_step
 	fi
 
 	# ── 5. Push tag to GitHub ──────────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 5 — Push tag to GitHub"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 5 — Push tag to GitHub$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	REMOTE_TAG_EXISTS=false
@@ -500,14 +400,14 @@ release:
 	fi
 
 	if [[ "$$REMOTE_TAG_EXISTS" == "true" ]]; then
-	  echo "  ⚠  Tag $(TAG) already exists on the remote."
+	  echo -e "$(YELLOW)  ⚠  Tag $(TAG) already exists on the remote.$(RESET)"
 	  echo "     Force-push will overwrite it — any GitHub release or CI"
 	  echo "     already pointing at it will be re-anchored."
 	  echo "  Will run:  git push origin --force $(TAG)"
 	  echo ""
 	  if confirm "Force-push tag $(TAG) to GitHub (overwrites remote)?"; then
 	    git push origin --force $(TAG)
-	    echo "  ✔  Tag force-pushed."
+	    echo -e "$(GREEN)  ✔  Tag force-pushed.$(RESET)"
 	  else
 	    skip_step
 	  fi
@@ -516,7 +416,7 @@ release:
 	  echo ""
 	  if confirm "Push tag $(TAG) to GitHub?"; then
 	    git push origin $(TAG)
-	    echo "  ✔  Tag pushed."
+	    echo -e "$(GREEN)  ✔  Tag pushed.$(RESET)"
 	  else
 	    skip_step
 	  fi
@@ -524,13 +424,13 @@ release:
 
 	# ── 6. Create GitHub release ───────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 6 — Create GitHub release"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 6 — Create GitHub release$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	if ! command -v gh &>/dev/null; then
-	  echo "  ⚠  gh CLI not found — skipping GitHub release creation."
+	  echo -e "$(YELLOW)  ⚠  gh CLI not found — skipping GitHub release creation.$(RESET)"
 	  echo "     Install from https://cli.github.com/ and re-run."
 	else
 	  RELEASE_NOTES_FILE="issue/3/release_notes_v$(FULL_VER).md"
@@ -538,14 +438,14 @@ release:
 	  echo "    gh release create $(TAG) --title \"pynasonde $(FULL_VER)\" --notes-file $$RELEASE_NOTES_FILE"
 	  echo ""
 	  if [[ ! -f "$$RELEASE_NOTES_FILE" ]]; then
-	    echo "  ⚠  Release notes file not found: $$RELEASE_NOTES_FILE"
+	    echo -e "$(YELLOW)  ⚠  Release notes file not found: $$RELEASE_NOTES_FILE$(RESET)"
 	    echo "     Create this file and re-run release."
 	    skip_step
 	  elif confirm "Create GitHub release $(TAG)?"; then
 	    gh release create $(TAG) \
 	        --title "pynasonde $(FULL_VER)" \
 	        --notes-file "$$RELEASE_NOTES_FILE"
-	    echo "  ✔  GitHub release created."
+	    echo -e "$(GREEN)  ✔  GitHub release created.$(RESET)"
 	    echo "     $$(gh release view $(TAG) --json url -q .url 2>/dev/null || true)"
 	  else
 	    skip_step
@@ -554,18 +454,18 @@ release:
 
 	# ── 7. Build distribution packages ────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 7 — Build source distribution and wheel"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 7 — Build source distribution and wheel$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	if ! python -m build --version &>/dev/null; then
-	  echo "  ⚠  python -m build not found in active environment."
+	  echo -e "$(YELLOW)  ⚠  python -m build not found in active environment.$(RESET)"
 	  echo "     Will install with:  pip install build"
 	  echo ""
 	  if confirm "Install 'build' now?"; then
 	    pip install build
-	    echo "  ✔  build installed."
+	    echo -e "$(GREEN)  ✔  build installed.$(RESET)"
 	  else
 	    echo "  ↳ Skipping build step."
 	    SKIP_BUILD=true
@@ -584,7 +484,7 @@ release:
 	    rm -rf dist/ build/ pynasonde.egg-info/ *.egg-info/
 	    python -m build --sdist --wheel
 	    echo ""
-	    echo "  ✔  Build complete. Artifacts:"
+	    echo -e "$(GREEN)  ✔  Build complete. Artifacts:$(RESET)"
 	    ls -lh dist/ | sed 's/^/    /'
 	  else
 	    skip_step
@@ -593,17 +493,17 @@ release:
 
 	# ── 8. Upload to PyPI ──────────────────────────────────────────────────
 	echo ""
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	echo "  STEP 8 — Upload to PyPI"
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
+	echo -e "$(BOLD)$(CYAN)  STEP 8 — Upload to PyPI$(RESET)"
+	echo -e "$(BOLD)$(CYAN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(RESET)"
 	echo ""
 
 	if ! command -v twine &>/dev/null; then
-	  echo "  ⚠  twine not found.  Will install with:  pip install --upgrade twine"
+	  echo -e "$(YELLOW)  ⚠  twine not found.  Will install with:  pip install --upgrade twine$(RESET)"
 	  echo ""
 	  if confirm "Install twine now?"; then
 	    pip install --upgrade twine
-	    echo "  ✔  twine installed."
+	    echo -e "$(GREEN)  ✔  twine installed.$(RESET)"
 	  else
 	    echo "  ↳ Skipping upload."
 	    SKIP_TWINE=true
@@ -614,25 +514,25 @@ release:
 	  echo "  Running pre-upload metadata check:  twine check dist/*"
 	  if ! python -m twine check dist/*; then
 	    echo ""
-	    echo "  ⚠  twine check failed — usually an outdated twine that does not"
+	    echo -e "$(YELLOW)  ⚠  twine check failed — usually an outdated twine that does not$(RESET)"
 	    echo "     understand Metadata-Version 2.4 (License-File field)."
 	    echo "     Will run:  pip install --upgrade twine"
 	    echo ""
 	    if confirm "Upgrade twine and retry?"; then
 	      pip install --upgrade twine
-	      echo "  ✔  twine upgraded to $$(twine --version)"
+	      echo -e "$(GREEN)  ✔  twine upgraded to $$(twine --version)$(RESET)"
 	      if ! python -m twine check dist/*; then
 	        echo "  ✗  twine check still failing — aborting upload."
 	        SKIP_TWINE=true
 	      else
-	        echo "  ✔  twine check passed after upgrade."
+	        echo -e "$(GREEN)  ✔  twine check passed after upgrade.$(RESET)"
 	      fi
 	    else
 	      echo "  ↳ Skipping upload."
 	      SKIP_TWINE=true
 	    fi
 	  else
-	    echo "  ✔  twine check passed."
+	    echo -e "$(GREEN)  ✔  twine check passed.$(RESET)"
 	  fi
 	fi
 
@@ -644,7 +544,7 @@ release:
 	  echo ""
 	  if confirm "Upload dist/* to PyPI?"; then
 	    python -m twine upload dist/*
-	    echo "  ✔  Uploaded to PyPI."
+	    echo -e "$(GREEN)  ✔  Uploaded to PyPI.$(RESET)"
 	    echo "     https://pypi.org/project/pynasonde/$(FULL_VER)/"
 	  else
 	    skip_step
@@ -653,10 +553,10 @@ release:
 
 	# ── Done ───────────────────────────────────────────────────────────────
 	echo ""
-	echo "╔══════════════════════════════════════════════════════════════╗"
-	echo "║  Release $(FULL_VER) complete.                             "
-	echo "║  Tag    : $(TAG)                                            "
-	echo "║  PyPI   : https://pypi.org/project/pynasonde/$(FULL_VER)/  "
-	echo "║  GitHub : https://github.com/shibaji7/pynasonde/releases    "
-	echo "╚══════════════════════════════════════════════════════════════╝"
+	echo -e "$(BOLD)$(BLUE)╔══════════════════════════════════════════════════════════════╗$(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  Release $(FULL_VER) complete.                             $(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  Tag    : $(TAG)                                            $(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  PyPI   : https://pypi.org/project/pynasonde/$(FULL_VER)/  $(RESET)"
+	echo -e "$(BOLD)$(BLUE)║  GitHub : https://github.com/shibaji7/pynasonde/releases    $(RESET)"
+	echo -e "$(BOLD)$(BLUE)╚══════════════════════════════════════════════════════════════╝$(RESET)"
 	echo ""
