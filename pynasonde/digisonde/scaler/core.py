@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
@@ -47,6 +48,18 @@ class IonoscaleResult:
     trace_metrics: Dict[str, float] = field(default_factory=dict)
 
     def to_series(self, prefix: str | None = None) -> pd.Series:
+        """Flatten the scaled parameters into a :class:`pandas.Series`.
+
+        Includes the layer parameters (foE, h'E, foEs, h'Es, foF1, h'F1, foF2,
+        h'F2, hmF2), the trace metrics, and one ``flag_<name>`` entry per quality
+        flag.
+
+        Args:
+            prefix: If given, every key is prefixed with ``"<prefix>_"``.
+
+        Returns:
+            Series of scaled parameters.
+        """
         d = {
             "foE_mhz": self.foE_mhz,
             "h_prime_E_km": self.h_prime_E_km,
@@ -68,6 +81,11 @@ class IonoscaleResult:
         return pd.Series(d)
 
     def summary(self) -> str:
+        """Return a one-line summary of the main scaled parameters.
+
+        Returns:
+            String with foE, foEs, foF1 and foF2 in MHz and h'E and h'F2 in km.
+        """
         return (
             f"foE={self.foE_mhz:.2f}  foEs={self.foEs_mhz:.2f}  "
             f"foF1={self.foF1_mhz:.2f}  foF2={self.foF2_mhz:.2f} MHz  "
@@ -297,12 +315,9 @@ class IonoscaleBase:
         fo  = max frequency on the layer trace / inlier set.
         h'  = minimum virtual height of the layer (classical ionosonde definition).
 
-        Parameters
-        ----------
-        layers : dict with keys ``"E"``, ``"Es"``, ``"F1"``, ``"F2"``
-            (missing keys → NaN for that layer).
-        quality_flags : optional override; auto-generated from emptiness
-            when None.
+        Args:
+            layers (dict with keys ``"E"``, ``"Es"``, ``"F1"``, ``"F2"``): (missing keys → NaN for that layer).
+            quality_flags (optional override; auto-generated from emptiness): when None.
         """
 
         def fo(df):
@@ -457,21 +472,18 @@ class IonogramAutoScaler(IonoscaleBase):
     ) -> IonoscaleResult:
         """Clean (optional) + RANSAC-fit per layer → IonoscaleResult.
 
-        Parameters
-        ----------
-        df : pd.DataFrame
-            Raw data (``already_cleaned=False``) or pre-cleaned
-            ``IonogramAutoScaler.cleaned_`` / ``IonoscaleBase.cleaned_``
-            (``already_cleaned=True``).
-        already_cleaned : bool
-            Skip the cleaning pipeline when True.
-        layers : list of dicts
-            Per-layer band definitions with keys:
-            ``name``, ``h_lo``, ``h_hi``, ``f_lo``, ``f_hi``.
-            F1 is always detected automatically between foE and foF2.
+        Args:
+            df (pd.DataFrame): Raw data (``already_cleaned=False``) or pre-cleaned
+                ``IonogramAutoScaler.cleaned_`` / ``IonoscaleBase.cleaned_``
+                (``already_cleaned=True``).
+            already_cleaned (bool): Skip the cleaning pipeline when True.
+            layers (list of dicts): Per-layer band definitions with keys:
+                ``name``, ``h_lo``, ``h_hi``, ``f_lo``, ``f_hi``.
+                F1 is always detected automatically between foE and foF2.
 
         Returns:
-        IonoscaleResult — cleaned data available via ``self.cleaned_``.
+            IonoscaleResult: Scaled parameters; cleaned data is available via
+                ``self.cleaned_``.
         """
         cleaned = df if already_cleaned else self.clean(df)
         if cleaned.empty:
@@ -631,7 +643,7 @@ def _concat_cleaned_by_layer(layer_details: dict[str, dict]) -> pd.DataFrame:
 def scale_dataframe_with_preset(
     df: pd.DataFrame,
     *,
-    time=None,
+    time: dt.datetime | pd.Timestamp | None = None,
     lat_deg: float | None = None,
     lon_deg: float | None = None,
     sza_deg: float | None = None,

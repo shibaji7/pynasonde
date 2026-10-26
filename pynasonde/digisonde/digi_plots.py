@@ -201,7 +201,7 @@ class DigiPlots(object):
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
-    def close(self):
+    def close(self) -> None:
         """Clear and close the current Matplotlib figure.
 
         This frees memory held by the figure and closes the associated

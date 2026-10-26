@@ -30,7 +30,16 @@ import pandas as pd
 from loguru import logger
 
 
-def get_matlab_pynasonde_lib():
+def get_matlab_pynasonde_lib() -> str:
+    """Locate the MATLAB library bundled with pynasonde.
+
+    Returns:
+        Path of the installed ``pynasonde/matlab_lib`` directory.
+
+    Raises:
+        ImportError: If the ``pynasonde`` package cannot be found.
+        FileNotFoundError: If the library directory does not exist.
+    """
     import importlib.util
     import pathlib
 
@@ -47,6 +56,16 @@ def get_matlab_pynasonde_lib():
 
 
 class CreateFig:
+    """Create SAO summary figures by driving MATLAB's ``SaoSummaryPlots``.
+
+    Starting an instance starts a MATLAB engine session and adds the MATLAB
+    library to its path. Call :meth:`close` when finished.
+
+    Args:
+        fig_path: Directory in which figures are saved.
+        lib_path: MATLAB library directory; defaults to the library bundled with
+            pynasonde.
+    """
 
     def __init__(self, fig_path: str = "figures/", lib_path: str = None):
         self.fig_path = fig_path
@@ -56,7 +75,8 @@ class CreateFig:
         logger.info("Matlab engine started and library path added.")
         return
 
-    def close(self):
+    def close(self) -> None:
+        """Shut down the MATLAB engine session."""
         logger.info("Closing Matlab engine.")
         self.eng.quit()
         return
@@ -68,6 +88,17 @@ class CreateFig:
         fontsize: int = 16,
         fig_shape: tuple = (8, 2),
     ):
+        """Draw stacked time-series panels of scaled parameters and save the figure.
+
+        Args:
+            data_dicts: One dict per panel. ``"dataset"`` (a DataFrame) is required;
+                optional keys are ``datetime_key``, ``xlim``, ``left_yparams``,
+                ``right_yparams``, ``left_param_labels``, ``right_param_labels``,
+                ``color_direction``, ``title_txt``, ``vlines`` and ``vline_styles``.
+            fig_file_name: Name of the figure file to save.
+            fontsize: Font size used in the MATLAB figure.
+            fig_shape: ``(width, height-per-panel)`` of the figure.
+        """
         self.eng.eval(
             f"""
             sp = SaoSummaryPlots("", {len(data_dicts)}, 1, {fontsize}, [{fig_shape[0]} {fig_shape[1]}*{len(data_dicts)}]);

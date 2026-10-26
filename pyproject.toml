@@ -45,6 +45,14 @@ Documentation = "https://pynasonde.readthedocs.io"
 line-length = 88
 target-version = ["py311"]
 
+[tool.mypy]
+# Lightweight, non-blocking: only annotated code is checked (see `make typecheck`).
+python_version = "3.11"
+files = ["pynasonde"]
+ignore_missing_imports = true
+check_untyped_defs = false
+exclude = ["pynasonde/matlab_lib/"]
+
 [tool.isort]
 profile = "black"
 
@@ -92,7 +100,7 @@ docs = [
 dev = [
   "pynasonde[digisonde,digisonde-scaler,ocr,vipir,vipir-analysis,web,plots]",
   "pytest", "pytest-cov", "coverage",
-  "black>=24,<25", "isort>=5,<6", "autoflake", "build",
+  "black>=24,<25", "isort>=5,<6", "autoflake", "build", "mypy",
 ]
 # kept from 1.x; no code in the package uses these yet
 training = ["torch>=2.0", "PyIRI", "pyomnidata", "tensorboard"]

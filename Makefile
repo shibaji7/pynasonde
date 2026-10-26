@@ -11,7 +11,7 @@
 SHELL         := /bin/bash
 .DEFAULT_GOAL := help
 .ONESHELL:
-.PHONY: help env install-dev test test-fast format format-check docs docs-serve \
+.PHONY: help env install-dev test test-fast format format-check typecheck docs docs-serve \
         build-dist clean check release
 
 ENV      ?= pynasonde
@@ -93,6 +93,11 @@ format-check: ## Check formatting without changing files
 	$(RUN) isort --check-only pynasonde tests examples
 	$(RUN) black --check pynasonde tests examples
 	printf "$(GREEN)  ✔  Formatting OK.$(RESET)\n"
+
+typecheck: ## Run mypy (informational; typing is partial, see [tool.mypy])
+	@set -euo pipefail
+	printf "\n$(CYAN)  ▶ mypy (env '$(ENV)') ...$(RESET)\n\n"
+	$(RUN) python -m mypy pynasonde || printf "\n$(YELLOW)  ⚠  mypy reported issues (non-blocking baseline).$(RESET)\n"
 
 # --------------------------------------------------------------------------- #
 #  docs

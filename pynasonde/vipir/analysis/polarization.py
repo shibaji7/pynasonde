@@ -64,26 +64,18 @@ _MODE_UNKNOWN = "unknown"  # PP is NaN (< 3 receivers)
 class PolarizationResult:
     """O/X classification results for one ionogram sounding.
 
-    Parameters
-    ----------
-    annotated_df:
-        Copy of the input echo DataFrame with a new ``"mode"`` column added.
-        Values are one of ``"O"``, ``"X"``, ``"ambiguous"``, ``"unknown"``.
-    o_mode_count:
-        Number of echoes labelled O-mode.
-    x_mode_count:
-        Number of echoes labelled X-mode.
-    ambiguous_count:
-        Number of echoes whose |PP| fell below ``pp_ambiguous_threshold_deg``
-        (near-linear polarization; mode cannot be determined reliably).
-    unknown_count:
-        Number of echoes with NaN PP (fewer than ``min_rx_for_direction``
-        receivers used in the spatial fit).
-    o_mode_sign:
-        Sign convention used: ``+1`` means positive PP → O-mode,
-        ``-1`` means negative PP → O-mode.
-    pp_ambiguous_threshold_deg:
-        |PP| threshold below which echoes were labelled ``"ambiguous"``.
+    Args:
+        annotated_df: Copy of the input echo DataFrame with a new ``"mode"`` column added.
+            Values are one of ``"O"``, ``"X"``, ``"ambiguous"``, ``"unknown"``.
+        o_mode_count: Number of echoes labelled O-mode.
+        x_mode_count: Number of echoes labelled X-mode.
+        ambiguous_count: Number of echoes whose |PP| fell below ``pp_ambiguous_threshold_deg``
+            (near-linear polarization; mode cannot be determined reliably).
+        unknown_count: Number of echoes with NaN PP (fewer than ``min_rx_for_direction``
+            receivers used in the spatial fit).
+        o_mode_sign: Sign convention used: ``+1`` means positive PP → O-mode,
+            ``-1`` means negative PP → O-mode.
+        pp_ambiguous_threshold_deg: |PP| threshold below which echoes were labelled ``"ambiguous"``.
     """
 
     annotated_df: pd.DataFrame
@@ -123,15 +115,12 @@ class PolarizationResult:
     def plot(self, ax: Optional[plt.Axes] = None) -> plt.Axes:
         """Plot a PP histogram with O/X classification regions highlighted.
 
-        Parameters
-        ----------
-        ax:
-            Existing :class:`matplotlib.axes.Axes` to draw into.  A new
-            figure is created when ``None`` (default).
+        Args:
+            ax: Existing :class:`matplotlib.axes.Axes` to draw into.  A new
+                figure is created when ``None`` (default).
 
-        Returns
-        -------
-        matplotlib.axes.Axes
+        Returns:
+            matplotlib.axes.Axes:
         """
         if ax is None:
             _, ax = plt.subplots(figsize=(7, 4))
@@ -184,23 +173,18 @@ class PolarizationClassifier:
     installations where negative PP corresponds to left-hand (ordinary) wave
     polarization.
 
-    Parameters
-    ----------
-    o_mode_sign:
-        ``-1`` — negative PP → O-mode (northern hemisphere default).
-        ``+1`` — positive PP → O-mode (southern hemisphere, or reversed layout).
-    pp_ambiguous_threshold_deg:
-        Echoes with ``|PP| < threshold`` are labelled ``"ambiguous"``
-        (near-linear polarization; neither mode dominates).  Default ``20.0``.
-    pp_col:
-        Name of the PP column in the input DataFrame.
-        Default ``"polarization_deg"``.
+    Args:
+        o_mode_sign: ``-1`` — negative PP → O-mode (northern hemisphere default).
+            ``+1`` — positive PP → O-mode (southern hemisphere, or reversed layout).
+        pp_ambiguous_threshold_deg: Echoes with ``|PP| < threshold`` are labelled ``"ambiguous"``
+            (near-linear polarization; neither mode dominates).  Default ``20.0``.
+        pp_col: Name of the PP column in the input DataFrame.
+            Default ``"polarization_deg"``.
 
-    Examples
-    --------
-    >>> clf = PolarizationClassifier(o_mode_sign=-1)
-    >>> result = clf.fit(extractor.to_dataframe())
-    >>> o_df = result.o_mode_df()
+    Examples:
+        >>> clf = PolarizationClassifier(o_mode_sign=-1)
+        >>> result = clf.fit(extractor.to_dataframe())
+        >>> o_df = result.o_mode_df()
     """
 
     def __init__(
@@ -232,15 +216,11 @@ class PolarizationClassifier:
         southern hemisphere.  A rigorous determination requires IGRF, but for
         most mid-latitude stations this approximation is sufficient.
 
-        Parameters
-        ----------
-        station_lat:
-            Geodetic latitude in decimal degrees (positive north).
+        Args:
+            station_lat: Geodetic latitude in decimal degrees (positive north).
 
-        Returns
-        -------
-        int
-            ``-1`` for northern hemisphere, ``+1`` for southern hemisphere.
+        Returns:
+            int: ``-1`` for northern hemisphere, ``+1`` for southern hemisphere.
         """
         sign = -1 if station_lat >= 0 else 1
         logger.info(f"Inferred o_mode_sign={sign} from station_lat={station_lat:.2f}°")
@@ -253,23 +233,17 @@ class PolarizationClassifier:
     def fit(self, df: pd.DataFrame) -> PolarizationResult:
         """Classify every echo in *df* by wave mode.
 
-        Parameters
-        ----------
-        df:
-            Echo DataFrame produced by
-            :class:`~pynasonde.vipir.riq.echo.EchoExtractor` or
-            :class:`~pynasonde.vipir.riq.parsers.filter.IonogramFilter`.
-            Must contain a column named ``self.pp_col``.
+        Args:
+            df: Echo DataFrame produced by
+                :class:`~pynasonde.vipir.riq.echo.EchoExtractor` or
+                :class:`~pynasonde.vipir.riq.parsers.filter.IonogramFilter`.
+                Must contain a column named ``self.pp_col``.
 
-        Returns
-        -------
-        PolarizationResult
-            Annotated DataFrame and count summary.
+        Returns:
+            PolarizationResult: Annotated DataFrame and count summary.
 
-        Raises
-        ------
-        KeyError
-            If ``self.pp_col`` is not found in *df*.
+        Raises:
+            KeyError: If ``self.pp_col`` is not found in *df*.
         """
         if self.pp_col not in df.columns:
             raise KeyError(

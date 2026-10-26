@@ -207,7 +207,7 @@ class Dataset:
         )
         return
 
-    def get_n_traces(self):
+    def get_n_traces(self) -> int:
         """Return the number of trace parameter sets currently stored.
 
         Returns:
@@ -470,7 +470,7 @@ class DataSource(object):
         i.close()
         return rti
 
-    def save_scaled_dataset(self, params=["hmF2", "foF2"]):
+    def save_scaled_dataset(self, params: list[str] = ["hmF2", "foF2"]) -> None:
         """Persist selected scaled parameters to a CSV file.
 
         Args:

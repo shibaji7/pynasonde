@@ -39,8 +39,8 @@ Filter stages
 
 All stages are independently toggleable and fully parameterised.
 
-Usage
------
+**Usage**
+
 Single sounding::
 
     from pynasonde.vipir.riq.parsers.filter import IonogramFilter
@@ -93,86 +93,61 @@ def _to_dataframe(source) -> pd.DataFrame:
 class IonogramFilter:
     """Multi-stage coherent filter for VIPIR ionospheric echo clouds.
 
-    Parameters
-    ----------
-    rfi_enabled : bool
-        Toggle Stage 1 (RFI blanking). Default ``True``.
-    rfi_height_iqr_km : float
-        A frequency step is declared RFI/noise when the inter-quartile range
-        of echo heights at that frequency exceeds this value.  Ionospheric
-        echoes cluster near E/F-layer heights (height IQR < 150 km); RFI
-        scatters echoes across all gates (height IQR > 300–800 km).
-        Default ``300.0``.
-    rfi_min_echoes : int
-        Minimum number of echoes at a frequency before any per-frequency
-        Stage 1 test is applied.  Default ``3``.
-    ep_filter_enabled : bool
-        Toggle Stage 2 (EP / planar-wavefront filter). Default ``True``.
-    ep_max_deg : float
-        Echoes with ``residual_deg > ep_max_deg`` are rejected (non-planar
-        wavefront / multipath).  Ignored when ``ep_filter_enabled=False`` or
-        when ``residual_deg`` is NaN (single-receiver echoes).  Set
-        conservatively high (e.g. 90°) — oblique real echoes can have
-        EP 50–80°; let DBSCAN (Stage 4) handle subtler cases.
-        Default ``90.0``.
-    multihop_enabled : bool
-        Toggle Stage 3 (multi-hop removal). Default ``True``.
-    multihop_orders : tuple of int
-        Harmonic orders to check.  ``(2, 3)`` checks for 2F and 3F echoes.
-        Default ``(2, 3)``.
-    multihop_height_tol_km : float
-        An echo at height *h* is considered an n-th order multi-hop if
-        ``|h - n × h_1F| < multihop_height_tol_km``. Default ``50.0``.
-    multihop_snr_margin_db : float
-        Additionally, the candidate multi-hop echo must be weaker than the
-        1F echo by at least this many dB. Default ``6.0``.
-    dbscan_enabled : bool
-        Toggle Stage 4 (DBSCAN clustering). Default ``True``.
-    dbscan_eps : float
-        DBSCAN neighbourhood radius in normalised feature space. Default ``1.0``.
-    dbscan_min_samples : int
-        Minimum cluster size for DBSCAN. Default ``5``.
-    dbscan_features : tuple of str
-        Feature columns used for DBSCAN.  Columns absent from the DataFrame
-        or entirely NaN are silently skipped. Default
-        ``("frequency_khz", "height_km", "velocity_mps", "amplitude_db", "residual_deg")``.
-    dbscan_feature_scales : dict, optional
-        Per-feature normalisation scale (σ).  Keys are column names, values
-        are positive floats.  If a key is missing or ``None``, the standard
-        deviation of that feature in the current batch is used.
-    ransac_enabled : bool
-        Toggle Stage 5 (RANSAC trace fitting). Default ``True``.
-    ransac_residual_km : float
-        Maximum height residual |h - h*(f)| for an echo to be considered an
-        inlier of the fitted trace.  Generous values (100 km) tolerate
-        spread-F; tighter values (50 km) enforce a clean single-layer trace.
-        Default ``100.0``.
-    ransac_min_samples : int
-        Number of randomly sampled echoes used to estimate the trace model in
-        each RANSAC iteration.  Must be ≥ ``ransac_poly_degree + 1``.
-        Default ``10``.
-    ransac_n_iter : int
-        Number of RANSAC iterations per sounding.  More iterations improve
-        robustness at the cost of compute time.  Default ``200``.
-    ransac_poly_degree : int
-        Degree of the polynomial h*(f) used as the trace model.  Degree 3
-        captures the curvature of the F-layer trace; higher degrees risk
-        overfitting on sparse soundings.  Default ``3``.
-    ransac_min_inlier_fraction : float
-        Minimum fraction of active echoes that must be inliers for the
-        fitted model to be accepted.  If no iteration reaches this threshold
-        the stage is skipped.  Default ``0.3``.
-    temporal_enabled : bool
-        Toggle Stage 6 (temporal coherence). Automatically disabled when
-        only one sounding is provided. Default ``True``.
-    temporal_min_soundings : int
-        An echo is retained only if a matching echo (within the tolerance
-        windows below) exists in at least this many of the provided soundings.
-        Default ``3``.
-    temporal_freq_bin_khz : float
-        Frequency bin width for the temporal coherence grid (kHz). Default ``50``.
-    temporal_height_bin_km : float
-        Height bin width for the temporal coherence grid (km). Default ``50``.
+    Args:
+        rfi_enabled (bool): Toggle Stage 1 (RFI blanking). Default ``True``.
+        rfi_height_iqr_km (float): A frequency step is declared RFI/noise when the inter-quartile range
+            of echo heights at that frequency exceeds this value.  Ionospheric
+            echoes cluster near E/F-layer heights (height IQR < 150 km); RFI
+            scatters echoes across all gates (height IQR > 300–800 km).
+            Default ``300.0``.
+        rfi_min_echoes (int): Minimum number of echoes at a frequency before any per-frequency
+            Stage 1 test is applied.  Default ``3``.
+        ep_filter_enabled (bool): Toggle Stage 2 (EP / planar-wavefront filter). Default ``True``.
+        ep_max_deg (float): Echoes with ``residual_deg > ep_max_deg`` are rejected (non-planar
+            wavefront / multipath).  Ignored when ``ep_filter_enabled=False`` or
+            when ``residual_deg`` is NaN (single-receiver echoes).  Set
+            conservatively high (e.g. 90°) — oblique real echoes can have
+            EP 50–80°; let DBSCAN (Stage 4) handle subtler cases.
+            Default ``90.0``.
+        multihop_enabled (bool): Toggle Stage 3 (multi-hop removal). Default ``True``.
+        multihop_orders (tuple of int): Harmonic orders to check.  ``(2, 3)`` checks for 2F and 3F echoes.
+            Default ``(2, 3)``.
+        multihop_height_tol_km (float): An echo at height *h* is considered an n-th order multi-hop if
+            ``|h - n × h_1F| < multihop_height_tol_km``. Default ``50.0``.
+        multihop_snr_margin_db (float): Additionally, the candidate multi-hop echo must be weaker than the
+            1F echo by at least this many dB. Default ``6.0``.
+        dbscan_enabled (bool): Toggle Stage 4 (DBSCAN clustering). Default ``True``.
+        dbscan_eps (float): DBSCAN neighbourhood radius in normalised feature space. Default ``1.0``.
+        dbscan_min_samples (int): Minimum cluster size for DBSCAN. Default ``5``.
+        dbscan_features (tuple of str): Feature columns used for DBSCAN.  Columns absent from the DataFrame
+            or entirely NaN are silently skipped. Default
+            ``("frequency_khz", "height_km", "velocity_mps", "amplitude_db", "residual_deg")``.
+        dbscan_feature_scales (dict, optional): Per-feature normalisation scale (σ).  Keys are column names, values
+            are positive floats.  If a key is missing or ``None``, the standard
+            deviation of that feature in the current batch is used.
+        ransac_enabled (bool): Toggle Stage 5 (RANSAC trace fitting). Default ``True``.
+        ransac_residual_km (float): Maximum height residual |h - h*(f)| for an echo to be considered an
+            inlier of the fitted trace.  Generous values (100 km) tolerate
+            spread-F; tighter values (50 km) enforce a clean single-layer trace.
+            Default ``100.0``.
+        ransac_min_samples (int): Number of randomly sampled echoes used to estimate the trace model in
+            each RANSAC iteration.  Must be ≥ ``ransac_poly_degree + 1``.
+            Default ``10``.
+        ransac_n_iter (int): Number of RANSAC iterations per sounding.  More iterations improve
+            robustness at the cost of compute time.  Default ``200``.
+        ransac_poly_degree (int): Degree of the polynomial h*(f) used as the trace model.  Degree 3
+            captures the curvature of the F-layer trace; higher degrees risk
+            overfitting on sparse soundings.  Default ``3``.
+        ransac_min_inlier_fraction (float): Minimum fraction of active echoes that must be inliers for the
+            fitted model to be accepted.  If no iteration reaches this threshold
+            the stage is skipped.  Default ``0.3``.
+        temporal_enabled (bool): Toggle Stage 6 (temporal coherence). Automatically disabled when
+            only one sounding is provided. Default ``True``.
+        temporal_min_soundings (int): An echo is retained only if a matching echo (within the tolerance
+            windows below) exists in at least this many of the provided soundings.
+            Default ``3``.
+        temporal_freq_bin_khz (float): Frequency bin width for the temporal coherence grid (kHz). Default ``50``.
+        temporal_height_bin_km (float): Height bin width for the temporal coherence grid (km). Default ``50``.
     """
 
     def __init__(
@@ -258,22 +233,18 @@ class IonogramFilter:
     ) -> pd.DataFrame:
         """Run all enabled filter stages and return the surviving echoes.
 
-        Parameters
-        ----------
-        sources : EchoExtractor | pd.DataFrame | list thereof
-            One or more sounding sources.  Each element may be an
-            :class:`~pynasonde.vipir.riq.echo.EchoExtractor`, a
-            ``pd.DataFrame`` of echoes, or a list of
-            :class:`~pynasonde.vipir.riq.echo.Echo` objects.
+        Args:
+            sources (EchoExtractor | pd.DataFrame | list thereof): One or more sounding sources.  Each element may be an
+                :class:`~pynasonde.vipir.riq.echo.EchoExtractor`, a
+                ``pd.DataFrame`` of echoes, or a list of
+                :class:`~pynasonde.vipir.riq.echo.Echo` objects.
 
-        Returns
-        -------
-        pd.DataFrame
-            Filtered echo DataFrame.  A ``sounding_index`` column (int) is
-            always present; for a single sounding it is all zeros.  A
-            ``filter_mask`` boolean column marks the echoes that survived
-            *all* enabled stages (always ``True`` in the returned frame,
-            kept for traceability when the caller retains the original).
+        Returns:
+            pd.DataFrame: Filtered echo DataFrame.  A ``sounding_index`` column (int) is
+                always present; for a single sounding it is all zeros.  A
+                ``filter_mask`` boolean column marks the echoes that survived
+                *all* enabled stages (always ``True`` in the returned frame,
+                kept for traceability when the caller retains the original).
         """
         # ── Normalise input to list of DataFrames ────────────────────────
         if not isinstance(sources, (list, tuple)):
@@ -616,8 +587,8 @@ class IonogramFilter:
         The fit is performed **per sounding_index** so that each sounding's
         independently moving ionospheric trace is captured separately.
 
-        Algorithm
-        ---------
+        **Algorithm**
+
         For each iteration:
           1. Randomly sample ``ransac_min_samples`` echoes from the active pool.
           2. Fit polynomial  h*(f_norm) = polyval(coeffs, f_norm).

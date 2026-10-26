@@ -94,7 +94,7 @@ class ModMaxExtractor(object):
         )
         return
 
-    def extract(self):
+    def extract(self) -> None:
         """Extract all blocks and frequency groups from the MMM file."""
         self.records = []
         with open(self.filename, "rb") as file:

@@ -44,8 +44,8 @@ from pynasonde.digisonde.scaler.schema import normalize_echo_dataframe
 class NeighborPredictedFilter:
     """Remove RFI by checking trace continuity against neighboring frequencies.
 
-    Algorithm
-    ---------
+    **Algorithm**
+
     1. For each unique frequency bin fₖ, compute the minimum virtual
        height hₖ = min(h at fₖ) as the trace candidate.
     2. Using the ±n_neighbors adjacent frequency steps, build a local
@@ -59,22 +59,17 @@ class NeighborPredictedFilter:
     frequency, it is *kept* because it is consistent with the local trace
     continuity predicted by its clean neighbours.
 
-    Parameters
-    ----------
-    tolerance_km : float
-        Maximum allowed deviation from the neighbor-predicted h' [km].
-        Default 40 km — tight enough to reject RFI, wide enough to
-        accommodate genuine layer curvature near foF2.
-    n_neighbors : int
-        Frequency steps on each side used for the h' prediction.
-        Default 4.
-    freq_bin : float
-        Frequency bin width for grouping echoes before neighbour
-        prediction.  Units must match the frequency column passed to
-        ``clean()``; default 0.05 MHz (50 kHz) for canonical frequency values.
-    min_neighbors : int
-        Minimum clean neighbours required to make a prediction; if
-        fewer are available the step is left unfiltered.  Default 2.
+    Args:
+        tolerance_km (float): Maximum allowed deviation from the neighbor-predicted h' [km].
+            Default 40 km — tight enough to reject RFI, wide enough to
+            accommodate genuine layer curvature near foF2.
+        n_neighbors (int): Frequency steps on each side used for the h' prediction.
+            Default 4.
+        freq_bin (float): Frequency bin width for grouping echoes before neighbour
+            prediction.  Units must match the frequency column passed to
+            ``clean()``; default 0.05 MHz (50 kHz) for canonical frequency values.
+        min_neighbors (int): Minimum clean neighbours required to make a prediction; if
+            fewer are available the step is left unfiltered.  Default 2.
     """
 
     def __init__(
@@ -165,8 +160,8 @@ class NeighborPredictedFilter:
 class ColumnDensityFilter:
     """Remove RFI vertical stripes by detecting anomalously wide height spans.
 
-    Algorithm
-    ---------
+    **Algorithm**
+
     For each frequency bin:
       1. Compute height span  Δh = h_max − h_min.
       2. If Δh > *rfi_span_km* → flag as RFI column.
@@ -178,23 +173,18 @@ class ColumnDensityFilter:
     a real trace echo at a contaminated frequency sits near the median
     height, so it survives clipping while the RFI tails do not.
 
-    Parameters
-    ----------
-    rfi_span_km : float
-        Height-span threshold [km].  Columns with Δh > this are flagged.
-        Default 150 km.  Real single-layer reflections rarely exceed
-        50–80 km span; RFI typically spans 200–400 km.
-    iqr_factor : float
-        Clip window half-width = iqr_factor × IQR around the median.
-        Default 1.5  (matches Tukey fence).
-    freq_bin : float
-        Frequency bin width.  Units must match the frequency column
-        passed to ``clean()``; default 50000 (50 kHz) for raw RSF Hz
-        values.
-    hard_delete : bool
-        If True, completely remove all echoes in flagged columns (no IQR
-        clip). Simpler, but loses any real echo at that frequency.
-        Default False.
+    Args:
+        rfi_span_km (float): Height-span threshold [km].  Columns with Δh > this are flagged.
+            Default 150 km.  Real single-layer reflections rarely exceed
+            50–80 km span; RFI typically spans 200–400 km.
+        iqr_factor (float): Clip window half-width = iqr_factor × IQR around the median.
+            Default 1.5  (matches Tukey fence).
+        freq_bin (float): Frequency bin width.  Units must match the frequency column
+            passed to ``clean()``; default 50000 (50 kHz) for raw RSF Hz
+            values.
+        hard_delete (bool): If True, completely remove all echoes in flagged columns (no IQR
+            clip). Simpler, but loses any real echo at that frequency.
+            Default False.
     """
 
     def __init__(
@@ -288,21 +278,18 @@ class ColumnDensityFilter:
 class VerticalRfiFilter:
     """Remove vertical RFI stripes using O-mode echo count per frequency bin.
 
-    Algorithm
-    ---------
+    **Algorithm**
+
     1. Select O-mode echoes (``pol == "O"``).
     2. Count echoes per frequency bin.
     3. Flag bins whose count exceeds ``max_echoes_per_bin``.
     4. Hard-delete ALL echoes (both polarizations) at flagged frequencies.
 
-    Parameters
-    ----------
-    max_echoes_per_bin : int
-        Frequency bins with more O-mode echoes than this are treated as RFI
-        and hard-deleted.  Real ionospheric traces have ~5–30 O-mode echoes
-        per 50 kHz bin; RFI stripes typically have 50–128.  Default 40.
-    freq_bin : float
-        Bin width in MHz. Default 0.05 MHz (50 kHz) for canonical data.
+    Args:
+        max_echoes_per_bin (int): Frequency bins with more O-mode echoes than this are treated as RFI
+            and hard-deleted.  Real ionospheric traces have ~5–30 O-mode echoes
+            per 50 kHz bin; RFI stripes typically have 50–128.  Default 40.
+        freq_bin (float): Bin width in MHz. Default 0.05 MHz (50 kHz) for canonical data.
     """
 
     def __init__(
@@ -376,10 +363,9 @@ class VerticalRfiFilter:
 
         Call after ``clean()`` to visualise which bins were flagged.
 
-        Parameters
-        ----------
-        out_path   : Save PNG here when given.
-        time_label : Added to the figure title (e.g. sounding time string).
+        Args:
+            out_path (Save PNG here when given.):
+            time_label (Added to the figure title (e.g. sounding time string).):
         """
         import matplotlib.pyplot as plt
 
@@ -456,16 +442,16 @@ class AdaptiveAmpGate:
     and returns both the threshold and the contiguous datetime window over
     which it is stable.
 
-    Methods
-    -------
+    **Methods**
+
     ``"otsu"``   — Otsu's inter-class variance maximisation (numpy only).
     ``"gmm"``    — 2-component Gaussian mixture; threshold = analytic
                    crossover of the two fitted Gaussians (requires sklearn).
     ``"kernel"`` — KDE valley search between the two dominant peaks
                    (requires scipy).
 
-    Usage
-    -----
+    **Usage**
+
     ::
 
         from pynasonde.digisonde.scaler import AdaptiveAmpGate
@@ -479,28 +465,21 @@ class AdaptiveAmpGate:
         # Apply to a DataFrame:
         df_gated = df[df["amplitude_db"] >= gate.threshold]
 
-    Parameters
-    ----------
-    method : str
-        ``"otsu"`` | ``"gmm"`` | ``"kernel"``.  Default ``"otsu"``.
-    amp_col : str
-        Amplitude column name in the parser's ``to_pandas()`` output.
-        Default ``"amplitude_db"`` (canonical scaler name).
-    n_jobs : int
-        Parallel file-loading workers (joblib loky backend).  Default 4.
-    fallback : float
-        Returned when detection fails or result is out of bounds.
-        Default 27.0.
-    n_bins : int
-        Histogram bin count for Otsu and the diagnostic plot.  Default 128.
-    validity_tol_dB : float
-        A per-file threshold is considered "consistent" with the global
-        threshold when |T_file − T_global| ≤ this value.  Used to shrink
-        the reported time window when conditions drift.  Default 5.0 dB.
-    amp_lo, amp_hi : float
-        Hard bounds on the returned threshold.  Any detection outside
-        ``[amp_lo, amp_hi]`` triggers the fallback.  RSF ``amplitude`` is
-        an integer 0–127 SNR scale, so defaults are 1 / 60.
+    Args:
+        method (str): ``"otsu"`` | ``"gmm"`` | ``"kernel"``.  Default ``"otsu"``.
+        amp_col (str): Amplitude column name in the parser's ``to_pandas()`` output.
+            Default ``"amplitude_db"`` (canonical scaler name).
+        n_jobs (int): Parallel file-loading workers (joblib loky backend).  Default 4.
+        fallback (float): Returned when detection fails or result is out of bounds.
+            Default 27.0.
+        n_bins (int): Histogram bin count for Otsu and the diagnostic plot.  Default 128.
+        validity_tol_dB (float): A per-file threshold is considered "consistent" with the global
+            threshold when |T_file − T_global| ≤ this value.  Used to shrink
+            the reported time window when conditions drift.  Default 5.0 dB.
+        amp_lo (float): Hard lower bound on the returned threshold.  Any detection
+            outside ``[amp_lo, amp_hi]`` triggers the fallback.  RSF ``amplitude`` is
+            an integer 0–127 SNR scale, so defaults are 1 / 60.
+        amp_hi (float): Hard upper bound on the returned threshold (see ``amp_lo``).
     """
 
     def __init__(
@@ -536,13 +515,11 @@ class AdaptiveAmpGate:
     def fit(self, files: list[str]) -> "AdaptiveAmpGate":
         """Load *files* in parallel, pool amplitudes, detect threshold.
 
-        Parameters
-        ----------
-        files : list of paths to RSF / SBF / MMM files.
+        Args:
+            files (list of paths to RSF / SBF / MMM files.):
 
-        Returns
-        -------
-        self — allows chaining: ``gate.fit(files).threshold``.
+        Returns:
+            self — allows chaining: ``gate.fit(files).threshold``.:
         """
         if not files:
             logger.warning("AdaptiveAmpGate.fit: empty file list")
@@ -833,10 +810,9 @@ class AdaptiveAmpGate:
         Also shows the per-file threshold time-series and the valid window
         (shaded) in a second panel.
 
-        Parameters
-        ----------
-        out_path : save PNG here; calls ``plt.show()`` when None.
-        n_bins   : histogram bins (defaults to ``self.n_bins``).
+        Args:
+            out_path (save PNG here; calls ``plt.show()`` when None.):
+            n_bins (histogram bins (defaults to ``self.n_bins``).):
         """
         import matplotlib.dates as mdates
         import matplotlib.pyplot as plt

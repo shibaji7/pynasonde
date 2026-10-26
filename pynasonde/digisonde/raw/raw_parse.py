@@ -47,7 +47,7 @@ import datetime as dt
 import math
 import socket
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import netCDF4
 import numpy as np
@@ -55,6 +55,9 @@ from loguru import logger
 from scipy import fft as sp_fft
 
 from pynasonde.digisonde.raw.iq_reader import IQStream
+
+if TYPE_CHECKING:  # xarray is imported lazily inside to_xarray()
+    import xarray as xr
 
 # ---------------------------------------------------------------------------
 # Constants and phase codes
@@ -97,33 +100,23 @@ class IonogramResult:
     standard compressed NetCDF product, or :meth:`to_xarray` to get an
     in-memory ``xarray.Dataset`` for interactive analysis.
 
-    Attributes
-    ----------
-    frequency_hz:
-        RF frequencies at which the sounding was taken, shape ``(n_freqs,)``,
-        in Hz.
-    range_km:
-        Virtual heights (group range) corresponding to each range gate, shape
-        ``(n_ranges,)``, in km.  The 220 µs Digisonde hardware delay has
-        already been subtracted.
-    time_unix:
-        Unix timestamp of the first pulse for each sounding frequency, shape
-        ``(n_freqs,)``.
-    power_o:
-        Ordinary-mode receive power (linear, arbitrary units), shape
-        ``(n_freqs, n_ranges)``.
-    power_x:
-        Extraordinary-mode receive power (linear, arbitrary units), same shape.
-        All zeros when ``Polarization != "O and X"``.
-    phase_o:
-        Ordinary-mode phase at the Doppler peak (radians), or ``None`` when
-        ``Save Phase`` was not requested.
-    phase_x:
-        Extraordinary-mode phase at the Doppler peak (radians), or ``None``.
-    program_id:
-        Identifier string from the program dictionary (e.g. ``"DPS4D_Kirtland0"``).
-    epoch:
-        UTC epoch of the sounding.
+    Attributes:
+        frequency_hz: RF frequencies at which the sounding was taken, shape ``(n_freqs,)``,
+            in Hz.
+        range_km: Virtual heights (group range) corresponding to each range gate, shape
+            ``(n_ranges,)``, in km.  The 220 µs Digisonde hardware delay has
+            already been subtracted.
+        time_unix: Unix timestamp of the first pulse for each sounding frequency, shape
+            ``(n_freqs,)``.
+        power_o: Ordinary-mode receive power (linear, arbitrary units), shape
+            ``(n_freqs, n_ranges)``.
+        power_x: Extraordinary-mode receive power (linear, arbitrary units), same shape.
+            All zeros when ``Polarization != "O and X"``.
+        phase_o: Ordinary-mode phase at the Doppler peak (radians), or ``None`` when
+            ``Save Phase`` was not requested.
+        phase_x: Extraordinary-mode phase at the Doppler peak (radians), or ``None``.
+        program_id: Identifier string from the program dictionary (e.g. ``"DPS4D_Kirtland0"``).
+        epoch: UTC epoch of the sounding.
     """
 
     frequency_hz: np.ndarray
@@ -152,15 +145,11 @@ class IonogramResult:
     def power_db(self, mode: str = "total") -> np.ndarray:
         """Return SNR in dB, normalised so the median equals 0 dB.
 
-        Parameters
-        ----------
-        mode:
-            ``"total"`` (default), ``"O"``, or ``"X"``.
+        Args:
+            mode: ``"total"`` (default), ``"O"``, or ``"X"``.
 
-        Returns
-        -------
-        np.ndarray
-            Array clipped to ``[0, 255]`` dB, shape ``(n_freqs, n_ranges)``.
+        Returns:
+            np.ndarray: Array clipped to ``[0, 255]`` dB, shape ``(n_freqs, n_ranges)``.
         """
         src = {"total": self.power_total, "O": self.power_o, "X": self.power_x}[mode]
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -176,10 +165,8 @@ class IonogramResult:
     def to_netcdf(self, path: Path | str) -> None:
         """Write the ionogram to a compressed NetCDF4 file.
 
-        Parameters
-        ----------
-        path:
-            Destination file path (parent directories must exist).
+        Args:
+            path: Destination file path (parent directories must exist).
         """
         pow_uint8 = self.power_db("total").astype(np.uint8)
         nc_path = Path(path)
@@ -263,16 +250,15 @@ class IonogramResult:
         finally:
             dataset.close()
 
-    def to_xarray(self):
+    def to_xarray(self) -> "xr.Dataset":
         """Return the ionogram as an ``xarray.Dataset``.
 
         The dataset has dimensions ``(frequency, range)`` with frequency in MHz
         and range in km.  Both linear power arrays (O- and X-mode) and the
         normalised dB power are included as data variables.
 
-        Returns
-        -------
-        xarray.Dataset
+        Returns:
+            xarray.Dataset: The ionogram with dimensions ``(frequency, range)``.
         """
         import xarray as xr
 
@@ -400,34 +386,23 @@ def read_pulse(
     baseband (full receiver bandwidth); use the FFT-domain mixing logic in
     :func:`process` to tune to a narrower band around a specific frequency.
 
-    Parameters
-    ----------
-    program:
-        Same program dictionary passed to :func:`process`.
-    dir_iq:
-        Root directory of the IQ recording tree.
-    coarse_index:
-        Which coarse-frequency step to read (0-based).
-    fine_index:
-        Fine-frequency sub-step within the coarse step (0 for most programs).
-    pol_index:
-        Polarisation index: 0 = O-mode, 1 = X-mode.
-    rep_index:
-        Repeat (integration) index within the CIT, 0 … nRep-1.
-    comp_index:
-        Complementary-code index: 0 = code A, 1 = code B.
+    Args:
+        program: Same program dictionary passed to :func:`process`.
+        dir_iq: Root directory of the IQ recording tree.
+        coarse_index: Which coarse-frequency step to read (0-based).
+        fine_index: Fine-frequency sub-step within the coarse step (0 for most programs).
+        pol_index: Polarisation index: 0 = O-mode, 1 = X-mode.
+        rep_index: Repeat (integration) index within the CIT, 0 … nRep-1.
+        comp_index: Complementary-code index: 0 = code A, 1 = code B.
 
-    Returns
-    -------
-    np.ndarray
-        Complex64 array of length ``n_samples`` (next power-of-two of
-        ``IPP × f_sample``).
+    Returns:
+        np.ndarray: Complex64 array of length ``n_samples`` (next power-of-two of
+            ``IPP × f_sample``).
 
-    Examples
-    --------
-    >>> samples = read_pulse(program, "/media/data", coarse_index=0)
-    >>> import matplotlib.pyplot as plt
-    >>> plt.plot(samples.real[:500])
+    Examples:
+        >>> samples = read_pulse(program, "/media/data", coarse_index=0)
+        >>> import matplotlib.pyplot as plt
+        >>> plt.plot(samples.real[:500])
     """
     epoch = _ensure_datetime(program["Epoch"])
     ipp_seconds = float(program["Inter-Pulse Period"])
@@ -503,45 +478,37 @@ def process(
     3. Vectorised Doppler FFT across all range gates → peak power and phase.
     4. Optionally write a compressed NetCDF product.
 
-    Parameters
-    ----------
-    program:
-        Dictionary of sounding-program parameters.  Required keys:
+    Args:
+        program: Dictionary of sounding-program parameters.  Required keys:
 
-        * ``"Epoch"`` – :class:`datetime.datetime` or Unix timestamp
-        * ``"ID"`` – string identifier written into the NetCDF
-        * ``"Freq Stepping Law"`` – must be ``"linear"``
-        * ``"Wave Form"`` – must be ``"16-chip complementary"``
-        * ``"Lower Freq Limit"`` / ``"Upper Freq Limit"`` – Hz
-        * ``"Coarse Freq Step"`` / ``"Fine Freq step"`` – Hz
-        * ``"Number of Fine Steps"`` – int
-        * ``"Fine Multiplexing"`` – bool
-        * ``"Inter-Pulse Period"`` – seconds (IPP)
-        * ``"Number of Integrated Repeats"`` – int (nRep)
-        * ``"Interpulse Phase Switching"`` – bool
-        * ``"Polarization"`` – ``"O and X"`` or ``"O"``
+            * ``"Epoch"`` – :class:`datetime.datetime` or Unix timestamp
+            * ``"ID"`` – string identifier written into the NetCDF
+            * ``"Freq Stepping Law"`` – must be ``"linear"``
+            * ``"Wave Form"`` – must be ``"16-chip complementary"``
+            * ``"Lower Freq Limit"`` / ``"Upper Freq Limit"`` – Hz
+            * ``"Coarse Freq Step"`` / ``"Fine Freq step"`` – Hz
+            * ``"Number of Fine Steps"`` – int
+            * ``"Fine Multiplexing"`` – bool
+            * ``"Inter-Pulse Period"`` – seconds (IPP)
+            * ``"Number of Integrated Repeats"`` – int (nRep)
+            * ``"Interpulse Phase Switching"`` – bool
+            * ``"Polarization"`` – ``"O and X"`` or ``"O"``
 
-        Optional keys: ``"rxTag"`` (default ``"ch0"``),
-        ``"Save Phase"`` (default ``False``), ``"FFTMode"`` (default ``False``).
-    dir_iq:
-        Root directory containing the time-partitioned IQ recordings.
-    out_dir:
-        Root directory for NetCDF output.  A sub-path
-        ``<hostname>/<ID>/<YYYY-mm-dd>/`` is created automatically.
-    min_range, max_range:
-        Reserved for future range-gate masking (not yet applied).
-    nc_flag:
-        Write the NetCDF product when ``True`` (default).
-    verbose:
-        Emit progress messages via ``loguru``.
+            Optional keys: ``"rxTag"`` (default ``"ch0"``),
+            ``"Save Phase"`` (default ``False``), ``"FFTMode"`` (default ``False``).
+        dir_iq: Root directory containing the time-partitioned IQ recordings.
+        out_dir: Root directory for NetCDF output.  A sub-path
+            ``<hostname>/<ID>/<YYYY-mm-dd>/`` is created automatically.
+        min_range: Reserved for future range-gate masking (not yet applied).
+        max_range: Reserved for future range-gate masking (not yet applied).
+        nc_flag: Write the NetCDF product when ``True`` (default).
+        verbose: Emit progress messages via ``loguru``.
 
-    Returns
-    -------
-    IonogramResult or None
-        ``None`` only if the output file already existed and was skipped.
+    Returns:
+        IonogramResult or None: ``None`` only if the output file already existed and was skipped.
 
-    Notes
-    -----
+    **Notes**
+
     **Integration depth and file count** — see module docstring for the full
     table.  For the default Kirtland schedule (IPP = 10 ms, nRep = 8, O+X,
     2–15 MHz at 30 kHz steps) each call reads ≈139 one-second ``.bin`` files

@@ -183,60 +183,50 @@ class EchoExtractor:
        ``snr_threshold_db``.
     5. Computes all eight parameters at each qualifying gate.
 
-    Parameters
-    ----------
-    sct : SctType
-        Sounder configuration table — must have been fully populated from a
-        binary RIQ file.  Key sub-structures used:
+    Args:
+        sct (SctType): Sounder configuration table — must have been fully populated from a
+            binary RIQ file.  Key sub-structures used:
 
-        * ``sct.station.rx_count``       — number of active receivers
-        * ``sct.station.rx_position``    — ``(rx_count, 3)`` array of
-          ``[East_m, North_m, Up_m]`` receiver positions
-        * ``sct.station.rx_direction``   — ``(rx_count, 3)`` unit direction
-          vectors (used for PP estimation)
-        * ``sct.timing.{gate_start, gate_end, gate_step}`` — gate timing (µs)
-        * ``sct.timing.pri``             — pulse repetition interval (µs)
+            * ``sct.station.rx_count``       — number of active receivers
+            * ``sct.station.rx_position``    — ``(rx_count, 3)`` array of
+              ``[East_m, North_m, Up_m]`` receiver positions
+            * ``sct.station.rx_direction``   — ``(rx_count, 3)`` unit direction
+              vectors (used for PP estimation)
+            * ``sct.timing.{gate_start, gate_end, gate_step}`` — gate timing (µs)
+            * ``sct.timing.pri``             — pulse repetition interval (µs)
+        pulsets (list of Pulset): Grouped pulse data as produced by
+            :class:`~pynasonde.vipir.riq.parsers.read_riq.RiqDataset`.
+            Each element must expose a ``.pcts`` attribute that is a list of
+            :class:`~pynasonde.vipir.riq.datatypes.pct.PctType` objects, each
+            carrying ``pulse_i`` and ``pulse_q`` arrays of shape
+            ``(gate_count, rx_count)``.
+        snr_threshold_db (float, default 3.0): Minimum coherent SNR (dB) a gate must exceed to qualify as an echo
+            candidate.  Gates below this value are silently discarded.
+        min_height_km (float, default 50.0): Minimum virtual height (km) considered for echo detection.  Gates
+            below this threshold are skipped unconditionally.  Set to 0 to
+            disable the filter.  The default (50 km) excludes direct-wave and
+            near-field clutter, which can easily dominate the first few gates
+            and crowd out ionospheric returns when ``max_echoes_per_pulset`` is
+            small.
+        max_height_km (float, default 1000.0): Maximum virtual height (km) considered for echo detection.  Gates
+            above this threshold are skipped.  Ionospheric echoes above ~1000 km
+            are extremely rare; setting this avoids aliased end-of-range samples
+            that are common in the last few percent of range gates.
+        min_rx_for_direction (int, default 3): Minimum number of receivers required to attempt the spatial
+            least-squares fit that yields XL, YL, and EP.  When fewer receivers
+            are available those three parameters remain NaN.  Set to 0 or 1 to
+            attempt the fit even with only two antennas (only one baseline —
+            the system will be exactly determined rather than overdetermined).
+        max_echoes_per_pulset (int or None, default 5): Maximum number of echo candidates retained per frequency step.
+            Candidates are ranked by descending amplitude before truncation.
+            Pass ``None`` to keep all candidates above the SNR threshold.
 
-    pulsets : list of Pulset
-        Grouped pulse data as produced by
-        :class:`~pynasonde.vipir.riq.parsers.read_riq.RiqDataset`.
-        Each element must expose a ``.pcts`` attribute that is a list of
-        :class:`~pynasonde.vipir.riq.datatypes.pct.PctType` objects, each
-        carrying ``pulse_i`` and ``pulse_q`` arrays of shape
-        ``(gate_count, rx_count)``.
-    snr_threshold_db : float, default 3.0
-        Minimum coherent SNR (dB) a gate must exceed to qualify as an echo
-        candidate.  Gates below this value are silently discarded.
-    min_height_km : float, default 50.0
-        Minimum virtual height (km) considered for echo detection.  Gates
-        below this threshold are skipped unconditionally.  Set to 0 to
-        disable the filter.  The default (50 km) excludes direct-wave and
-        near-field clutter, which can easily dominate the first few gates
-        and crowd out ionospheric returns when ``max_echoes_per_pulset`` is
-        small.
-    max_height_km : float, default 1000.0
-        Maximum virtual height (km) considered for echo detection.  Gates
-        above this threshold are skipped.  Ionospheric echoes above ~1000 km
-        are extremely rare; setting this avoids aliased end-of-range samples
-        that are common in the last few percent of range gates.
-    min_rx_for_direction : int, default 3
-        Minimum number of receivers required to attempt the spatial
-        least-squares fit that yields XL, YL, and EP.  When fewer receivers
-        are available those three parameters remain NaN.  Set to 0 or 1 to
-        attempt the fit even with only two antennas (only one baseline —
-        the system will be exactly determined rather than overdetermined).
-    max_echoes_per_pulset : int or None, default 5
-        Maximum number of echo candidates retained per frequency step.
-        Candidates are ranked by descending amplitude before truncation.
-        Pass ``None`` to keep all candidates above the SNR threshold.
-
-    Examples
-    --------
-    >>> riq = RiqDataset.create_from_file("WI937_2022233235902.RIQ")
-    >>> extractor = EchoExtractor(riq.sct, riq.pulsets)
-    >>> extractor.extract()
-    >>> df = extractor.to_dataframe()
-    >>> ds = extractor.to_xarray()
+    Examples:
+        >>> riq = RiqDataset.create_from_file("WI937_2022233235902.RIQ")
+        >>> extractor = EchoExtractor(riq.sct, riq.pulsets)
+        >>> extractor.extract()
+        >>> df = extractor.to_dataframe()
+        >>> ds = extractor.to_xarray()
     """
 
     def __init__(
@@ -331,11 +321,9 @@ class EchoExtractor:
         Iterates every pulset, assembles the IQ cube, and accumulates
         :class:`Echo` objects in ``self._echoes``.
 
-        Returns
-        -------
-        EchoExtractor
-            ``self``, enabling method chaining (e.g.,
-            ``EchoExtractor(...).extract().to_dataframe()``).
+        Returns:
+            EchoExtractor: ``self``, enabling method chaining (e.g.,
+                ``EchoExtractor(...).extract().to_dataframe()``).
         """
         echoes: List[Echo] = []
         n_total = len(self.pulsets)
@@ -374,15 +362,11 @@ class EchoExtractor:
         Each row is one :class:`Echo`; columns correspond to its fields.
         The DataFrame index is the sequential echo number.
 
-        Returns
-        -------
-        pandas.DataFrame
-            Empty DataFrame when no echoes were found.
+        Returns:
+            pandas.DataFrame: Empty DataFrame when no echoes were found.
 
-        Raises
-        ------
-        RuntimeError
-            If :meth:`extract` has not been called.
+        Raises:
+            RuntimeError: If :meth:`extract` has not been called.
         """
         self._require_extracted()
         if not self._echoes:
@@ -398,15 +382,11 @@ class EchoExtractor:
         ``echo_index``.  CF-convention ``units`` and ``long_name`` attributes
         are attached to every variable.
 
-        Returns
-        -------
-        xarray.Dataset
-            Empty Dataset when no echoes were found.
+        Returns:
+            xarray.Dataset: Empty Dataset when no echoes were found.
 
-        Raises
-        ------
-        RuntimeError
-            If :meth:`extract` has not been called.
+        Raises:
+            RuntimeError: If :meth:`extract` has not been called.
         """
         self._require_extracted()
         df = self.to_dataframe()
@@ -460,10 +440,8 @@ class EchoExtractor:
     def echoes(self) -> List[Echo]:
         """Read-only list of extracted :class:`Echo` objects.
 
-        Raises
-        ------
-        RuntimeError
-            If :meth:`extract` has not been called.
+        Raises:
+            RuntimeError: If :meth:`extract` has not been called.
         """
         self._require_extracted()
         return self._echoes
@@ -507,58 +485,47 @@ class EchoExtractor:
         echoes with geometrically diverse arrival directions yields the 3-D
         drift vector **[Vx, Vy, Vz]**.
 
-        Parameters
-        ----------
-        height_bin_km : float or None, default None
-            If given, echoes are grouped into non-overlapping height bins of
-            this width (km) and a separate **[Vx, Vy, Vz]** is fit per bin.
-            Pass ``None`` (default) to use all echoes from the sounding in a
-            single whole-sounding fit.
-        min_echoes : int, default 6
-            Minimum number of valid echoes (finite XL, YL, V*) required to
-            attempt a fit.  Bins with fewer echoes return NaN for all velocity
-            components.  This count is checked *after* EP filtering and *after*
-            sigma-clipping, so the actual echoes used may be fewer than the
-            raw count.
-        snr_weight : bool, default True
-            Weight each echo by its linear SNR (``10 ** (snr_db / 20)``) so
-            high-confidence echoes drive the fit more than weak ones.
-        n_sigma : float, default 2.5
-            Sigma-clipping threshold.  After each LS fit the per-echo LOS
-            residual ``r_i = V*_i − (l·Vx + m·Vy + n·Vz)`` is computed.
-            Echoes with ``|r_i| > n_sigma * std(r)`` are rejected and the fit
-            is repeated.  Iteration continues until no more echoes are rejected
-            or *max_iter* is reached.  Set to ``np.inf`` to disable clipping.
-        max_iter : int, default 5
-            Maximum number of sigma-clipping iterations per bin.
-        max_ep_deg : float or None, default None
-            If given, echoes whose planar-wavefront residual EP
-            (``residual_deg``) exceeds this value are removed *before* the
-            velocity fit.  EP is large for multipath / non-planar echoes that
-            would corrupt the direction-cosine matrix.  A value of 20–40 °
-            is typical.  ``None`` disables this pre-filter.
+        Args:
+            height_bin_km (float or None, default None): If given, echoes are grouped into non-overlapping height bins of
+                this width (km) and a separate **[Vx, Vy, Vz]** is fit per bin.
+                Pass ``None`` (default) to use all echoes from the sounding in a
+                single whole-sounding fit.
+            min_echoes (int, default 6): Minimum number of valid echoes (finite XL, YL, V*) required to
+                attempt a fit.  Bins with fewer echoes return NaN for all velocity
+                components.  This count is checked *after* EP filtering and *after*
+                sigma-clipping, so the actual echoes used may be fewer than the
+                raw count.
+            snr_weight (bool, default True): Weight each echo by its linear SNR (``10 ** (snr_db / 20)``) so
+                high-confidence echoes drive the fit more than weak ones.
+            n_sigma (float, default 2.5): Sigma-clipping threshold.  After each LS fit the per-echo LOS
+                residual ``r_i = V*_i − (l·Vx + m·Vy + n·Vz)`` is computed.
+                Echoes with ``|r_i| > n_sigma * std(r)`` are rejected and the fit
+                is repeated.  Iteration continues until no more echoes are rejected
+                or *max_iter* is reached.  Set to ``np.inf`` to disable clipping.
+            max_iter (int, default 5): Maximum number of sigma-clipping iterations per bin.
+            max_ep_deg (float or None, default None): If given, echoes whose planar-wavefront residual EP
+                (``residual_deg``) exceeds this value are removed *before* the
+                velocity fit.  EP is large for multipath / non-planar echoes that
+                would corrupt the direction-cosine matrix.  A value of 20–40 °
+                is typical.  ``None`` disables this pre-filter.
 
-        Returns
-        -------
-        pandas.DataFrame
-            One row per height bin when *height_bin_km* is given, or a single
-            row for the whole-sounding fit.  Columns:
+        Returns:
+            pandas.DataFrame: One row per height bin when *height_bin_km* is given, or a single
+                row for the whole-sounding fit.  Columns:
 
-            * ``height_bin_km``  — bin centre (km); absent in whole-sounding mode
-            * ``vx_mps``         — eastward drift velocity (m/s)
-            * ``vy_mps``         — northward drift velocity (m/s)
-            * ``vz_mps``         — vertical drift velocity (m/s)
-            * ``residual_mps``   — RMS LOS misfit after sigma-clipping (m/s)
-            * ``condition_number`` — condition number of the direction-cosine
-              matrix A; values > 100 indicate poor geometric diversity
-              (nearly all echoes near-vertical → Vx/Vy unreliable)
-            * ``n_echoes``       — echoes used in the final fit
-            * ``n_rejected``     — echoes removed by sigma-clipping
+                * ``height_bin_km``  — bin centre (km); absent in whole-sounding mode
+                * ``vx_mps``         — eastward drift velocity (m/s)
+                * ``vy_mps``         — northward drift velocity (m/s)
+                * ``vz_mps``         — vertical drift velocity (m/s)
+                * ``residual_mps``   — RMS LOS misfit after sigma-clipping (m/s)
+                * ``condition_number`` — condition number of the direction-cosine
+                  matrix A; values > 100 indicate poor geometric diversity
+                  (nearly all echoes near-vertical → Vx/Vy unreliable)
+                * ``n_echoes``       — echoes used in the final fit
+                * ``n_rejected``     — echoes removed by sigma-clipping
 
-        Raises
-        ------
-        RuntimeError
-            If :meth:`extract` has not been called.
+        Raises:
+            RuntimeError: If :meth:`extract` has not been called.
         """
         self._require_extracted()
         df = self.to_dataframe()
@@ -694,16 +661,13 @@ class EchoExtractor:
     def _build_iq_cube(self, pulset) -> np.ndarray:
         """Assemble the complex IQ cube for one pulse set.
 
-        Parameters
-        ----------
-        pulset : Pulset
-            A pulse set whose ``.pcts`` list contains one PCT per pulse.
-            Each PCT carries ``pulse_i`` and ``pulse_q`` arrays of shape
-            ``(gate_count, rx_count)``.
+        Args:
+            pulset (Pulset): A pulse set whose ``.pcts`` list contains one PCT per pulse.
+                Each PCT carries ``pulse_i`` and ``pulse_q`` arrays of shape
+                ``(gate_count, rx_count)``.
 
-        Returns
-        -------
-        np.ndarray, complex128, shape (pulse_count, gate_count, rx_count)
+        Returns:
+            np.ndarray, complex128, shape (pulse_count, gate_count, rx_count):
         """
         parts = [
             pct.pulse_i.astype(np.float64) + 1j * pct.pulse_q.astype(np.float64)
@@ -719,19 +683,13 @@ class EchoExtractor:
     ) -> List[Echo]:
         """Compute all parameters at every qualifying gate in one pulset.
 
-        Parameters
-        ----------
-        C : np.ndarray, complex, shape (pulse_count, gate_count, rx_count)
-            Complex IQ cube for one pulse set.
-        freq_khz : float
-            Sounding frequency (kHz).
-        pulse_ut : float
-            UT time-stamp of the first pulse (seconds from file epoch).
+        Args:
+            C (np.ndarray, complex, shape (pulse_count, gate_count, rx_count)): Complex IQ cube for one pulse set.
+            freq_khz (float): Sounding frequency (kHz).
+            pulse_ut (float): UT time-stamp of the first pulse (seconds from file epoch).
 
-        Returns
-        -------
-        list of Echo
-            May be empty when no gate exceeds the SNR threshold.
+        Returns:
+            list of Echo: May be empty when no gate exceeds the SNR threshold.
         """
         pulse_time = self._epoch_dt + timedelta(seconds=pulse_ut)
         n_pulse, n_gate, n_rx = C.shape
@@ -853,17 +811,12 @@ class EchoExtractor:
 
             V^* = \\frac{f_{\\text{d}} \\cdot c}{2 f_0}
 
-        Parameters
-        ----------
-        C_gate : np.ndarray, complex, shape (pulse_count, rx_count)
-            IQ samples at one range gate for every pulse and receiver.
-        freq_hz : float
-            Sounding frequency (Hz) used to convert Doppler to velocity.
+        Args:
+            C_gate (np.ndarray, complex, shape (pulse_count, rx_count)): IQ samples at one range gate for every pulse and receiver.
+            freq_hz (float): Sounding frequency (Hz) used to convert Doppler to velocity.
 
-        Returns
-        -------
-        tuple of (doppler_hz, velocity_mps)
-            Both NaN when the pulse count is less than two.
+        Returns:
+            tuple of (doppler_hz, velocity_mps): Both NaN when the pulse count is less than two.
         """
         n_pulse = C_gate.shape[0]
         if n_pulse < 2:
@@ -911,20 +864,14 @@ class EchoExtractor:
 
         and the residual EP is the RMS misfit in degrees.
 
-        Parameters
-        ----------
-        C_gate_mean : np.ndarray, complex, shape (rx_count,)
-            Coherent mean phasors at one gate (one complex number per Rx).
-        height_km : float
-            Virtual height R' (km) used to project direction cosines to km.
-        wavelength_m : float
-            Free-space wavelength at the sounding frequency (m).
+        Args:
+            C_gate_mean (np.ndarray, complex, shape (rx_count,)): Coherent mean phasors at one gate (one complex number per Rx).
+            height_km (float): Virtual height R' (km) used to project direction cosines to km.
+            wavelength_m (float): Free-space wavelength at the sounding frequency (m).
 
-        Returns
-        -------
-        tuple of (xl_km, yl_km, residual_deg)
-            XL (km), YL (km), and EP (degrees).  All NaN when fewer than
-            two antenna pairs can be formed.
+        Returns:
+            tuple of (xl_km, yl_km, residual_deg): XL (km), YL (km), and EP (degrees).  All NaN when fewer than
+                two antenna pairs can be formed.
         """
         n_rx = len(C_gate_mean)
         rows_A: List[np.ndarray] = []
@@ -982,15 +929,11 @@ class EchoExtractor:
         parameter derivation here once the polarisation basis of each VIPIR
         antenna is documented.
 
-        Parameters
-        ----------
-        C_gate_mean : np.ndarray, complex, shape (rx_count,)
-            Coherent mean phasors at one gate, one per receiver.
+        Args:
+            C_gate_mean (np.ndarray, complex, shape (rx_count,)): Coherent mean phasors at one gate, one per receiver.
 
-        Returns
-        -------
-        float
-            Polarisation rotation PP (degrees), or NaN when indeterminate.
+        Returns:
+            float: Polarisation rotation PP (degrees), or NaN when indeterminate.
         """
         n_rx = len(C_gate_mean)
         if n_rx < 2 or self._rx_dir.shape[0] < 2:
@@ -1045,26 +988,19 @@ class EchoExtractor:
         and avoids the single-source assumption when the diagonal loading
         regulariser ``δ`` is kept small.
 
-        Parameters
-        ----------
-        C_gate_mean : np.ndarray, complex, shape (rx_count,)
-            Coherent mean phasors at one range gate (one value per receiver).
-        height_km : float
-            Virtual height R' (km) — used to project direction cosines to km.
-        wavelength_m : float
-            Free-space wavelength at the sounding frequency (m).
-        n_steer : int, default 181
-            Number of steering angles sampled in *each* dimension
-            (azimuth ∈ [0, 2π], elevation ∈ [0, π/2]).  The total grid
-            has ``n_steer² / 2`` unique (l, m) points.
+        Args:
+            C_gate_mean (np.ndarray, complex, shape (rx_count,)): Coherent mean phasors at one range gate (one value per receiver).
+            height_km (float): Virtual height R' (km) — used to project direction cosines to km.
+            wavelength_m (float): Free-space wavelength at the sounding frequency (m).
+            n_steer (int, default 181): Number of steering angles sampled in *each* dimension
+                (azimuth ∈ [0, 2π], elevation ∈ [0, π/2]).  The total grid
+                has ``n_steer² / 2`` unique (l, m) points.
 
-        Returns
-        -------
-        tuple of (xl_km_mvdr, yl_km_mvdr, residual_deg_mvdr)
-            Eastward offset (km), northward offset (km), and the half-power
-            beam-width of the MVDR spatial spectrum peak (degrees — a proxy
-            for angular resolution / uncertainty).  All NaN when fewer than
-            two receivers are available.
+        Returns:
+            tuple of (xl_km_mvdr, yl_km_mvdr, residual_deg_mvdr): Eastward offset (km), northward offset (km), and the half-power
+                beam-width of the MVDR spatial spectrum peak (degrees — a proxy
+                for angular resolution / uncertainty).  All NaN when fewer than
+                two receivers are available.
         """
         n_rx = len(C_gate_mean)
         if n_rx < 2:
@@ -1158,19 +1094,14 @@ class EchoExtractor:
         this method provides a direct, signed measurement and is meaningful
         when receivers have non-zero height offsets (``rx_position[:, 2]``).
 
-        Parameters
-        ----------
-        C_gate_mean : np.ndarray, complex, shape (rx_count,)
-            Coherent mean phasors at one gate.
-        wavelength_m : float
-            Free-space wavelength at the sounding frequency (m).
+        Args:
+            C_gate_mean (np.ndarray, complex, shape (rx_count,)): Coherent mean phasors at one gate.
+            wavelength_m (float): Free-space wavelength at the sounding frequency (m).
 
-        Returns
-        -------
-        float
-            Elevation angle (degrees, positive = above horizon).
-            NaN when fewer than three unique baselines are available or when
-            all Up-coordinate differences are zero (flat array).
+        Returns:
+            float: Elevation angle (degrees, positive = above horizon).
+                NaN when fewer than three unique baselines are available or when
+                all Up-coordinate differences are zero (flat array).
         """
         n_rx = len(C_gate_mean)
         rows_A: List[np.ndarray] = []
@@ -1221,22 +1152,17 @@ class EchoExtractor:
         * Non-stationarity (Doppler smearing across the pulse set)
         * The spectral width of the dominant return (layer coherence)
 
-        Parameters
-        ----------
-        C_gate : np.ndarray, complex, shape (pulse_count, rx_count)
-            IQ samples at one range gate.
-        freq_hz : float
-            Sounding frequency (Hz) — used to convert Doppler bins to
-            velocity (m/s) for the ``velocity_axis`` attribute.
+        Args:
+            C_gate (np.ndarray, complex, shape (pulse_count, rx_count)): IQ samples at one range gate.
+            freq_hz (float): Sounding frequency (Hz) — used to convert Doppler bins to
+                velocity (m/s) for the ``velocity_axis`` attribute.
 
-        Returns
-        -------
-        DopplerSpectrum
-            NamedTuple with fields:
+        Returns:
+            DopplerSpectrum: NamedTuple with fields:
 
-            * ``spectrum``       — power spectrum (float64, shape pulse_count), normalised to unit peak
-            * ``velocity_axis``  — corresponding radial velocity (m/s)
-            * ``doppler_axis``   — corresponding Doppler frequency (Hz)
+                * ``spectrum``       — power spectrum (float64, shape pulse_count), normalised to unit peak
+                * ``velocity_axis``  — corresponding radial velocity (m/s)
+                * ``doppler_axis``   — corresponding Doppler frequency (Hz)
         """
         n_pulse = C_gate.shape[0]
         if n_pulse < 2:

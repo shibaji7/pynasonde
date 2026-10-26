@@ -365,7 +365,7 @@ class DriftBaseConnector:
         )
         return self
 
-    def close(self):
+    def close(self) -> None:
         """Close the active Firebird connection, if any."""
         if self._con:
             self._con.close()

@@ -67,15 +67,11 @@ class IQStream:
     """
     Direct stream reader mirroring the Julia ``IQStream`` object.
 
-    Parameters
-    ----------
-    dir_iq:
-        Root directory that contains the time-partitioned IQ recordings.
-    epoch:
-        Approximate epoch from which to start the stream.  This can be naive
-        (assumed UTC) or timezone-aware.
-    rx_tag:
-        Channel tag that identifies which stream to use (defaults to ``"ch0"``).
+    Args:
+        dir_iq: Root directory that contains the time-partitioned IQ recordings.
+        epoch: Approximate epoch from which to start the stream.  This can be naive
+            (assumed UTC) or timezone-aware.
+        rx_tag: Channel tag that identifies which stream to use (defaults to ``"ch0"``).
     """
 
     dir_iq: Path
@@ -295,12 +291,9 @@ def get_channels(
     """
     Return the unique channel tags available in the current minute directory.
 
-    Parameters
-    ----------
-    dir_iq:
-        Root IQ directory.
-    epoch:
-        Optional epoch to inspect.  Defaults to ``datetime.now(timezone.utc)``.
+    Args:
+        dir_iq: Root IQ directory.
+        epoch: Optional epoch to inspect.  Defaults to ``datetime.now(timezone.utc)``.
     """
     dir_path = Path(dir_iq)
     epoch = _ensure_utc(epoch or dt.datetime.now(_UTC))

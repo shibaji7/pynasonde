@@ -451,7 +451,7 @@ class Ionogram(object):
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
-    def close(self):
+    def close(self) -> None:
         """Release Matplotlib resources associated with the figure."""
         self.fig.clf()
         plt.close()

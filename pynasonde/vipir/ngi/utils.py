@@ -48,7 +48,7 @@ def remove_outliers(o: pd.DataFrame, pname: str, quantiles=[0.05, 0.95]):
     return o
 
 
-def running_median(arr, window=21):
+def running_median(arr: list[float] | np.ndarray, window: int = 21) -> list[float]:
     """Compute a moving median with the given window size.
 
     Args:
@@ -61,7 +61,7 @@ def running_median(arr, window=21):
     return pd.Series(arr).rolling(window=window, min_periods=1).median().tolist()
 
 
-def smooth(x, window_len=11, window="hanning"):
+def smooth(x: np.ndarray, window_len: int = 11, window: str = "hanning") -> np.ndarray:
     """Apply a windowed smoothing convolution to a 1-D array.
 
     Args:
@@ -93,7 +93,7 @@ def smooth(x, window_len=11, window="hanning"):
     return y
 
 
-def setsize(size=8):
+def setsize(size: int = 8) -> None:
     """Configure matplotlib defaults for a consistent style.
 
     The ``scienceplots`` styles are applied when the package is installed
@@ -166,7 +166,9 @@ def load_toml(fpath: str = None) -> SimpleNamespace:
     return cfg
 
 
-def get_color_by_index(index, total_indices, cmap_name="viridis"):
+def get_color_by_index(
+    index: int, total_indices: int, cmap_name: str = "viridis"
+) -> tuple[float, float, float, float]:
     """Pick a color from a colormap using an index within ``[0, total)``.
 
     Args:
@@ -189,7 +191,14 @@ def get_color_by_index(index, total_indices, cmap_name="viridis"):
     return cmap(norm_index)
 
 
-def get_gridded_parameters(q, xparam, yparam, zparam, r=1, rounding=True):
+def get_gridded_parameters(
+    q: pd.DataFrame,
+    xparam: str,
+    yparam: str,
+    zparam: str,
+    r: int = 1,
+    rounding: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Reshape scattered parameter samples onto an evenly-spaced grid.
 
     Args:

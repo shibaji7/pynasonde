@@ -113,7 +113,7 @@ class RawPlots(object):
         self.fig.savefig(filepath, bbox_inches="tight")
         return
 
-    def close(self):
+    def close(self) -> None:
         """Close the Matplotlib figure."""
         self.fig.clf()
         plt.close()

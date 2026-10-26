@@ -14,7 +14,18 @@ from pynasonde.vipir.ngi.source import Dataset
 
 
 # Define the parabola function
-def parabola(x, a, b, c):
+def parabola(x: float | np.ndarray, a: float, b: float, c: float) -> float | np.ndarray:
+    """Evaluate the quadratic ``a * x**2 + b * x + c``.
+
+    Args:
+        x: Independent variable (scalar or array).
+        a: Quadratic coefficient.
+        b: Linear coefficient.
+        c: Constant term.
+
+    Returns:
+        The polynomial evaluated at ``x`` (same shape as ``x``).
+    """
     return a * x**2 + b * x + c
 
 
@@ -441,6 +452,18 @@ class AutoScaler(object):
     @staticmethod
     def median_filter_fos_hms(x: np.array, method: str = "", window: int = 11):
         # This method is used to conduct a 1D median filter on the final hms and fos.
+        """Smooth a 1-D series of final hmF2 or foF2 values.
+
+        Warning:
+            This helper is not used inside pynasonde and currently refers to
+            undefined names (``window_len``, ``numpy``), so calling it raises
+            ``NameError``. Use :func:`pynasonde.vipir.ngi.utils.smooth` instead.
+
+        Args:
+            x: 1-D array to smooth.
+            method: Unused.
+            window: Window length in samples.
+        """
         if x.ndim != 1:
             raise ValueError("smooth only accepts 1 dimension arrays.")
         if x.size < window:

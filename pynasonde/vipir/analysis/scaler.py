@@ -78,33 +78,21 @@ _RNG_SEED = 42
 class ScaledParameters:
     """Scaled ionospheric parameters for one ionogram sounding.
 
-    Parameters
-    ----------
-    foE_mhz:
-        E-layer critical frequency (MHz).  ``NaN`` when no E-layer
-        echoes are found.
-    h_prime_E_km:
-        E-layer minimum virtual height (km).  ``NaN`` when absent.
-    foF1_mhz:
-        F1-layer critical frequency (MHz).  Often absent / ``NaN``.
-    h_prime_F1_km:
-        F1-layer minimum virtual height (km).  ``NaN`` when absent.
-    foF2_mhz:
-        F2-layer critical frequency (MHz).  ``NaN`` when absent.
-    h_prime_F2_km:
-        F2-layer minimum virtual height (km).  ``NaN`` when absent.
-    MUF3000_mhz:
-        MUF for a 3 000 km path (MHz).  ``NaN`` when foF2 is absent.
-    M3000F2:
-        Transmission factor MUF(3000)/foF2 (dimensionless).
-        ``NaN`` when foF2 is absent.
-    foF2_sigma_mhz:
-        Bootstrap standard deviation of foF2 (MHz).
-    h_prime_F2_sigma_km:
-        Bootstrap standard deviation of h'F2 (km).
-    quality_flags:
-        Dict of boolean flags: ``"E_detected"``, ``"F1_detected"``,
-        ``"F2_detected"``, ``"foF2_reliable"`` (≥ 5 O-mode echoes).
+    Args:
+        foE_mhz: E-layer critical frequency (MHz).  ``NaN`` when no E-layer
+            echoes are found.
+        h_prime_E_km: E-layer minimum virtual height (km).  ``NaN`` when absent.
+        foF1_mhz: F1-layer critical frequency (MHz).  Often absent / ``NaN``.
+        h_prime_F1_km: F1-layer minimum virtual height (km).  ``NaN`` when absent.
+        foF2_mhz: F2-layer critical frequency (MHz).  ``NaN`` when absent.
+        h_prime_F2_km: F2-layer minimum virtual height (km).  ``NaN`` when absent.
+        MUF3000_mhz: MUF for a 3 000 km path (MHz).  ``NaN`` when foF2 is absent.
+        M3000F2: Transmission factor MUF(3000)/foF2 (dimensionless).
+            ``NaN`` when foF2 is absent.
+        foF2_sigma_mhz: Bootstrap standard deviation of foF2 (MHz).
+        h_prime_F2_sigma_km: Bootstrap standard deviation of h'F2 (km).
+        quality_flags: Dict of boolean flags: ``"E_detected"``, ``"F1_detected"``,
+            ``"F2_detected"``, ``"foF2_reliable"`` (≥ 5 O-mode echoes).
     """
 
     foE_mhz: float
@@ -152,14 +140,11 @@ class ScaledParameters:
     def plot(self, ax: Optional[plt.Axes] = None) -> plt.Axes:
         """Bar chart of the key scaled parameters with uncertainty bars.
 
-        Parameters
-        ----------
-        ax:
-            Existing axes.  A new figure is created when ``None``.
+        Args:
+            ax: Existing axes.  A new figure is created when ``None``.
 
-        Returns
-        -------
-        matplotlib.axes.Axes
+        Returns:
+            matplotlib.axes.Axes:
         """
         if ax is None:
             _, ax = plt.subplots(figsize=(7, 4))
@@ -216,37 +201,27 @@ class IonogramScaler:
     is absent all echoes are treated as O-mode (consistent with
     :class:`~pynasonde.vipir.analysis.spread_f.SpreadFAnalyzer`).
 
-    Parameters
-    ----------
-    e_layer_height_range_km:
-        Height window for E-layer detection (km).  Default ``(90, 160)``.
-    f1_layer_height_range_km:
-        Height window for F1-layer detection (km).  Default ``(160, 250)``.
-    f2_layer_height_range_km:
-        Height window for F2-layer detection (km).  Default ``(160, 800)``.
-    e_freq_range_mhz:
-        Frequency window for E-layer cluster selection (MHz).
-        Default ``(1.0, 4.5)``.
-    f1_detection_threshold_mhz:
-        A local maximum in the O-mode trace between foE and foF2 is
-        interpreted as foF1 only if it exceeds foE by this margin (MHz).
-        Default ``0.3``.
-    min_echoes_for_layer:
-        Minimum O-mode echo count required before a layer is considered
-        detected.  Default ``3``.
-    n_bootstrap:
-        Number of bootstrap resamples for uncertainty estimation.
-        Default ``200``.
-    mode_col:
-        Name of the wave-mode column.  Default ``"mode"``.
+    Args:
+        e_layer_height_range_km: Height window for E-layer detection (km).  Default ``(90, 160)``.
+        f1_layer_height_range_km: Height window for F1-layer detection (km).  Default ``(160, 250)``.
+        f2_layer_height_range_km: Height window for F2-layer detection (km).  Default ``(160, 800)``.
+        e_freq_range_mhz: Frequency window for E-layer cluster selection (MHz).
+            Default ``(1.0, 4.5)``.
+        f1_detection_threshold_mhz: A local maximum in the O-mode trace between foE and foF2 is
+            interpreted as foF1 only if it exceeds foE by this margin (MHz).
+            Default ``0.3``.
+        min_echoes_for_layer: Minimum O-mode echo count required before a layer is considered
+            detected.  Default ``3``.
+        n_bootstrap: Number of bootstrap resamples for uncertainty estimation.
+            Default ``200``.
+        mode_col: Name of the wave-mode column.  Default ``"mode"``.
 
-    Examples
-    --------
-    >>> from pynasonde.vipir.analysis.polarization import PolarizationClassifier
-    >>> from pynasonde.vipir.analysis.scaler import IonogramScaler
-    >>> pol    = PolarizationClassifier().fit(df)
-    >>> params = IonogramScaler().fit(pol.annotated_df)
-    >>> print(params.summary())
+    Examples:
+        >>> from pynasonde.vipir.analysis.polarization import PolarizationClassifier
+        >>> from pynasonde.vipir.analysis.scaler import IonogramScaler
+        >>> pol    = PolarizationClassifier().fit(df)
+        >>> params = IonogramScaler().fit(pol.annotated_df)
+        >>> print(params.summary())
     """
 
     def __init__(
@@ -318,9 +293,8 @@ class IonogramScaler:
     def _bootstrap_f2(self, f2_echoes: pd.DataFrame) -> tuple[float, float]:
         """Bootstrap σ estimates for foF2 and h'F2.
 
-        Returns
-        -------
-        (sigma_foF2_mhz, sigma_h_prime_F2_km)
+        Returns:
+            (sigma_foF2_mhz, sigma_h_prime_F2_km):
         """
         if len(f2_echoes) < self.min_echoes:
             return np.nan, np.nan
@@ -352,9 +326,8 @@ class IonogramScaler:
         2. The minimum virtual height shows a local minimum (cusping)
            relative to adjacent frequency steps.
 
-        Returns
-        -------
-        (foF1_mhz, h_prime_F1_km) — both ``NaN`` when not detected.
+        Returns:
+            (foF1_mhz, h_prime_F1_km) — both ``NaN`` when not detected.:
         """
         if np.isnan(fo_e) or np.isnan(fo_f2):
             return np.nan, np.nan
@@ -393,16 +366,13 @@ class IonogramScaler:
     def fit(self, df: pd.DataFrame) -> ScaledParameters:
         """Scale ionospheric parameters from an echo DataFrame.
 
-        Parameters
-        ----------
-        df:
-            Echo DataFrame — must contain ``frequency_khz`` and
-            ``height_km``.  Optionally contains a ``mode`` column
-            (from :class:`~pynasonde.vipir.analysis.polarization.PolarizationClassifier`).
+        Args:
+            df: Echo DataFrame — must contain ``frequency_khz`` and
+                ``height_km``.  Optionally contains a ``mode`` column
+                (from :class:`~pynasonde.vipir.analysis.polarization.PolarizationClassifier`).
 
-        Returns
-        -------
-        ScaledParameters
+        Returns:
+            ScaledParameters:
         """
         for col in ("frequency_khz", "height_km"):
             if col not in df.columns:

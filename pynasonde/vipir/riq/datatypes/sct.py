@@ -228,7 +228,7 @@ class StationType:
         self.clean()
         return
 
-    def clean(self):
+    def clean(self) -> None:
         """Trim fixed-size arrays to the configured channel/count sizes.
 
         After reading a binary block many arrays are initialized to a
@@ -340,7 +340,7 @@ class TimingType:
         self.clean()
         return
 
-    def clean(self):
+    def clean(self) -> None:
         """Trim waveform arrays to their configured lengths."""
         self.data_baud = self.data_baud[: self.data_baud_count]
         self.cal_baud = self.cal_baud[: self.cal_baud_count]
@@ -425,7 +425,7 @@ class FrequencyType:
         self.clean()
         return
 
-    def clean(self):
+    def clean(self) -> None:
         """Trim tables to their configured lengths."""
         self.base_table = self.base_table[: self.base_steps]
         self.drive_table = self.drive_table[: self.base_steps]
@@ -552,7 +552,8 @@ class ExciterType:
         self.clean()
         return
 
-    def clean(self):
+    def clean(self) -> None:
+        """Truncate ``self.coefficients`` to the first ``self.rcf_taps`` entries."""
         self.coefficients = self.coefficients[: self.rcf_taps]
         return
 

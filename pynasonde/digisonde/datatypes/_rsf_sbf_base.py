@@ -145,7 +145,7 @@ class RsfSbfDataUnit:
     header: object = None
     frequency_groups: List[object] = None
 
-    def setup(self):
+    def setup(self) -> None:
         """Populate per-group height arrays from the block header."""
         for group in self.frequency_groups:
             group.height = self.header.range_start + (

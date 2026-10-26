@@ -39,7 +39,7 @@ class TimeZoneConversion:
         )
         return
 
-    def utc_to_local_time(self, dates):
+    def utc_to_local_time(self, dates: list) -> list:
         """Translate an iterable of UTC datetimes to the configured local zone.
 
         Args:

@@ -14,13 +14,12 @@ import math
 
 
 # Determine if the number is odd
-def odd(i):
+def odd(i: int) -> bool:
     """
     Determine if the argument is odd. Zero is considered even.
 
-    Parameters:
-        i: int
-            Integer to check for oddness.
+    Args:
+        i: Integer to check for oddness.
 
     Returns:
         True if odd, False if even.
@@ -29,13 +28,12 @@ def odd(i):
 
 
 # Determine if the number is even
-def even(i):
+def even(i: int) -> bool:
     """
     Determine if the argument is even. Zero is considered even.
 
-    Parameters:
-        i: int
-            Integer to check for evenness.
+    Args:
+        i: Integer to check for evenness.
 
     Returns:
         True if even, False if odd.
@@ -44,13 +42,12 @@ def even(i):
 
 
 # Function to remove null characters and return a trimmed string
-def trim_null(string):
+def trim_null(string: str) -> str:
     """
     Remove null characters (ASCII 0) from the string.
 
-    Parameters:
-        string: str
-            Input string to trim.
+    Args:
+        string: Input string to trim.
 
     Returns:
         Trimmed string with null characters replaced by spaces.
@@ -59,13 +56,12 @@ def trim_null(string):
 
 
 # Function to return the length of the string without null characters
-def len_trim_null(string):
+def len_trim_null(string: str) -> int:
     """
     Get the length of the string after stripping null characters.
 
-    Parameters:
-        string: str
-            Input string to evaluate.
+    Args:
+        string: Input string to evaluate.
 
     Returns:
         Length of the string after nulls are stripped.
@@ -74,13 +70,12 @@ def len_trim_null(string):
 
 
 # Function to unwrap phase to the [-PI, PI] range
-def unwrap(phase):
+def unwrap(phase: float) -> float:
     """
     Unwrap radian phase to the range [-PI, PI].
 
-    Parameters:
-        phase: float
-            Input phase in radians.
+    Args:
+        phase: Input phase in radians.
 
     Returns:
         Unwrapped phase.

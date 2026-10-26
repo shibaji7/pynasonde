@@ -14,15 +14,19 @@ class ScaleHmF2:
     """
 
     @staticmethod
-    def calculate_m3000f2(frequencies, virtual_heights, fof2):
+    def calculate_m3000f2(
+        frequencies: list[float] | np.ndarray,
+        virtual_heights: list[float] | np.ndarray,
+        fof2: float,
+    ) -> float:
         """
         Calculates M(3000)F2 using Paul's analytical method based on
         the geometry of a single-hop 3000 km radio transmission path.
 
-        Parameters:
-          - frequencies: list/array of trace frequency probe points (MHz)
-          - virtual_heights: list/array of trace virtual heights h' (km)
-          - fof2: F2 layer critical frequency (MHz)
+        Args:
+            frequencies: list/array of trace frequency probe points (MHz)
+            virtual_heights: list/array of trace virtual heights h' (km)
+            fof2: F2 layer critical frequency (MHz)
         """
         if len(frequencies) != len(virtual_heights) or len(frequencies) == 0:
             raise ValueError(
@@ -54,14 +58,14 @@ class ScaleHmF2:
         return max(m_factors)
 
     @staticmethod
-    def shimazaki(m3000f2):
+    def shimazaki(m3000f2: float) -> float:
         """Classic Shimazaki (1955) formula for hmF2."""
         if m3000f2 <= 0:
             raise ValueError("M(3000)F2 must be greater than 0.")
         return (1490.0 / m3000f2) - 176.0
 
     @staticmethod
-    def bilitza(m3000f2, fof2, foe):
+    def bilitza(m3000f2: float, fof2: float, foe: float) -> float:
         """Standard Bilitza (1979) formula with E-layer underlying ionization."""
         if m3000f2 <= 0 or fof2 <= 0 or foe <= 0:
             raise ValueError("Frequencies and propagation factors must be positive.")
@@ -76,13 +80,15 @@ class ScaleHmF2:
         return (1490.0 / (m3000f2 + delta_m)) - 176.0
 
     @classmethod
-    def constant_ratio_fallback(cls, m3000f2, fof2):
+    def constant_ratio_fallback(cls, m3000f2: float, fof2: float) -> float:
         """Bilitza calculation using the standard daytime fallback ratio (3.3)."""
         effective_foe = fof2 / 3.3
         return cls.bilitza(m3000f2, fof2, effective_foe)
 
     @classmethod
-    def zenith_estimate_fallback(cls, m3000f2, fof2, sza_degrees, r12):
+    def zenith_estimate_fallback(
+        cls, m3000f2: float, fof2: float, sza_degrees: float, r12: float
+    ) -> float:
         """Bilitza calculation predicting foE via provided Solar Zenith Angle and R12."""
         sza_rad = np.radians(sza_degrees)
         cos_sza = np.cos(sza_rad)
@@ -324,19 +330,21 @@ class ScaleHmF2:
 
         which is integrated by Gauss-Legendre quadrature.
 
-        Parameters
-        ----------
-        f_F, hp_F   : F2 Viterbi trace arrays (MHz, km).
-        foF2        : F2 critical frequency (MHz).
-        f_E, hp_E   : E-layer Viterbi trace arrays (MHz, km); None if absent.
-        foE, hpE    : E-layer scaled parameters from IonoscaleResult; None if absent.
-        sza_deg     : Solar zenith angle [°] — controls night/day fallback branch.
-        r12         : 12-month smoothed sunspot number — used in Chapman foE model.
-        n_e_min     : Minimum E-trace points required for "good E trace" branch.
-        n_quad      : Gauss-Legendre quadrature order (64 is sufficient).
+        Args:
+            f_F: F2 Viterbi trace frequencies (MHz).
+            hp_F: F2 Viterbi trace virtual heights (km).
+            foF2: F2 critical frequency (MHz).
+            f_E: E-layer Viterbi trace frequencies (MHz); None if absent.
+            hp_E: E-layer Viterbi trace virtual heights (km); None if absent.
+            foE: E-layer critical frequency scaled by ``IonoscaleResult``; None if absent.
+            hpE: E-layer virtual height scaled by ``IonoscaleResult``; None if absent.
+            sza_deg: Solar zenith angle [°] — controls night/day fallback branch.
+            r12: 12-month smoothed sunspot number — used in Chapman foE model.
+            n_e_min: Minimum E-trace points required for "good E trace" branch.
+            n_quad: Gauss-Legendre quadrature order (64 is sufficient).
 
         Returns:
-        hmF2 in km, or np.nan if insufficient data.
+            hmF2 in km, or ``np.nan`` if insufficient data.
         """
         if foF2 <= 0 or len(f_F) < 3:
             return np.nan

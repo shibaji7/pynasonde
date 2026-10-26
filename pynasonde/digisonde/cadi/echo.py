@@ -47,6 +47,17 @@ class CadiReceiverLayout(str, Enum):
 
     @classmethod
     def coerce(cls, layout: Union["CadiReceiverLayout", str]) -> "CadiReceiverLayout":
+        """Return ``layout`` as a :class:`CadiReceiverLayout` member.
+
+        Args:
+            layout: An existing member, or its string value (case-insensitive).
+
+        Returns:
+            The matching :class:`CadiReceiverLayout`.
+
+        Raises:
+            ValueError: If ``layout`` is not a valid layout name.
+        """
         if isinstance(layout, cls):
             return layout
         return cls(str(layout).lower())
@@ -188,6 +199,14 @@ class CadiArray:
             )
 
     def get_perpendicular_pairs(self) -> List[Tuple[int, int]]:
+        """Return pairs of active receivers with perpendicular dipoles.
+
+        Two receivers are perpendicular when their dipole orientations differ by
+        90° (modulo 180°) within a 15° tolerance.
+
+        Returns:
+            List of ``(rx_a, rx_b)`` receiver-index tuples.
+        """
         pairs = []
         for i, rx_a in enumerate(self.active_rx):
             for rx_b in self.active_rx[i + 1 :]:
@@ -200,6 +219,15 @@ class CadiArray:
         return pairs
 
     def get_same_orientation_baselines(self) -> List[Tuple[int, int, float, float]]:
+        """Return the baselines between receivers with parallel dipoles.
+
+        Receivers are parallel when their dipole orientations differ by less than
+        15° (modulo 180°).
+
+        Returns:
+            List of ``(rx_i, rx_j, delta_east, delta_north)`` tuples, a subset of
+            ``self.baselines``.
+        """
         same = []
         for rx_i, rx_j, de, dn in self.baselines:
             diff = (
@@ -279,6 +307,7 @@ class CadiEcho:
     record_datetime: object = None
 
     def to_dict(self) -> dict:
+        """Return the echo fields as a plain ``dict`` (via :func:`dataclasses.asdict`)."""
         return asdict(self)
 
 
@@ -309,6 +338,7 @@ class CadiInterferometryProduct:
     record_datetime: object = None
 
     def to_dict(self) -> dict:
+        """Return the product fields as a plain ``dict`` (via :func:`dataclasses.asdict`)."""
         return asdict(self)
 
 
@@ -527,6 +557,14 @@ class CadiEchoExtractor:
         self.echoes: List[CadiEcho] = []
 
     def extract(self) -> "CadiEchoExtractor":
+        """Compute mode, angle of arrival and Doppler for each row of ``self.df``.
+
+        Rows with fewer than three mapped receivers are skipped. Results are
+        stored in ``self.echoes``.
+
+        Returns:
+            ``self``, to allow chaining.
+        """
         echoes = []
         for _, row in self.df.iterrows():
             iq = map_file_iq_to_physical_rx(row, self.array)
@@ -594,6 +632,11 @@ class CadiEchoExtractor:
         return self
 
     def to_dataframe(self) -> pd.DataFrame:
+        """Return ``self.echoes`` as a DataFrame.
+
+        Returns:
+            One row per echo, or an empty DataFrame if no echoes were extracted.
+        """
         if not self.echoes:
             return pd.DataFrame()
         return pd.DataFrame.from_records([echo.to_dict() for echo in self.echoes])
@@ -608,6 +651,14 @@ class CadiInterferometryExtractor:
         self.products: List[CadiInterferometryProduct] = []
 
     def extract(self) -> "CadiInterferometryExtractor":
+        """Compute per-baseline interferometry products for each row of ``self.df``.
+
+        Rows with fewer than two mapped receivers are skipped. Results are stored
+        in ``self.products``.
+
+        Returns:
+            ``self``, to allow chaining.
+        """
         products = []
         for _, row in self.df.iterrows():
             iq = map_file_iq_to_physical_rx(row, self.array)
@@ -669,6 +720,12 @@ class CadiInterferometryExtractor:
         return self
 
     def to_dataframe(self) -> pd.DataFrame:
+        """Return ``self.products`` as a DataFrame.
+
+        Returns:
+            One row per baseline product, or an empty DataFrame if none were
+            extracted.
+        """
         if not self.products:
             return pd.DataFrame()
         return pd.DataFrame.from_records(

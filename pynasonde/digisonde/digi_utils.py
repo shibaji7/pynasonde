@@ -110,7 +110,7 @@ def flatten_dict(
     return flattened
 
 
-def setsize(size=8):
+def setsize(size: int = 8) -> None:
     """Set plotting font sizes and family for Matplotlib.
 
     This convenience function applies a small set of rcParam changes used
@@ -554,7 +554,7 @@ def load_dtd_file(fpath: str = None) -> etree.XMLParser:
     return parser
 
 
-def is_valid_xml_data_string(text):
+def is_valid_xml_data_string(text: str) -> bool:
     """Checks if a string contains only numbers, periods, and spaces.
 
     Args:

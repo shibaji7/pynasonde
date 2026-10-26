@@ -426,16 +426,12 @@ class ViterbiTracer(IonoscaleBase):
     ) -> tuple[IonoscaleResult, dict[str, pd.DataFrame]]:
         """Trace all layers and return (IonoscaleResult, traces dict).
 
-        Parameters
-        ----------
-        df : pd.DataFrame
-            Either raw data (``already_cleaned=False``) or the pre-cleaned
-            ``IonogramAutoScaler.cleaned_`` DataFrame (``already_cleaned=True``).
-        already_cleaned : bool
-            Skip the cleaning pipeline when True — use df directly as-is.
-        layers : list of dicts
-            Per-layer tracing parameters (name, h_lo, h_hi, sigma_trans_km,
-            max_jump_km, f_lo, f_hi).
+        Args:
+            df (pd.DataFrame): Either raw data (``already_cleaned=False``) or the pre-cleaned
+                ``IonogramAutoScaler.cleaned_`` DataFrame (``already_cleaned=True``).
+            already_cleaned (bool): Skip the cleaning pipeline when True — use df directly as-is.
+            layers (list of dicts): Per-layer tracing parameters (name, h_lo, h_hi, sigma_trans_km,
+                max_jump_km, f_lo, f_hi).
 
         Returns:
         result : IonoscaleResult

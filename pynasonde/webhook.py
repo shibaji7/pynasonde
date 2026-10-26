@@ -31,6 +31,17 @@ from tqdm import tqdm
 
 @dataclass
 class Webhook:
+    """Download NGI and RIQ files from the Wallops VIPIR archive.
+
+    Attributes:
+        URSI: Station code used to select files (for example ``"WI937"``).
+        dates: Days to download.
+        riq_url: URL template of the raw (RIQ) archive; takes ``year`` and ``doy``.
+        riq_file_name: RIQ file-name template.
+        ngi_url: URL template of the scaled ionogram (NGI) archive.
+        ngi_file_name: NGI file-name template.
+    """
+
     URSI: str = "WI937"
     dates: List[dt.datetime] = field(default_factory=lambda: [dt.datetime(2024, 9, 20)])
     riq_url: str = "http://wallops.ionosonde.net/archive/individual/{year}/{doy}/raw/"
@@ -43,6 +54,20 @@ class Webhook:
     def download(
         self, source: str = "./tmp/", itr: int = 1, ngi: bool = True, riq: bool = False
     ):
+        """Download the files for every date in ``self.dates``.
+
+        Files are saved under ``<source>/<YYYYMMDD>/`` and existing files are not
+        downloaded again.
+
+        Args:
+            source: Base directory for the downloads.
+            itr: Stop after this many matching files per day and file type.
+            ngi: Download scaled ionogram (``.ngi``) files.
+            riq: Download raw (``.RIQ``) files.
+
+        Returns:
+            Directory used for the last date processed.
+        """
         for d in self.dates:
             self.source = os.path.join(source, d.strftime("%Y%m%d"))
             os.makedirs(self.source, exist_ok=True)

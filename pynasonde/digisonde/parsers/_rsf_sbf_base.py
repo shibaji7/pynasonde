@@ -67,7 +67,7 @@ class RsfSbfBinaryBlockExtractor:
             extract_stn_from_name=extract_stn_from_name,
         )
 
-    def extract(self):
+    def extract(self) -> None:
         """Read fixed-size blocks into the concrete RSF/SBF data container."""
         data_file = self.data_file_class(**{self.units_attr: []})
         data_units = getattr(data_file, self.units_attr)
