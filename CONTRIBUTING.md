@@ -138,8 +138,10 @@ Claude Code worktrees): it is git-ignored, and CI fails if the tree contains a
 submodule or worktree pointer.
 
 - Local credentials go in a **git-ignored** `.env` file at the project root.
-  Copy the template: `cp .env.example .env` and fill it in. `tests/conftest.py`
-  and the DIDBase example load it; real environment variables take precedence.
+  Copy the template: `cp .env.example .env` and fill it in. It holds the `DIDBASE_*` and
+  `DRIFTBASE_*` settings (URL, user, password, role). `tests/conftest.py` and the DIDBase
+  example load it; real environment variables take precedence. `make test-live` runs the
+  opt-in DIDBase and DriftBase login tests.
 - Examples must not contain personal absolute paths. Take data locations from
   environment variables with a safe default (for example the bundled files in
   `examples/data/`), as `examples/digisonde/rsf_direction_ionogram.py` does.

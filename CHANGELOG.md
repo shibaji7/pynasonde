@@ -25,7 +25,7 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
 - `make check-docs` (`tools/check_docs.py`, also run in CI): verifies the docs against the code.
 - `CONTRIBUTING.md` and `ROADMAP.md`, linked from the README.
 - Credentials via a git-ignored `.env` (template: `.env.example`) and an opt-in live
-  DIDBase login test (`make test-live`).
+  DIDBase and DriftBase login tests (`make test-live`).
 - Developer tooling: colourful `make` targets (`env`, `install-dev`, `test`,
   `format`, `docs`, ...) running in the `pynasonde` conda environment.
 
