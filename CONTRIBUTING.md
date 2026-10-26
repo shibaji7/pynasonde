@@ -132,7 +132,9 @@ Tests live in `tests/` (about 980 tests, pytest). Conventions:
 
 ## Credentials and secrets
 
-Never commit credentials, tokens or private data paths.
+Never commit credentials, tokens or private data paths. Never commit `.claude/` (local
+Claude Code worktrees): it is git-ignored, and CI fails if the tree contains a
+submodule or worktree pointer.
 
 - Local credentials go in a **git-ignored** `.env` file at the project root.
   Copy the template: `cp .env.example .env` and fill it in. `tests/conftest.py`

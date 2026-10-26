@@ -181,3 +181,6 @@ pynasonde/_version.py
 
 # local planning notes
 PLAN_2_0.md
+
+# Local Claude Code workspaces (git worktrees): never commit; they show up as bogus submodules
+.claude/

@@ -331,11 +331,16 @@ release: ## Interactive release pipeline (VERSION=X.Y.Z)
 	  git status --short | sed 's/^/    /'
 	  echo ""
 	  echo "  Will run:"
-	  echo "    git add -A"
+	  echo "    git add -u        (tracked files only; untracked files are NOT added)"
 	  echo "    git commit -m \"chore: bump version to $(FULL_VER)\""
 	  echo ""
 	  if confirm "Commit all working-tree changes?"; then
-	    git add -A
+	    git add -u
+	    # Never commit a nested repository / worktree as a bogus submodule (mode 160000).
+	    if git diff --cached --raw | awk '$$2=="160000"{found=1} END{exit !found}'; then
+	      echo -e "$(RED)  ERROR: a git submodule/worktree pointer is staged. Unstage it: git reset <path>$(RESET)"
+	      exit 1
+	    fi
 	    git commit -m "chore: bump version to $(FULL_VER)"
 	    echo -e "$(GREEN)  ✔  Committed.$(RESET)"
 	  else

@@ -52,6 +52,9 @@ selector, or `/en/v1.3.0/`, `/en/stable/`, `/en/latest/`).
 - `SaoSummaryPlots` isodensity plots failed to save with Matplotlib 3.11
   (out-of-range contour labels).
 - `vipir.ngi.utils.setsize` required `scienceplots`; it is now optional.
+- A leftover local worktree pointer (`.claude/worktrees/...`, committed by mistake in the
+  v1.3.0 release commit) is removed; `.claude/` is git-ignored, `make release` no longer
+  runs `git add -A`, and CI fails if a submodule/worktree pointer is committed.
 - Deprecated `importlib.resources.path` usage in `load_toml`.
 - Importing a Digisonde parser no longer requires OpenCV (only the OCR image
   parser does).

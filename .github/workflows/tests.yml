@@ -157,6 +157,16 @@ jobs:
           black --check pynasonde tests examples
         shell: bash
 
+      - name: No submodule or worktree pointers in the tree
+        run: |
+          if git ls-files -s | awk '$1=="160000"{print "gitlink committed: " $4; bad=1} END{exit bad}'; then
+            echo "ok: no gitlinks"
+          else
+            echo "::error::Remove the gitlink with: git rm --cached <path> (never commit .claude/ worktrees)"
+            exit 1
+          fi
+        shell: bash
+
   # Same strict build Read the Docs runs (pip install .[docs]).
   docs:
     runs-on: ubuntu-latest
