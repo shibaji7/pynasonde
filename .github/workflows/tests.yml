@@ -1,4 +1,4 @@
-# Run unit tests and publish coverage to Codecov
+# Tests, per-extra install checks, lint and docs build
 name: tests
 
 on:
@@ -10,18 +10,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Full test suite on every supported Python, with every extra installed.
   pytest:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs the tags
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
@@ -30,18 +42,142 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ".[dev,plots]" scikit-learn
+          python -m pip install ".[dev]"
         shell: bash
 
       - name: Run tests with coverage
-        run: |
-          pytest
+        run: pytest
         shell: bash
 
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           verbose: true
+
+  # Each extra must install on its own and run the tests that belong to it.
+  # `--ignore` lists name the test files of the *other* family (they need
+  # modules this extra does not install); a new test file in the wrong family
+  # fails here, which is the point.
+  extras:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: core
+            extra: ""
+            smoke: core
+            pytest_args: >-
+              tests/test_lazy_imports.py tests/test_vipir_analysis.py
+              tests/test_digisonde_scaler_schema.py
+              tests/test_digisonde_scaler_postprocess.py
+              tests/test_mmm_datatypes.py tests/test_rsf_datatypes.py
+              tests/test_saoxmldatatypes_extended.py tests/test_sbf_datatypes.py
+          - name: digisonde
+            extra: digisonde
+            smoke: digisonde
+            pytest_args: >-
+              tests --ignore=tests/test_echo.py --ignore=tests/test_init_imports.py --ignore=tests/test_interferometric.py --ignore=tests/test_ionogram_filter.py --ignore=tests/test_ngi_utils_extra.py --ignore=tests/test_read_riq_utils.py --ignore=tests/test_riq_utils.py --ignore=tests/test_scale_units.py --ignore=tests/test_sct_dump.py --ignore=tests/test_source_units.py --ignore=tests/test_vipir_utils.py
+          - name: digisonde-scaler
+            extra: digisonde-scaler
+            smoke: digisonde-scaler
+            pytest_args: >-
+              tests --ignore=tests/test_echo.py --ignore=tests/test_init_imports.py --ignore=tests/test_interferometric.py --ignore=tests/test_ionogram_filter.py --ignore=tests/test_ngi_utils_extra.py --ignore=tests/test_read_riq_utils.py --ignore=tests/test_riq_utils.py --ignore=tests/test_scale_units.py --ignore=tests/test_sct_dump.py --ignore=tests/test_source_units.py --ignore=tests/test_vipir_utils.py
+          - name: vipir
+            extra: vipir
+            smoke: vipir
+            pytest_args: >-
+              tests --ignore=tests/test_cadi_reader.py --ignore=tests/test_dft_parser.py --ignore=tests/test_digi_plots_extended.py --ignore=tests/test_digi_plots.py --ignore=tests/test_digisonde_examples.py --ignore=tests/test_digisonde_filename_metadata.py --ignore=tests/test_digisonde_shared_loaders.py --ignore=tests/test_digi_utils.py --ignore=tests/test_dvl_parser.py --ignore=tests/test_examples_runtime.py --ignore=tests/test_examples_smoke.py --ignore=tests/test_grm_splitter.py --ignore=tests/test_init_imports.py --ignore=tests/test_packed_byte_parsers.py --ignore=tests/test_raw_parse_funcs.py --ignore=tests/test_raw_plots.py --ignore=tests/test_rsf_sbf_static.py --ignore=tests/test_sao_extra.py --ignore=tests/test_sao_multirecord_regression.py --ignore=tests/test_sao_parser_extended.py --ignore=tests/test_sao_parser.py --ignore=tests/test_sky_parser_full.py --ignore=tests/test_sky_parser.py
+          - name: digisonde-db
+            extra: digisonde-db
+            smoke: digisonde-db
+            pytest_args: >-
+              tests/test_lazy_imports.py
+          - name: ocr
+            extra: ocr
+            smoke: ocr
+            pytest_args: >-
+              tests/test_lazy_imports.py
+          - name: web
+            extra: web
+            smoke: web
+            pytest_args: >-
+              tests/test_webhook.py tests/test_webhook_extra.py
+
+    name: extras (${{ matrix.name }})
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install the extra only
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".${{ matrix.extra && format('[{0}]', matrix.extra) || '' }}" pytest
+        shell: bash
+
+      - name: Import smoke check
+        run: python tests/extras_smoke.py ${{ matrix.smoke }}
+        shell: bash
+
+      - name: Run the tests that belong to this extra
+        run: pytest -o addopts="" ${{ matrix.pytest_args }}
+        shell: bash
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install formatters
+        run: python -m pip install "black>=24,<25" "isort>=5,<6"
+        shell: bash
+
+      - name: Check formatting
+        run: |
+          isort --check-only pynasonde tests examples
+          black --check pynasonde tests examples
+        shell: bash
+
+  # Same strict build Read the Docs runs (pip install .[docs]).
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[docs]"
+        shell: bash
+
+      - name: Build documentation (strict)
+        run: mkdocs build --strict
+        shell: bash

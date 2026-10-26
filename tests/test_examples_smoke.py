@@ -1,0 +1,37 @@
+"""Smoke-run example scripts that ship with data, writing outputs to a temp dir."""
+
+import runpy
+from pathlib import Path
+
+import pytest
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "examples" / "data"
+
+
+@pytest.mark.skipif(
+    not list(DATA_DIR.glob("WS833_*.RSF")), reason="Sample RSF files not available"
+)
+def test_rsf_scaler_example_runs(monkeypatch, tmp_path):
+    """Run examples/digisonde/rsf_scaler.py on the bundled WS833 RSF files.
+
+    The script writes relative paths (``tmp/`` and ``docs/examples/figures/``),
+    so run it from a temporary directory with the data symlinked in; this keeps
+    the tracked figure in the repository untouched.
+    """
+    pytest.importorskip("sklearn", reason="needs pynasonde[digisonde-scaler]")
+    pytest.importorskip("joblib", reason="needs pynasonde[digisonde-scaler]")
+    pytest.importorskip("matplotlib")
+
+    (tmp_path / "examples").mkdir()
+    (tmp_path / "examples" / "data").symlink_to(DATA_DIR, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+
+    runpy.run_path(
+        str(PROJECT_ROOT / "examples/digisonde/rsf_scaler.py"), run_name="__main__"
+    )
+
+    assert (tmp_path / "tmp" / "rsf_scaled_example.csv").stat().st_size > 0
+    assert (
+        tmp_path / "docs" / "examples" / "figures" / "rsf_scaler_viterbi.png"
+    ).stat().st_size > 0

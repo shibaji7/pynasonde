@@ -92,7 +92,7 @@ docs = [
 dev = [
   "pynasonde[digisonde,digisonde-scaler,ocr,vipir,vipir-analysis,web,plots]",
   "pytest", "pytest-cov", "coverage",
-  "black", "isort", "autoflake", "build",
+  "black>=24,<25", "isort>=5,<6", "autoflake", "build",
 ]
 # kept from 1.x; no code in the package uses these yet
 training = ["torch>=2.0", "PyIRI", "pyomnidata", "tensorboard"]
