@@ -723,6 +723,7 @@ class AdaptiveAmpGate:
                     best_end = i - 1
                 run_start = None
         if run_start is not None and len(valid) - run_start > best_len:
+            best_len = len(valid) - run_start
             best_start = run_start
             best_end = len(valid) - 1
 
