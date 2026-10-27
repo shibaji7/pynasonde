@@ -1,0 +1,18 @@
+# Monthly, grouped version updates: at most one PR per ecosystem per month
+# (Python dependencies, GitHub Actions). Security fixes are grouped the same way.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
