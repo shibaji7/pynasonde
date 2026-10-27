@@ -72,7 +72,7 @@ Paste the **Prompt** into Claude Cowork and attach the files listed under *Attac
 - **Documentation and process:** versioned docs per release on Read the Docs, CHANGELOG, CONTRIBUTING,
   ROADMAP, an install page that says which extra each class needs, `make check-docs` (docs checked
   against the code), CI with one job per install extra and Python 3.11 and 3.12.
-- **Numbers:** about 980 tests; Codecov line coverage 53.94%; 54 API directives and 190 pynasonde imports in
+- **Numbers:** about 1,190 tests; coverage about 82% locally (Codecov hybrid line+branch figure; quote the live badge at the release tag, it moves per push); 54 API directives and 190 pynasonde imports in
   docs and examples all resolve.
 
 ### Packaging defect found (important for honesty in the paper)
